@@ -69,7 +69,35 @@ export const GOALS = [
     },
     prompt: 'Ziel: Allgemeine Fitness und Gesundheit – ausgewogen Kraft, Ausdauer und Beweglichkeit, moderates Volumen, Regelmäßigkeit vor Höchstleistung.',
   },
+  {
+    id: 'lose', name: 'Abnehmen',
+    desc: 'Fett verlieren, Muskeln behalten: Krafttraining bleibt, dazu Ausdauer und viel Alltagsbewegung.',
+    reps: 'hyp', volume: 0.85, finisher: true, volumeFocus: true, race: false, minSets: 6, weightGoal: true,
+    runCycle: ['run_easy', 'run_4x4', 'run_easy', 'run_3030'],
+    rot: {
+      2: ['FB_A', 'FB_B'], 3: ['FB_A', 'RUN', 'FB_B'], 4: ['FB_A', 'RUN', 'FB_B', 'FB_C'],
+      5: ['FB_A', 'RUN', 'FB_B', 'RUN', 'FB_C'], 6: ['FB_A', 'RUN', 'FB_B', 'RUN', 'FB_C', 'REG'],
+    },
+    prompt: 'Ziel: Abnehmen (Fettabbau) bei Erhalt der Muskulatur. Krafttraining bleibt der wichtigste Reiz (Ganzkörper, 6–15 Wdh., 1–3 Wdh. Reserve, Gewichte möglichst halten), dazu Ausdauer überwiegend locker (Zone 2) und ca. 1× pro Woche Intervalle; Finisher erlaubt. Empfiehl viel Alltagsbewegung (Schritte) und ausreichend Protein (ca. 1,6–2,2 g pro kg Körpergewicht). Angestrebt sind ca. 0,5–1 % Körpergewicht pro Woche; deutlich schneller → auf Leistungsabfall und Erholung achten.',
+  },
 ];
+
+// Abnehm-Ziel: Gewichtsverlauf, Tempo pro Woche, Abstand zum Zielgewicht
+export function weightStatus(data, series) {
+  const goalW = parseFloat(String(data.profile.goalWeight || '').replace(',', '.'));
+  if (!series.length) return { goalW: goalW > 0 ? goalW : null };
+  const now = series[series.length - 1];
+  const ref = series.filter((p) => daysBetween(p.date, now.date) >= 21).pop() || series[0];
+  const weeks = Math.max(1, daysBetween(ref.date, now.date) / 7);
+  const perWeek = daysBetween(ref.date, now.date) >= 7 ? (now.avg - ref.avg) / weeks : null;
+  return {
+    goalW: goalW > 0 ? goalW : null,
+    current: now.avg,
+    toGo: goalW > 0 ? Math.round((now.avg - goalW) * 10) / 10 : null,
+    perWeek: perWeek == null ? null : Math.round(perWeek * 100) / 100,
+    pctWeek: perWeek == null ? null : Math.round((perWeek / now.avg) * 1000) / 10,
+  };
+}
 
 export const GOAL = Object.fromEntries(GOALS.map((g) => [g.id, g]));
 

@@ -11,7 +11,8 @@ Läuft vom iPhone-Homescreen wie eine normale App, auch offline im Gym. Kein App
 - **Automatische Progression** aus Gewicht × Wiederholungen (doppelte Progression, Deload alle 5 Wochen, Übungswechsel bei Stagnation)
 - **Wochen-Check mit Claude**: passt Sätze pro Muskel, Fokus und Übungsauswahl an
 - **Andere Trainings nachtragen** (HIIT, Joggen, Yoga, Kurse, CrossFit, Padel, Paddeln, Radfahren …) mit Dauer, Anstrengung und optional Strecke. Sie fließen in die Planung ein (z. B. kein Ausdauer-Finisher nach hartem HIIT gestern) und in den Wochen-Check
-- **Diagramme**: Körpergewicht (mit 7-Tage-Mittel), Kraftentwicklung je Übung (geschätztes 1RM), Wochenvolumen pro Muskel
+- **Diagramme**: Körpergewicht (mit 7-Tage-Mittel und optionalem Zielgewicht), Kraftentwicklung je Übung (geschätztes 1RM), Wochenvolumen pro Muskel, Monatsübersicht im Verlauf (wie oft welche Einheit)
+- **Trainingsziele**: Muskelaufbau & Athletik, Kraftaufbau, Ausdauer, Marathon, HYROX, Allgemeine Fitness, Abnehmen
 - **Videos & Technik**: Technikhinweise zu jeder Übung, YouTube-Suche mit einem Tipp, eigene Videos speichern und direkt in der App abspielen
 - Pausen-Timer mit Signalton, Bildschirm bleibt während des Trainings an
 - Backup als JSON-Datei (Export/Import)

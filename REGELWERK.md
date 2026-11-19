@@ -73,6 +73,7 @@ Das Ziel legt fest, welche Einheiten in einer Woche vorkommen (bei z. B. 4 Tagen
 | Marathon-Vorbereitung | 3 × Lauf, 1 × Ganzkörper | Wöchentlicher langer Lauf (auch im Deload, dann kürzer), Tempo/Intervalle, Kraft kurz (~60 % Volumen); Tapering in den letzten 14 Tagen (−30 % Volumen, kein langer Lauf ab 10 Tagen, nur locker ab 3 Tagen) |
 | HYROX | 2 × Ganzkörper, 1 × Lauf, 1 × HYROX | HYROX-Einheit: 1-km-Läufe im Wechsel mit Stationen (Compromised Running), alle 8 Stationen rotieren, Kraft ~70 % Volumen, Tapering vor dem Wettkampf |
 | Allgemeine Fitness | 3 × Ganzkörper, 1 × Lauf | Moderates Volumen (~90 %, Ziel ≥ 6 Sätze/Muskel), Läufe abwechselnd locker und fordernd |
+| Abnehmen | 3 × Ganzkörper, 1 × Lauf | Krafttraining bleibt (Muskelerhalt im Kaloriendefizit, ~85 % Volumen), Läufe überwiegend locker + Intervalle, Finisher; optionales Zielgewicht, angestrebtes Tempo 0,5–1 % Körpergewicht pro Woche (Anzeige im Fortschritt), Hinweise zu Alltagsbewegung und Protein (1,6–2,2 g/kg) über Claude |
 
 Hinweise: Bei 5–6 Tagen ergänzen Athletik- bzw. Regenerationstage den Plan, damit die 48-h-Regel einhaltbar bleibt. Mit nur 2 Tagen sind ca. 6–9 Sätze pro Muskel und Woche realistisch (wirksam, aber unter dem Optimum).
 

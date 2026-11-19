@@ -866,7 +866,7 @@ export function aiContext(data) {
     letzte_einheiten: recent,
     wochenvolumen_saetze_7_tage: weeklyVolume(data, 7),
     leistungstrends: trends,
-    koerpergewicht: { aktuell_7_tage_mittel: bwNow, vor_4_wochen: bwThen },
+    koerpergewicht: { aktuell_7_tage_mittel: bwNow, vor_4_wochen: bwThen, ...(goalOf(data).weightGoal && data.profile.goalWeight ? { zielgewicht: data.profile.goalWeight } : {}) },
     weitere_aktivitaeten_14_tage: recentActivities(data, 14).map((a) => ({
       datum: a.date, art: activityName(a), minuten: a.minutes, intensitaet: a.intensity,
       ...(a.km ? { km: a.km } : {}), ...(a.note ? { notiz: a.note } : {}), last_srpe: activityLoad(a),

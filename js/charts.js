@@ -171,29 +171,33 @@ export function lineChart(container, { title, sub, rows, series, unit = 'kg', ta
 }
 
 // Horizontale Balken mit Zielbereich (z. B. 10–20 Sätze)
-export function barChart(container, { title, sub, items, band = [10, 20], color }) {
+// band = Zielbereich (z. B. [10, 20]) oder null; unit/labelHeader für Tooltip und Tabelle
+export function barChart(container, { title, sub, items, band = [10, 20], color, unit = 'Sätze', labelHeader = 'Muskel', suffix = '' }) {
   const body = frame(container, {
     title, sub,
-    table: () => tableView([...items].reverse().map((i) => [i.label, fmtNum(i.value)]), ['Muskel', 'Sätze']),
+    table: () => tableView([...items].reverse().map((i) => [i.label, fmtNum(i.value)]), [labelHeader, unit]),
   });
-  const max = Math.max(band[1] + 2, ...items.map((i) => i.value));
+  const max = Math.max(band ? band[1] + 2 : 1, ...items.map((i) => i.value)) * (band ? 1 : 1.1);
   const W = Math.max(280, body.clientWidth || 340);
-  const rowH = 26; const labelW = 92; const r = 34;
-  const H = items.length * rowH + 22;
+  const longest = Math.max(...items.map((i) => String(i.label).length));
+  const rowH = 26; const labelW = Math.min(150, Math.max(92, longest * 6.6)); const r = 34;
+  const H = items.length * rowH + (band ? 22 : 6);
   const X = (v) => labelW + (v / max) * (W - labelW - r);
   const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', height: H, role: 'img', 'aria-label': title, class: 'chart-svg' });
-  el('rect', { x: X(band[0]), y: 0, width: X(band[1]) - X(band[0]), height: items.length * rowH, class: 'band' }, svg);
-  [band[0], band[1]].forEach((v) => {
-    const t = el('text', { x: X(v), y: H - 6, 'text-anchor': 'middle', class: 'axis' }, svg); t.textContent = v;
-  });
+  if (band) {
+    el('rect', { x: X(band[0]), y: 0, width: X(band[1]) - X(band[0]), height: items.length * rowH, class: 'band' }, svg);
+    [band[0], band[1]].forEach((v) => {
+      const t = el('text', { x: X(v), y: H - 6, 'text-anchor': 'middle', class: 'axis' }, svg); t.textContent = v;
+    });
+  }
   items.forEach((it, i) => {
     const y = i * rowH + 6;
     const lt = el('text', { x: 0, y: y + 11, class: 'axis-label' }, svg); lt.textContent = it.label;
     const w = Math.max(0, X(it.value) - labelW);
     if (w > 0) el('rect', { x: labelW, y, width: w, height: 14, rx: 4, fill: color, class: 'bar' }, svg);
-    const vt = el('text', { x: labelW + w + 6, y: y + 11, class: 'end-label' }, svg); vt.textContent = fmtNum(it.value);
+    const vt = el('text', { x: labelW + w + 6, y: y + 11, class: 'end-label' }, svg); vt.textContent = fmtNum(it.value) + suffix;
     const g = el('rect', { x: 0, y: y - 6, width: W, height: rowH, fill: 'transparent' }, svg);
-    const tt = el('title', {}, g); tt.textContent = `${it.label}: ${fmtNum(it.value)} Sätze`;
+    const tt = el('title', {}, g); tt.textContent = `${it.label}: ${fmtNum(it.value)} ${unit}`;
   });
   body.appendChild(svg);
 }

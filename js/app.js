@@ -3,10 +3,10 @@ import { load, save, todayISO, daysBetween, uid, exportJSON, importJSON, request
 import {
   TEMPLATES, ROTATIONS, blockInfo, recommendTemplate, buildSession, sessionFromPlan, rememberSlots, alternatives,
   makeItem, estimateMinutes, bodyweightSeries, exerciseSeries, trackedExercises, weeklyVolume, isStagnating,
-  activityAdjust, activitySummary, activityLoad, autoRunType,
+  activityAdjust, activitySummary, activityLoad, activityName, autoRunType,
 } from './engine.js';
 import { planSession, weeklyReview, CoachError, MODEL } from './coach.js';
-import { GOALS, GOAL, goalOf, rotationFor, daysToRace } from './goals.js';
+import { GOALS, GOAL, goalOf, rotationFor, daysToRace, weightStatus } from './goals.js';
 import { lineChart, barChart } from './charts.js';
 
 const params = new URLSearchParams(location.search);
@@ -47,7 +47,7 @@ function setView(v) {
 function render() {
   const root = $('#view');
   if (view === 'today') root.innerHTML = data.active ? renderSession() : renderToday();
-  if (view === 'history') root.innerHTML = renderHistory();
+  if (view === 'history') { root.innerHTML = renderHistory(); drawMonth(); }
   if (view === 'progress') { root.innerHTML = renderProgress(); drawCharts(); }
   if (view === 'coach') root.innerHTML = renderCoach();
   if (view === 'settings') { root.innerHTML = renderSettings(); fillVersion(); }
@@ -72,7 +72,12 @@ function renderToday() {
     <h1>Heute</h1>
     <span class="pill ${b.deload ? 'warn' : ''}">${b.deload ? 'Deload-Woche' : `Block-Woche ${b.week}/4`}</span>
   </header>
-  <p class="goal-line">Ziel: <strong>${esc(goal.name)}</strong>${dtr !== null ? ` · noch ${dtr} ${dtr === 1 ? 'Tag' : 'Tage'} bis zum Wettkampf` : ''}</p>
+  <p class="goal-line">Ziel: <strong>${esc(goal.name)}</strong>${dtr !== null ? ` · noch ${dtr} ${dtr === 1 ? 'Tag' : 'Tage'} bis zum Wettkampf` : ''}${(() => {
+    if (!goal.weightGoal) return '';
+    const ws = weightStatus(data, bodyweightSeries(data));
+    if (!ws.goalW || ws.toGo == null) return '';
+    return ws.toGo > 0 ? ` · noch ${num(ws.toGo)} kg bis ${num(ws.goalW)} kg` : ' · Zielgewicht erreicht';
+  })()}</p>
   ${!data.profile.setup ? `<button class="banner" data-action="setup">Profil & Home-Gym einrichten →</button>` : ''}
   ${reviewDue ? `<button class="banner" data-action="goto" data-to="coach">Wochen-Check fällig – Claude passt deinen Plan an →</button>` : ''}
   ${data.coach && data.coach.focus ? `<div class="card soft"><div class="label">Fokus diese Woche</div><p>${esc(data.coach.focus)}</p></div>` : ''}
@@ -132,8 +137,15 @@ function renderToday() {
     <p class="muted small center">z. B. HIIT, Joggen, Yoga, CrossFit, Padel – fließt in die Planung ein.</p>
   </div>
 
-  ${last ? `<section class="card soft"><div class="label">Letzte Einheit</div>
-    <p><strong>${esc(last.title)}</strong><br><span class="muted">${fmtDate(last.date)} · ${sessionSummary(last)}${last.template === 'RUN' ? '' : ' bewegt'}</span></p></section>` : ''}
+  ${(() => {
+    const lastAct = [...(data.activities || [])].sort((x, y) => x.date.localeCompare(y.date)).pop();
+    if (lastAct && (!last || lastAct.date > last.date)) {
+      return `<section class="card soft"><div class="label">Letzte Einheit</div>
+      <p><strong>${esc(activityName(lastAct))}</strong> <span class="tag t-activity">Nachgetragen</span><br><span class="muted">${fmtDate(lastAct.date)} · ${lastAct.minutes} min · ${esc(lastAct.intensity)}${lastAct.km ? ` · ${num(lastAct.km)} km` : ''}</span></p></section>`;
+    }
+    return last ? `<section class="card soft"><div class="label">Letzte Einheit</div>
+    <p><strong>${esc(last.title)}</strong><br><span class="muted">${fmtDate(last.date)} · ${sessionSummary(last)}${last.template === 'RUN' ? '' : ' bewegt'}</span></p></section>` : '';
+  })()}
   `;
 }
 
@@ -493,7 +505,7 @@ function openSetup() {
   const p = data.profile;
   setupDraft = {
     age: p.setup ? p.age : '', weight: p.setup ? p.weight : '', sex: p.sex || '', level: p.level || '',
-    goal: p.goal || 'muscle', goalDate: p.goalDate || '',
+    goal: p.goal || 'muscle', goalDate: p.goalDate || '', goalWeight: p.goalWeight || '',
     days: p.days, duration: p.duration, notes: p.notes || '',
     homeGym: [...(data.homeGym || [])], homeGymNotes: data.homeGymNotes || '',
   };
@@ -510,6 +522,7 @@ function setupModal() {
     <div class="chips">${GOALS.map((g) => `<button class="chip ${s.goal === g.id ? 'on' : ''}" data-action="su-goal" data-v="${g.id}">${esc(g.name)}</button>`).join('')}</div>
     <p class="muted small">${esc(GOAL[s.goal].desc)}</p>
     ${GOAL[s.goal].race ? `<label class="field"><span>Wettkampfdatum (optional)</span><input type="date" class="in" data-su="goalDate" min="${todayISO()}" value="${esc(s.goalDate)}"></label>` : ''}
+    ${GOAL[s.goal].weightGoal ? `<label class="field"><span>Zielgewicht in kg (optional)</span><input class="in" data-su="goalWeight" inputmode="decimal" placeholder="z. B. 85" value="${esc(s.goalWeight)}"></label>` : ''}
     <div class="grid2">
       <label class="field"><span>Alter</span><input class="in" data-su="age" inputmode="numeric" value="${esc(s.age)}" placeholder="Jahre"></label>
       <label class="field"><span>Gewicht (kg)</span><input class="in" data-su="weight" inputmode="decimal" value="${esc(s.weight)}" placeholder="kg"></label>
@@ -538,7 +551,7 @@ function saveSetup() {
   const kg = parseFloat(String(s.weight).replace(',', '.'));
   if (!(age >= 14 && age <= 90)) { toast('Bitte ein Alter zwischen 14 und 90 eingeben.'); return; }
   if (!(kg > 35 && kg < 250)) { toast('Bitte ein gültiges Gewicht eingeben.'); return; }
-  Object.assign(data.profile, { age, weight: kg, sex: s.sex, level: s.level.trim(), days: s.days, duration: s.duration, notes: s.notes.trim(), goal: s.goal, goalDate: GOAL[s.goal].race ? s.goalDate : '', setup: true });
+  Object.assign(data.profile, { age, weight: kg, sex: s.sex, level: s.level.trim(), days: s.days, duration: s.duration, notes: s.notes.trim(), goal: s.goal, goalDate: GOAL[s.goal].race ? s.goalDate : '', goalWeight: GOAL[s.goal].weightGoal && parseFloat(String(s.goalWeight).replace(',', '.')) > 0 ? parseFloat(String(s.goalWeight).replace(',', '.')) : '', setup: true });
   data.bodyweight = data.bodyweight.filter((x) => x.date !== todayISO());
   data.bodyweight.push({ date: todayISO(), kg });
   data.homeGym = s.homeGym.length ? [...s.homeGym] : null;
@@ -623,16 +636,49 @@ function renderActivityCard(a) {
     </article>`;
 }
 
+// ---------- Monatsübersicht ----------
+let histMonth = todayISO().slice(0, 7);
+const monthName = (ym) => new Date(`${ym}-01T12:00:00`).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+const unitLabel = (s) => (s.template === 'RUN' ? 'Laufen' : s.template === 'HYX' ? 'HYROX' : (TEMPLATES[s.template]?.name || s.title).split(' – ')[0]);
+const actLabel = (a) => (a.type === 'jogging' ? 'Laufen' : a.type === 'course' && a.note ? `Kurs: ${a.note.split(/[,\n]/)[0].trim()}` : ACT[a.type]?.name || a.type);
+
+function monthCounts(ym) {
+  const m = new Map();
+  const add = (label) => { const e = m.get(label) || { label, value: 0 }; e.value += 1; m.set(label, e); };
+  data.sessions.filter((s) => s.date.startsWith(ym)).forEach((s) => add(unitLabel(s)));
+  (data.activities || []).filter((a) => a.date.startsWith(ym)).forEach((a) => add(actLabel(a)));
+  return [...m.values()].sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));
+}
+
+function drawMonth() {
+  const box = $('#chart-month');
+  if (!box) return;
+  const items = monthCounts(histMonth);
+  const plan = data.sessions.filter((s) => s.date.startsWith(histMonth)).length;
+  const act = (data.activities || []).filter((a) => a.date.startsWith(histMonth)).length;
+  if (!items.length) { box.innerHTML = '<div class="chart-card"><p class="muted center">Keine Einheiten in diesem Monat.</p></div>'; return; }
+  barChart(box, {
+    title: `Einheiten im ${monthName(histMonth).split(' ')[0]}`,
+    sub: `${plural(plan + act, 'Einheit', 'Einheiten')} · ${plan} Plan · ${act} nachgetragen`,
+    items, band: null, color: cssVar('--series-1'), unit: 'Einheiten', labelHeader: 'Einheit', suffix: '×',
+  });
+}
+
 function renderHistory() {
   const entries = [
-    ...data.sessions.map((s) => ({ date: s.date, ts: s.finishedAt || s.startedAt || 0, html: () => renderSessionCard(s) })),
-    ...(data.activities || []).map((a) => ({ date: a.date, ts: 0, html: () => renderActivityCard(a) })),
+    ...data.sessions.filter((s) => s.date.startsWith(histMonth)).map((s) => ({ date: s.date, ts: s.finishedAt || s.startedAt || 0, html: () => renderSessionCard(s) })),
+    ...(data.activities || []).filter((a) => a.date.startsWith(histMonth)).map((a) => ({ date: a.date, ts: 0, html: () => renderActivityCard(a) })),
   ].sort((x, y) => y.date.localeCompare(x.date) || y.ts - x.ts);
-  const nAct = (data.activities || []).length;
+  const isCurrent = histMonth >= todayISO().slice(0, 7);
   return `
   <header class="page-head"><h1>Verlauf</h1><button class="chip" data-action="act-new">+ Nachtragen</button></header>
-  <p class="muted small" style="margin:-8px 0 12px">${data.sessions.length} Plan-Einheiten · ${nAct} nachgetragen</p>
-  ${!entries.length ? '<p class="muted center mt">Noch keine Einheiten. Leg los!</p>' : ''}
+  <div class="month-nav">
+    <button class="chip small" data-action="hist-month" data-d="-1" aria-label="Vormonat">‹</button>
+    <strong>${esc(monthName(histMonth))}</strong>
+    <button class="chip small" data-action="hist-month" data-d="1" aria-label="Nächster Monat" ${isCurrent ? 'disabled' : ''}>›</button>
+  </div>
+  <div id="chart-month"></div>
+  ${!entries.length ? '<p class="muted center mt">Noch keine Einheiten in diesem Monat.</p>' : ''}
   ${entries.map((e) => e.html()).join('')}`;
 }
 
@@ -659,14 +705,25 @@ function renderProgress() {
   const bw = bodyweightSeries(data);
   const bwLast = bw[bw.length - 1];
   const bwOld = bw.filter((p) => daysBetween(p.date, todayISO()) >= 28).pop();
-  const thisWeek = data.sessions.filter((s) => daysBetween(s.date, todayISO()) < 7).length;
+  const planWeek = data.sessions.filter((s) => daysBetween(s.date, todayISO()) < 7).length;
+  const actWeek = (data.activities || []).filter((a) => { const d = daysBetween(a.date, todayISO()); return d >= 0 && d < 7; }).length;
+  const thisWeek = planWeek + actWeek;
   const todayBw = data.bodyweight.find((e) => e.date === todayISO());
   return `
   <header class="page-head"><h1>Fortschritt</h1></header>
   <div class="tiles">
-    <div class="tile"><div class="tile-label">Einheiten (7 Tage)</div><div class="tile-val">${thisWeek}<span class="muted small"> / ${data.profile.days}</span></div></div>
+    <div class="tile"><div class="tile-label">Einheiten (7 Tage)</div><div class="tile-val">${thisWeek}<span class="muted small"> / ${data.profile.days}</span></div>
+      <div class="tile-delta">${planWeek} Plan · ${actWeek} nachgetragen</div></div>
+
     <div class="tile"><div class="tile-label">Körpergewicht Ø 7 Tage</div><div class="tile-val">${bwLast ? num(bwLast.avg) : '–'}<span class="muted small"> kg</span></div>
       ${bwLast && bwOld ? `<div class="tile-delta">${bwLast.avg - bwOld.avg >= 0 ? '+' : '−'}${num(Math.abs(bwLast.avg - bwOld.avg))} kg vs. vor 4 Wochen</div>` : ''}</div>
+    ${goalOf(data).weightGoal ? (() => {
+      const ws = weightStatus(data, bw);
+      if (ws.perWeek == null) return '<div class="tile"><div class="tile-label">Abnehm-Tempo</div><div class="tile-val">–</div><div class="tile-delta">Ab 1 Woche Messungen sichtbar</div></div>';
+      const pct = -ws.pctWeek;
+      const verdict = pct < 0.25 ? 'langsam – Defizit prüfen' : pct <= 1 ? 'im Zielbereich 0,5–1 %' : 'schnell – Muskeln schützen';
+      return `<div class="tile"><div class="tile-label">Abnehm-Tempo</div><div class="tile-val">${ws.perWeek <= 0 ? '−' : '+'}${num(Math.abs(ws.perWeek))}<span class="muted small"> kg/Woche</span></div><div class="tile-delta">${num(Math.abs(ws.pctWeek))} % · ${verdict}</div></div>`;
+    })() : ''}
     ${(() => { const a = activitySummary(data, 7); const prev = activitySummary(data, 14).load - a.load; return `
     <div class="tile"><div class="tile-label">Ausdauer & Sport (7 Tage)</div><div class="tile-val">${a.minutes}<span class="muted small"> min</span></div>
       <div class="tile-delta">${a.count} ${a.count === 1 ? 'Einheit' : 'Einheiten'}${a.km ? ` · ${num(a.km)} km gelaufen` : ''}</div></div>
@@ -695,13 +752,16 @@ function renderProgress() {
 function drawCharts() {
   const blue = cssVar('--series-1');
   const gray = cssVar('--series-muted');
-  const bw = bodyweightSeries(data);
+  const bwRaw = bodyweightSeries(data);
+  const gw = goalOf(data).weightGoal ? weightStatus(data, bwRaw).goalW : null;
+  const bw = gw ? bwRaw.map((r) => ({ ...r, goal: gw })) : bwRaw;
   lineChart($('#chart-bw'), {
-    title: 'Körpergewicht', sub: 'Punkte = Messung, Linie = 7-Tage-Mittel',
+    title: 'Körpergewicht', sub: gw ? `Punkte = Messung, Linie = 7-Tage-Mittel, Ziel ${num(gw)} kg` : 'Punkte = Messung, Linie = 7-Tage-Mittel',
     rows: bw,
     series: [
       { name: 'Messung', key: 'kg', style: 'dots', color: gray },
       { name: '7-Tage-Mittel', key: 'avg', style: 'line', color: blue },
+      ...(goalOf(data).weightGoal && weightStatus(data, bw).goalW ? [{ name: 'Zielgewicht', key: 'goal', style: 'line', color: cssVar(data.settings.accent === 'mint' ? '--lav' : '--mint') || gray }] : []),
     ],
     tableHeaders: ['Datum', 'kg', 'Ø 7 Tage'],
     tableRow: (r) => [r.date, num(r.kg), num(r.avg)],
@@ -813,6 +873,7 @@ function renderSettings() {
     </div>
     <label class="field"><span>Trainingsziel</span><select class="in" data-prof="goal">${GOALS.map((g) => `<option value="${g.id}" ${goalOf(data).id === g.id ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select></label>
     ${goalOf(data).race ? `<label class="field"><span>Wettkampfdatum (optional)</span><input type="date" class="in" data-prof="goalDate" min="${todayISO()}" value="${esc(p.goalDate || '')}"></label>` : ''}
+    ${goalOf(data).weightGoal ? `<label class="field"><span>Zielgewicht in kg (optional)</span><input class="in" data-prof="goalWeight" inputmode="decimal" placeholder="z. B. 85" value="${esc(p.goalWeight || '')}"></label>` : ''}
     <label class="field"><span>Geschlecht</span><select class="in" data-prof="sex">${['', 'männlich', 'weiblich', 'divers'].map((s) => `<option value="${s}" ${p.sex === s ? 'selected' : ''}>${s || '– bitte wählen –'}</option>`).join('')}</select></label>
     <label class="field"><span>Niveau</span><input class="in wide" data-prof="level" placeholder="z. B. Leistungssportler, fortgeschritten" value="${esc(p.level)}"></label>
     <label class="field"><span>Verletzungen / Hinweise für Claude</span><textarea class="in wide" data-prof="notes" rows="2" placeholder="z. B. Knie links empfindlich bei tiefen Sprüngen">${esc(p.notes)}</textarea></label>
@@ -928,6 +989,13 @@ document.addEventListener('click', async (e) => {
     case 'timer-minus': if (timer) { timer.end -= 15000; tick(); } break;
     case 'timer-plus': if (timer) { timer.end += 15000; timer.total += 15; tick(); } break;
     case 'timer-stop': stopTimer(); break;
+    case 'hist-month': {
+      const [y, mo] = histMonth.split('-').map(Number);
+      const d = new Date(y, mo - 1 + Number(t.dataset.d), 1);
+      const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (next <= todayISO().slice(0, 7)) { histMonth = next; render(); }
+      break;
+    }
     case 'hist': openHistory = openHistory === t.dataset.id ? null : t.dataset.id; render(); break;
     case 'del-session': if (confirm('Diese Einheit endgültig löschen?')) { data.sessions = data.sessions.filter((s) => s.id !== t.dataset.id); persist(); render(); } break;
     case 'save-bw': {
@@ -978,9 +1046,9 @@ document.addEventListener('change', async (e) => {
   if (t.id === 'use-claude') { data.settings.useClaude = t.checked; persist(); }
   if (t.dataset.prof) {
     const k = t.dataset.prof;
-    const numeric = ['age', 'weight', 'days', 'duration'].includes(k);
-    const v = numeric ? parseFloat(t.value.replace(',', '.')) : t.value;
-    if (numeric && isNaN(v)) return;
+    const numeric = ['age', 'weight', 'days', 'duration', 'goalWeight'].includes(k);
+    const v = k === 'goalWeight' && t.value.trim() === '' ? '' : numeric ? parseFloat(t.value.replace(',', '.')) : t.value;
+    if (numeric && v !== '' && isNaN(v)) return;
     data.profile[k] = v;
     data.profile.setup = true;
     if (k === 'days' || k === 'goal') todayTpl = null;

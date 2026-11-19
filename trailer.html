@@ -312,53 +312,161 @@
     later(Number(sc.dataset.dur) * 1000, () => { if (i + 1 < scenes.length) show(i + 1); else end(); });
   };
   const tick = () => { bar.style.width = `${Math.min(100, ((performance.now() - t0) / 1000 / total) * 100)}%`; raf = requestAnimationFrame(tick); };
-  const start = (reload) => {
+  let playing = false;
+  const start = (reload, withMusic) => {
     document.getElementById('start').hidden = true;
     if (reload) loadFrames();
     fit();
-    t0 = performance.now(); cancelAnimationFrame(raf); tick();
-    setTimeout(() => show(0), reload ? 400 : 0);
+    stopMusic(0.05);
+    setTimeout(() => {
+      t0 = performance.now(); playing = true; cancelAnimationFrame(raf); tick();
+      show(0);
+      if (withMusic) startMusic(0);
+    }, reload ? 400 : 0);
   };
+  const elapsed = () => (playing ? (performance.now() - t0) / 1000 : 0);
   const finish = () => { if (EMBED && window.parent !== window) window.parent.postMessage({ type: 'trailer-end' }, location.origin); };
-  const end = () => { cancelAnimationFrame(raf); bar.style.width = '100%'; stopMusic(); if (EMBED) setTimeout(finish, 2500); };
+  const end = () => { cancelAnimationFrame(raf); bar.style.width = '100%'; playing = false; stopMusic(2.5); if (EMBED) setTimeout(finish, 2500); };
 
-  // Optionaler Soundtrack (synthetisch, 120 BPM)
+  // ---------- Soundtrack (synthetisch, 120 BPM, auf die 60 s der Szenen komponiert) ----------
+  // 0–4 s Intro mit Treffern auf die Wörter · 4 s Impact (Logo) · ab 8 s Groove · ab 30 s Melodie
+  // 51–53 s Riser · 53 s Impact · Schlussakkorde bis 60 s
   let ctx = null; let musicTimer = 0; let musicOn = false;
-  const note = (f, t, d, type = 'sine', g = 0.12) => { const o = ctx.createOscillator(); const v = ctx.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); v.gain.setValueAtTime(g, t); v.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(v).connect(ctx.destination); o.start(t); o.stop(t + d + 0.02); };
-  const kick = (t) => { const o = ctx.createOscillator(); const v = ctx.createGain(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.18); v.gain.setValueAtTime(0.5, t); v.gain.exponentialRampToValueAtTime(0.0001, t + 0.25); o.connect(v).connect(ctx.destination); o.start(t); o.stop(t + 0.3); };
-  const hat = (t) => { const len = ctx.sampleRate * 0.04; const b = ctx.createBuffer(1, len, ctx.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len); const s = ctx.createBufferSource(); s.buffer = b; const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 7000; const v = ctx.createGain(); v.gain.value = 0.08; s.connect(hp).connect(v).connect(ctx.destination); s.start(t); };
-  const chords = [[220, 277, 330], [196, 247, 294], [175, 220, 262], [196, 247, 330]];
-  let step = 0; let nextT = 0;
-  const schedule = () => {
-    while (nextT < ctx.currentTime + 0.2) {
-      const beat = step % 16;
-      if (beat % 4 === 0) kick(nextT);
-      if (beat % 2 === 1) hat(nextT);
-      if (beat % 8 === 0) chords[Math.floor(step / 16) % 4].forEach((f) => note(f, nextT, 1.9, 'triangle', 0.035));
-      if (beat % 4 === 2) note(chords[Math.floor(step / 16) % 4][0] / 2, nextT, 0.22, 'sawtooth', 0.05);
-      nextT += 0.125; step++;
+  let master = null; let bus = null; let rev = null; let songStart = 0; let step = 0; let shots = [];
+  const SIXT = 0.125; // 16tel bei 120 BPM
+  const N = { A2: 110, F2: 87.31, C3: 130.81, G2: 98, A3: 220, C4: 261.63, E4: 329.63, F3: 174.61, G3: 196, B3: 246.94, D4: 293.66, G4: 392, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880, C6: 1046.5 };
+  const PROG = [
+    { bass: N.A2, pad: [N.A3, N.C4, N.E4] },
+    { bass: N.F2, pad: [N.F3, N.A3, N.C4] },
+    { bass: N.C3, pad: [N.C4, N.E4, N.G4] },
+    { bass: N.G2, pad: [N.G3, N.B3, N.D4] },
+  ];
+  const LEAD = [
+    [N.A5, 0, N.G5, N.E5, 0, 0, N.G5, N.A5],
+    [N.C6, 0, N.A5, 0, N.G5, 0, N.E5, 0],
+    [N.G5, 0, N.E5, N.G5, N.A5, 0, N.G5, 0],
+    [N.D5, 0, N.E5, 0, N.G5, 0, 0, 0],
+  ];
+  const noiseBuf = () => { const len = ctx.sampleRate; const b = ctx.createBuffer(1, len, ctx.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1; return b; };
+  let NOISE = null;
+  const env = (g, t, a, peak, rel) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + rel); };
+  const chain = () => {
+    master = ctx.createGain(); master.gain.value = 0.85;
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
+    master.connect(comp).connect(ctx.destination);
+    bus = ctx.createGain(); bus.connect(master); // Musik-Bus (wird von der Kick „gepumpt“)
+    rev = ctx.createConvolver();
+    const len = ctx.sampleRate * 2.2; const ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+    rev.buffer = ir; const rg = ctx.createGain(); rg.gain.value = 0.28; rev.connect(rg).connect(master);
+  };
+  const osc = (type, f, t, dur, peak, dest, a = 0.005, cutoff) => {
+    const o = ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t);
+    const g = ctx.createGain(); env(g, t, a, peak, dur);
+    let node = o;
+    if (cutoff) { const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cutoff; o.connect(lp); node = lp; }
+    node.connect(g); g.connect(dest); o.start(t); o.stop(t + a + dur + 0.05); return g;
+  };
+  const noise = (t, dur, peak, type, freq, dest, q = 1) => {
+    const s = ctx.createBufferSource(); s.buffer = NOISE; const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+    const g = ctx.createGain(); env(g, t, 0.003, peak, dur); s.connect(f).connect(g).connect(dest); s.start(t); s.stop(t + dur + 0.05);
+  };
+  const kick = (t) => {
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.16);
+    g.gain.setValueAtTime(0.95, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
+    o.connect(g).connect(master); o.start(t); o.stop(t + 0.42);
+    bus.gain.setValueAtTime(0.4, t); bus.gain.linearRampToValueAtTime(1, t + 0.24); // Sidechain-Pumpen
+  };
+  const clap = (t) => { [0, 0.012, 0.024].forEach((d) => noise(t + d, 0.12, 0.35, 'bandpass', 1600, master, 0.8)); noise(t, 0.25, 0.12, 'bandpass', 1600, rev, 0.8); };
+  const hat = (t, v) => noise(t, 0.045, v, 'highpass', 8000, master);
+  const bass = (t, f) => { osc('sawtooth', f, t, 0.2, 0.28, bus, 0.005, 420); osc('sine', f / 2, t, 0.22, 0.22, bus); };
+  const pad = (t, notes, dur, peak = 0.05, cutoff = 1400) => notes.forEach((f) => [-6, 6].forEach((det) => {
+    const g = osc('sawtooth', f * Math.pow(2, det / 1200), t, dur, peak, bus, 0.35, cutoff); g.connect(rev);
+  }));
+  const pluck = (t, f, peak = 0.07) => { const g = osc('triangle', f, t, 0.22, peak, bus); g.connect(rev); };
+  const lead = (t, f) => { const g = osc('square', f, t, 0.22, 0.045, bus, 0.01, 2600); g.connect(rev); };
+  const hit = (t) => { osc('sine', 120, t, 0.5, 0.6, master); noise(t, 0.35, 0.25, 'lowpass', 2200, master); noise(t, 0.6, 0.12, 'highpass', 3000, rev); };
+  const impact = (t) => {
+    const o = ctx.createOscillator(); const g = ctx.createGain(); o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(28, t + 1.2);
+    g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6); o.connect(g).connect(master); o.start(t); o.stop(t + 1.7);
+    noise(t, 1.8, 0.22, 'highpass', 2500, master); noise(t, 2.2, 0.18, 'highpass', 1800, rev);
+  };
+  const riser = (t, dur) => {
+    const s = ctx.createBufferSource(); s.buffer = NOISE; s.loop = true;
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 2; f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(7000, t + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.28, t + dur); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.05);
+    s.connect(f).connect(g).connect(master); s.start(t); s.stop(t + dur + 0.1);
+  };
+  const ONE_SHOTS = [
+    { at: 0.1, fn: hit }, { at: 0.9, fn: hit }, { at: 1.7, fn: hit },
+    { at: 2.0, fn: (t) => riser(t, 2) }, { at: 4.0, fn: impact },
+    { at: 51.0, fn: (t) => riser(t, 2) }, { at: 53.0, fn: impact },
+    { at: 59.0, fn: (t) => { pad(t, [N.A3, N.C4, N.E4, N.A5 / 2], 2.6, 0.06, 2200); osc('sine', N.A2 / 2, t, 2.4, 0.3, master, 0.01); } },
+  ];
+
+  const scheduleStep = (s, t) => {
+    const sec = s * SIXT; const bar = Math.floor(s / 16); const b16 = s % 16; const ch = PROG[bar % 4];
+    if (sec < 4) { if (s === 0) pad(t, PROG[0].pad, 4, 0.035, 700); return; }
+    const groove = sec >= 8 && sec < 51;
+    if (b16 === 0 && sec < 59) pad(t, ch.pad, 2, groove ? 0.035 : 0.05, groove ? 1600 : 1100);
+    if (groove) {
+      if (b16 % 4 === 0) kick(t);
+      if (b16 === 4 || b16 === 12) clap(t);
+      hat(t, b16 % 4 === 2 ? 0.09 : 0.035);
+      if ([0, 3, 6, 8, 11, 14].includes(b16)) bass(t, b16 === 6 || b16 === 14 ? ch.bass * 2 : ch.bass);
+      const tones = [...ch.pad.map((f) => f * 2), ch.pad[0] * 4];
+      pluck(t, tones[[0, 1, 2, 3, 2, 1, 0, 1][b16 % 8]], 0.045);
+      if (sec >= 30 && sec < 47 && b16 % 2 === 0) { const f = LEAD[bar % 4][b16 / 2]; if (f) lead(t, f); }
+    } else if (sec >= 4 && sec < 8) {
+      if (b16 % 2 === 0) pluck(t, [...ch.pad.map((f) => f * 2)][(b16 / 2) % 3], 0.035);
+      if (sec >= 6 && b16 % 2 === 1) hat(t, 0.025);
+    } else if (sec >= 53 && sec < 59 && b16 % 4 === 0) {
+      pluck(t, ch.pad[(b16 / 4) % 3] * 2, 0.05);
     }
   };
+  const schedule = () => {
+    const ahead = ctx.currentTime + 0.25;
+    while (songStart + step * SIXT < ahead && step * SIXT < 60) { const t = songStart + step * SIXT; if (t >= ctx.currentTime - 0.02) scheduleStep(step, t); step++; }
+    shots = shots.filter((o) => { const t = songStart + o.at; if (t < ahead) { if (t >= ctx.currentTime - 0.05) o.fn(t); return false; } return true; });
+  };
+  window.trailerMusic = () => ({ state: ctx && ctx.state, musicOn, step, songPos: ctx ? Math.round((ctx.currentTime - songStart) * 10) / 10 : null, shotsLeft: shots.length });
   const label = (on) => { const t = on ? '🔇 Ton aus' : '🔈 Ton an'; document.getElementById('sound').textContent = t; document.getElementById('snd').textContent = t; };
-  const startMusic = () => { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); musicOn = true; step = 0; nextT = ctx.currentTime + 0.05; clearInterval(musicTimer); musicTimer = setInterval(schedule, 50); label(true); };
-  const stopMusic = () => { musicOn = false; clearInterval(musicTimer); label(false); };
+  // offset = Position im Trailer (s) – so passt die Musik auch, wenn der Ton später eingeschaltet wird
+  const startMusic = (offset = 0) => {
+    ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+    ctx.resume();
+    NOISE = NOISE || noiseBuf();
+    clearInterval(musicTimer);
+    chain();
+    songStart = ctx.currentTime + 0.05 - offset;
+    step = Math.max(0, Math.ceil(offset / SIXT));
+    shots = ONE_SHOTS.filter((o) => o.at >= offset);
+    musicOn = true; label(true);
+    musicTimer = setInterval(schedule, 40); schedule();
+  };
+  const stopMusic = (fade = 0.15) => {
+    clearInterval(musicTimer); musicOn = false; label(false);
+    if (ctx && master) { const m = master; m.gain.cancelScheduledValues(ctx.currentTime); m.gain.setValueAtTime(m.gain.value, ctx.currentTime); m.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + fade); setTimeout(() => m.disconnect(), (fade + 0.3) * 1000); }
+  };
 
   // Zum Prüfen: trailer.html#szene=5 springt direkt zu Szene 5
-  window.trailerScene = (n) => { document.getElementById('start').hidden = true; fit(); show(n - 1); };
+  window.trailerScene = (n) => { document.getElementById('start').hidden = true; fit(); const at = scenes.slice(0, n - 1).reduce((a, sc) => a + Number(sc.dataset.dur), 0); t0 = performance.now() - at * 1000; playing = true; show(n - 1); };
   const jump = /szene=(\d+)/.exec(location.hash);
   if (jump) setTimeout(() => window.trailerScene(Number(jump[1])), 900);
 
-  document.getElementById('go').addEventListener('click', () => { startMusic(); start(false); });
-  document.getElementById('restart').addEventListener('click', () => { if (musicOn) startMusic(); start(true); });
-  document.getElementById('sound').addEventListener('click', () => (musicOn ? stopMusic() : startMusic()));
-  document.getElementById('snd').addEventListener('click', () => (musicOn ? stopMusic() : startMusic()));
+  document.getElementById('go').addEventListener('click', () => { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); start(false, true); });
+  document.getElementById('restart').addEventListener('click', () => { const m = musicOn; start(true, m); });
+  const toggle = () => (musicOn ? stopMusic() : startMusic(elapsed()));
+  document.getElementById('sound').addEventListener('click', toggle);
+  document.getElementById('snd').addEventListener('click', toggle);
   if (EMBED) {
     const cta = document.getElementById('cta');
     cta.textContent = 'Los geht’s – Profil einrichten';
     cta.addEventListener('click', finish);
     document.getElementById('url').hidden = true;
     document.getElementById('snd').hidden = false;
-    setTimeout(() => start(false), 500);
+    setTimeout(() => start(false, false), 500);
   }
 })();
 </script>

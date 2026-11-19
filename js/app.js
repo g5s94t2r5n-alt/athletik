@@ -39,6 +39,7 @@ function toast(msg, ms = 3500) {
 function setView(v) {
   view = v;
   document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.view === v));
+  window.scrollTo(0, 0); // erst nach oben, dann neue (evtl. kürzere) Seite – sonst verrutscht iOS die Leiste
   render();
   window.scrollTo(0, 0);
 }

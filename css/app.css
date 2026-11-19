@@ -80,6 +80,8 @@ h1, h2, p { margin: 0; }
 .view {
   max-width: 640px;
   margin: 0 auto;
+  min-height: 100vh; /* jede Seite mindestens bildschirmhoch: iOS verschiebt sonst die feste Navigationsleiste */
+  min-height: 100dvh;
   padding: calc(var(--safe-t) + 16px) 16px calc(var(--safe-b) + 150px);
 }
 

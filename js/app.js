@@ -92,7 +92,7 @@ function renderToday() {
         ${RUN_TYPES.map((id) => `<button class="chip ${runType === id ? 'on' : ''}" data-action="runtype" data-id="${id}">${esc(EX[id].name)}</button>`).join('')}
       </div>
       <p class="muted small">${runType === 'auto' ? esc(auto.why) : esc(EX[runType].presc)}</p>
-      <p class="muted small">Draußen oder auf dem Laufband – das Kraftprogramm danach braucht keine Geräte.</p>`;
+      <p class="muted small">Draußen oder auf dem Laufband: Aufwärmen, Laufen, Dehnen – ohne Kraftübungen.</p>`;
     })() : ''}
     <details class="more"><summary>Andere Einheit</summary>
       <div class="chips">${others.map((k) => `<button class="chip ${k === todayTpl ? 'on' : ''}" data-action="tpl" data-tpl="${k}">${esc(TEMPLATES[k].name)}</button>`).join('')}</div>
@@ -156,7 +156,7 @@ function countSets(s) { return s.blocks.flatMap((b) => b.items).reduce((n, it) =
 function tonnage(s) { return s.blocks.flatMap((b) => b.items).reduce((n, it) => n + (it.sets || []).filter((x) => x.done).reduce((m, x) => m + (Number(x.w) || 0) * (Number(x.r) || 0), 0), 0); }
 
 async function startPlan(useAI) {
-  // Laufeinheit: kein Trainingsort, Kraft für Läufer nur mit Körpergewicht
+  // Laufeinheit: kein Trainingsort, keine Geräte nötig
   const equip = todayTpl === 'RUN' ? [] : equipFor(data.location || 'gym');
   if (todayTpl !== 'RUN') data.equipment = equip;
   const rule = buildSession(data, { templateId: todayTpl, equip, runType });

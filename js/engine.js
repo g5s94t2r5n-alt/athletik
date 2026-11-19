@@ -520,16 +520,7 @@ export function buildRunSession(data, { equip, runType }) {
     { type: 'warmup', title: 'Lauf-Aufwärmen', items: WARMUP.run.map((w) => makeItem(data, EX[w], 0)) },
     { type: 'run', title: 'Laufen', items: [makeItem(data, ex, 0, { note: runType && runType !== 'auto' ? '' : auto.why })] },
   ];
-  // Kurzes Kraftprogramm für Läufer (verbessert die Laufökonomie) – nur wenn Zeit bleibt
-  const extra = [];
-  const pick = (ids) => ids.map((x) => EX[x]).find((e) => e && available(e, equip));
-  [['db_calf', 'bw_calf'], ['bss_db', 'bss_bw', 'sl_rdl_bw'], ['copenhagen', 'dead_bug']].forEach((ids) => {
-    const e = pick(ids);
-    if (e) { const it = makeItem(data, e, deload || taper ? 1 : 2); it.prio = 3; extra.push(it); }
-  });
-  if (extra.length && RUN_MIN[id] + 7 + 6 + extra.length * 4 <= (data.profile.duration || 75)) {
-    blocks.push({ type: 'strength', title: 'Kraft für Läufer', items: extra });
-  }
+  // Keine Kraftübungen nach dem Lauf – Kraft kommt aus den Ganzkörper-Einheiten des Wochenplans
   blocks.push({ type: 'cooldown', title: 'Cool-down & Beweglichkeit', items: COOLDOWN.run.map((c) => makeItem(data, EX[c], 0)) });
   return {
     id: uid(), date: todayISO(), template: 'RUN', title: `Laufeinheit – ${ex.name}`, week, deload,
@@ -691,6 +682,7 @@ export function sessionFromPlan(data, plan, { templateId, equip }) {
   const { week, deload } = blockInfo(data);
   const blocks = [];
   for (const b of plan.blocks || []) {
+    if (templateId === 'RUN' && !['warmup', 'run', 'cooldown'].includes(b.type)) continue;
     const items = [];
     for (const it of b.items || []) {
       const ex = EX[it.exId];

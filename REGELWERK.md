@@ -48,7 +48,7 @@ Die Regeln sind Vereinfachungen der Studienlage (Stand Ende 2026). Sie ersetzen 
 |---|---|
 | Polarisiert: ca. 80 % locker (Zone 2), höchstens 1–2 harte Läufe pro Woche | Stöggl & Sperlich 2014 |
 | Automatischer Lauftyp: nach hartem Training (≤ 48 h), nach hartem letzten Lauf (< 4 Tage) oder im Deload → locker; sonst rotierend 4×4, Tempo, 30/30, Sprints, Fahrtspiel | Polarisiertes Training; 4×4-Intervalle als starker VO₂max-Reiz (Helgerud et al. 2007) |
-| Kurzes Kraftprogramm für Läufer (Waden, einbeinig, Rumpf), wenn Zeit bleibt | Krafttraining verbessert die Laufökonomie (Balsalobre-Fernández et al. 2016) |
+| Laufeinheit = Aufwärmen, Laufen, Dehnen – keine Kraftübungen danach; Kraft für Läufer (einbeinig, Waden, Rumpf, Plyometrie) steckt in den Ganzkörper-Einheiten des Wochenplans | Krafttraining verbessert die Laufökonomie (Balsalobre-Fernández et al. 2016) |
 | Läufe zählen als Ausdauerreiz (Session-RPE) und fließen in die Interferenz-Regeln und den Wochen-Check ein | Foster et al. 2001 |
 
 ## 3. Aufbau einer Einheit

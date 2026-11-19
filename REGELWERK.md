@@ -61,6 +61,15 @@ Die Regeln sind Vereinfachungen der Studienlage (Stand Ende 2026). Sie ersetzen 
 
 Die Übungen hängen von dem Equipment ab, das du vor dem Training auswählst.
 
+## 3b. Welche Einheit heute? (Stern ★)
+
+Keine feste Reihenfolge – die App empfiehlt jedes Mal neu:
+
+1. **Erholung:** Eine Körperregion (Unter-/Oberkörper) wird frühestens nach ~48 h wieder hart trainiert. Läufe und nachgetragene Beinbelastung (HIIT, Joggen, Padel …) zählen für den Unterkörper mit.
+2. **Wochenvolumen:** Regionen mit Muskeln unter 10 Sätzen in den letzten 7 Tagen bekommen Vorrang (Ziel 10–20, s. Abschnitt 1).
+3. **Abwechslung:** Innerhalb einer Region wechseln A- und B-Variante.
+4. **Alles noch müde?** Dann empfiehlt die App eine lockere Laufeinheit (aktive Erholung) bzw. den Regenerationstag.
+
 ## 4. Anpassung (die „lernende“ Komponente)
 
 Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:

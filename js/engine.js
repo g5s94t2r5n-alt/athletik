@@ -146,12 +146,72 @@ export function blockInfo(data, date = todayISO()) {
   return { week, deload: week === BLOCK_WEEKS || !!forced, forced: !!forced };
 }
 
-export function nextTemplate(data) {
+// ---------- Empfehlung der nächsten Einheit ----------
+// Keine feste Reihenfolge: Erholung der Körperregion (≥ 48 h), Wochenvolumen-Defizite
+// und A/B-Abwechslung entscheiden. Läufe und nachgetragene Beinbelastung zählen mit.
+const REGION_MUSCLES = {
+  lower: ['quadrizeps', 'beinbeuger', 'gesaess', 'waden'],
+  upper: ['brust', 'ruecken', 'schultern', 'bizeps', 'trizeps'],
+};
+const REGION_NAME = { lower: 'Unterkörper', upper: 'Oberkörper' };
+const dayWord = (d) => (d === 0 ? 'heute' : d === 1 ? 'gestern' : `vor ${d} Tagen`);
+
+export function recommendTemplate(data, date = todayISO()) {
   const rot = ROTATIONS[data.profile.days] || ROTATIONS[4];
-  const done = data.sessions.filter((s) => rot.includes(s.template));
-  if (!done.length) return rot[0];
-  const last = done[done.length - 1].template;
-  return rot[(rot.indexOf(last) + 1) % rot.length];
+  const sessions = data.sessions.filter((s) => daysBetween(s.date, date) >= 0);
+  if (!sessions.length) return { id: rot[0], why: 'Start deines Plans.' };
+  const since = (d) => (d ? daysBetween(d, date) : 99);
+  const latest = (dates) => dates.filter(Boolean).sort().pop() || null;
+  const lastOf = (pred) => latest(sessions.filter(pred).map((s) => s.date));
+  const focusOf = (s) => TEMPLATES[s.template]?.focus;
+  const legLoad = recentActivities(data, 7, date).filter((a) => ACT[a.type]?.legs && a.intensity !== 'leicht').map((a) => a.date);
+  const lastLower = latest([lastOf((s) => ['lower', 'full'].includes(focusOf(s))), ...legLoad]);
+  const lastUpper = lastOf((s) => ['upper', 'full'].includes(focusOf(s)));
+  const dRegion = { lower: since(lastLower), upper: since(lastUpper) };
+  const vol = weeklyVolume(data, 7, date);
+  const deficit = (region) => REGION_MUSCLES[region].filter((m) => vol[m] < 10);
+
+  const scored = rot.map((id) => {
+    const tpl = TEMPLATES[id];
+    const dTpl = since(lastOf((s) => s.template === id));
+    let d; let score; const reasons = [];
+    if (tpl.focus === 'lower' || tpl.focus === 'upper') {
+      d = dRegion[tpl.focus];
+      score = Math.min(d, 4) * 10 - (d < 2 ? 40 : 0);
+      const def = deficit(tpl.focus);
+      score += def.length * 3;
+      const lastSame = [...sessions].reverse().find((s) => focusOf(s) === tpl.focus);
+      if (lastSame && lastSame.template === id) score -= 8;
+      reasons.push(d >= 99 ? `${REGION_NAME[tpl.focus]} noch nicht trainiert.` : `${REGION_NAME[tpl.focus]} zuletzt ${dayWord(d)} – ${d >= 2 ? 'erholt' : 'noch nicht erholt'}.`);
+      if (def.length && d >= 2) reasons.push(`Unter Zielvolumen: ${def.slice(0, 3).map((m) => MUSCLES[m]).join(', ')}.`);
+      if (lastSame && lastSame.template !== id && d >= 2) reasons.push('Abwechslung zur letzten Variante.');
+    } else if (id === 'ATH') {
+      d = Math.min(dRegion.lower, dRegion.upper);
+      score = Math.min(dTpl, 7) * 5 - (dRegion.lower < 2 ? 25 : 0);
+      reasons.push(dTpl >= 99 ? 'Athletik-Tag noch nicht gemacht.' : `Letzter Athletik-Tag ${dayWord(dTpl)}.`);
+    } else if (id === 'REG') {
+      d = 99;
+      score = Math.min(dTpl, 7) * 2;
+      reasons.push('Lockere Einheit zur Erholung.');
+    } else { // Ganzkörper
+      d = Math.min(dRegion.lower, dRegion.upper);
+      score = Math.min(d, 4) * 10 - (d < 2 ? 40 : 0) + Math.min(dTpl, 7);
+      reasons.push(d >= 99 ? 'Noch keine Krafteinheit.' : `Letzte Krafteinheit ${dayWord(d)} – ${d >= 2 ? 'erholt' : 'noch nicht erholt'}.`);
+    }
+    return { id, score, d, why: reasons.join(' ') };
+  }).sort((a, b) => b.score - a.score);
+
+  const strength = scored.filter((c) => !['ATH', 'REG'].includes(c.id));
+  if (strength.length && strength.every((c) => c.d < 2)) {
+    const reg = scored.find((c) => c.id === 'REG');
+    if (reg) return { id: 'REG', why: 'Ober- und Unterkörper wurden gerade erst trainiert – heute locker regenerieren.' };
+    return { id: 'RUN', why: 'Ober- und Unterkörper wurden gerade erst trainiert – heute lieber ein lockerer Lauf als aktive Erholung (oder Pause).' };
+  }
+  return scored[0];
+}
+
+export function nextTemplate(data) {
+  return recommendTemplate(data).id;
 }
 
 // ---------- Historie & Kennzahlen ----------

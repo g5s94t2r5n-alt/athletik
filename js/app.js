@@ -1,7 +1,7 @@
 import { EX, EQUIPMENT, LOCATIONS, MUSCLES, ACTIVITIES, ACT, INTENSITY, videoSearchUrl, youtubeId } from './exercises.js';
 import { load, save, todayISO, daysBetween, uid, exportJSON, importJSON, requestPersistence } from './store.js';
 import {
-  TEMPLATES, ROTATIONS, blockInfo, nextTemplate, buildSession, sessionFromPlan, rememberSlots, alternatives,
+  TEMPLATES, ROTATIONS, blockInfo, recommendTemplate, buildSession, sessionFromPlan, rememberSlots, alternatives,
   makeItem, estimateMinutes, bodyweightSeries, exerciseSeries, trackedExercises, weeklyVolume, isStagnating,
   activityAdjust, activitySummary, activityLoad, autoRunType,
 } from './engine.js';
@@ -56,7 +56,8 @@ function render() {
 function renderToday() {
   const b = blockInfo(data);
   const rot = ROTATIONS[data.profile.days] || ROTATIONS[4];
-  todayTpl = todayTpl || nextTemplate(data);
+  const rec = recommendTemplate(data);
+  todayTpl = todayTpl || rec.id;
   const others = Object.keys(TEMPLATES).filter((k) => !rot.includes(k) && k !== 'RUN');
   const hasKey = data.settings.useClaude && data.settings.apiKey;
   const reviewDue = hasKey && data.sessions.length >= 2 && (!data.coach || daysBetween(data.coach.date, todayISO()) >= 7);
@@ -74,9 +75,10 @@ function renderToday() {
   <section class="card">
     <div class="label">Einheit</div>
     <div class="chips">
-      ${rot.map((k) => `<button class="chip ${k === todayTpl ? 'on' : ''}" data-action="tpl" data-tpl="${k}">${esc(TEMPLATES[k].name.split(' – ')[0])}${k === nextTemplate(data) ? ' ★' : ''}</button>`).join('')}
-      <button class="chip ${todayTpl === 'RUN' ? 'on' : ''}" data-action="tpl" data-tpl="RUN">Laufeinheit</button>
+      ${rot.map((k) => `<button class="chip ${k === todayTpl ? 'on' : ''}" data-action="tpl" data-tpl="${k}">${esc(TEMPLATES[k].name.split(' – ')[0])}${k === rec.id ? ' ★' : ''}</button>`).join('')}
+      <button class="chip ${todayTpl === 'RUN' ? 'on' : ''}" data-action="tpl" data-tpl="RUN">Laufeinheit${rec.id === 'RUN' ? ' ★' : ''}</button>
     </div>
+    <p class="rec"><span class="rec-star">★</span> ${todayTpl === rec.id ? `<strong>Empfohlen:</strong> ${esc(rec.why)}` : `Empfohlen wäre <button class="link" data-action="tpl" data-tpl="${rec.id}">${esc(TEMPLATES[rec.id].name.split(' – ')[0])}</button>: ${esc(rec.why)}`}</p>
     <p class="muted small">${esc(TEMPLATES[todayTpl].name)}</p>
     ${todayTpl === 'RUN' ? (() => {
       const auto = autoRunType(data);
@@ -425,6 +427,7 @@ function setupModal() {
     <label class="field"><span>Niveau</span><input class="in wide" data-su="level" value="${esc(s.level)}" placeholder="z. B. Leistungssportler, fortgeschritten"></label>
     <div class="label">Trainingstage pro Woche</div>
     <div class="chips">${chips('su-days', [2, 3, 4, 5, 6], s.days)}</div>
+    <div class="info-box"><span class="rec-star">★</span> <strong>Der Stern</strong> markiert beim Training die empfohlene Einheit für heute. Es gibt keine feste Reihenfolge: Die App schaut, welche Körperregion erholt ist (mind. 48 h), welche Muskeln diese Woche unter Zielvolumen liegen und welche Variante zuletzt dran war. Läufe und nachgetragene Trainings zählen mit. Du kannst jederzeit eine andere Einheit wählen.</div>
     <div class="label">Übliche Dauer</div>
     <div class="chips">${chips('su-dur', [45, 60, 75, 90, 105], s.duration, (v) => `${v} min`)}</div>
     <label class="field"><span>Verletzungen / Hinweise (optional)</span><textarea class="in wide" data-su="notes" rows="2" placeholder="z. B. Knie links empfindlich bei tiefen Sprüngen">${esc(s.notes)}</textarea></label>

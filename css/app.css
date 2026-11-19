@@ -144,6 +144,11 @@ select.in { appearance: none; -webkit-appearance: none; }
 .t-conditioning { background: var(--tag-conditioning); }
 .t-cooldown { background: var(--tag-cooldown); }
 .t-run { background: var(--tag-conditioning); }
+.info-box { background: var(--accent-soft); border-radius: 14px; padding: 10px 12px; font-size: 14px; color: var(--text-2); margin: 4px 0 12px; }
+.info-box .rec-star, .rec .rec-star { color: var(--accent); }
+.rec { font-size: 14px; color: var(--text-2); margin: 2px 0 6px; }
+.rec .rec-star { color: var(--accent); }
+.rec .link { padding: 0; color: var(--accent); font-size: 14px; text-decoration: underline; }
 .run-log { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; margin-top: 10px; align-items: end; }
 .run-log .in { text-align: center; font-weight: 700; font-size: 17px; }
 .run-log .pace { grid-column: 1 / -1; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }

@@ -3,14 +3,15 @@
 import { EXERCISES, EX, MUSCLES, LOCATIONS, available } from './exercises.js';
 import { TEMPLATES, blockInfo, aiContext, estimateMinutes, activityAdjust, activitySummary, autoRunType } from './engine.js';
 import { todayISO } from './store.js';
+import { goalOf, daysToRace } from './goals.js';
 
 const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.4.0/+esm';
 export const MODEL = 'claude-opus-5-5';
 
 export class CoachError extends Error {}
 
-const SYSTEM = `Du bist ein evidenzbasierter Kraft- und Athletiktrainer. Du planst Trainingseinheiten für genau einen Athleten.
-Ziel: 70 % Muskelaufbau, 30 % Athletik (Schnellkraft, Ausdauer, Mobilität).
+const SYSTEM = `Du bist ein evidenzbasierter Kraft-, Ausdauer- und Athletiktrainer. Du planst Trainingseinheiten für genau einen Athleten.
+Das Trainingsziel steht in der Nachricht (z. B. Muskelaufbau & Athletik, Kraftaufbau, Ausdauer, Marathon, HYROX, allgemeine Fitness). Es bestimmt Schwerpunkte, Wdh.-Bereiche und Umfang und hat bei Widersprüchen Vorrang vor den allgemeinen Regeln unten.
 
 Regeln (aus der Sportwissenschaft, nicht verhandelbar):
 - Volumen: 10–20 harte Sätze pro Muskelgruppe und Woche, jede Muskelgruppe ca. 2×/Woche.
@@ -23,6 +24,7 @@ Regeln (aus der Sportwissenschaft, nicht verhandelbar):
 - Für Progression ist Konstanz wichtig: Nutze bevorzugt dieselben Übungen wie in den letzten Einheiten desselben Typs, außer eine Übung stagniert, das Equipment fehlt oder der Athlet wünscht etwas anderes.
 - Nachgetragene Trainings (HIIT, Joggen, CrossFit, Padel, Yoga usw.) zählen mit: Hartes Ausdauer- oder Beintraining in den letzten 48 h → keinen Ausdauer-Finisher, weniger Sprungvolumen, beinlastige Grundübungen ggf. 1 Satz weniger. Wurde diese Woche schon ≥ 2× Ausdauer gemacht, ist kein Finisher nötig. Yoga/Mobility ersetzt keinen Kraftreiz, kann aber das Cool-down verkürzen.
 - Laufeinheit (Einheitstyp „Laufeinheit“): Blöcke warmup (laufspezifisch, inkl. Lauf-ABC) → run (genau eine Übung der Kategorie run, mit konkretem Ablauf und Zielintensität in "prescription") → optional strength „Kraft für Läufer“ (2–3 Übungen à 2 Sätze: Waden, einbeinig, Rumpf; verbessert die Laufökonomie) → cooldown. Polarisiert planen: ca. 80 % der Läufe locker, höchstens 1–2 harte Läufe pro Woche, nie hart, wenn in den letzten 48 h hart trainiert wurde. Für run-Items: sets = 0, repsLow = 0, repsHigh = 0.
+- HYROX-Einheit (Einheitstyp „HYROX“): warmup → run (hx_runs, in "prescription" z. B. „4 × 1 km zügig, jeweils vor einer Station“) → conditioning (3–5 Stationen hx_*, in "prescription" Distanz bzw. Wdh. fürs Training) → cooldown. Läufe und Stationen im Wechsel, Wettkampftempo üben.
 - Berücksichtige Wünsche und Beschwerden des Athleten für heute (z. B. Schmerzen → schonende Alternative, keine Belastung der Stelle).
 - Halte die geplante Dauer ein (warmup ≈ 7 min, pro Kraftsatz inkl. Pause ≈ 2,5–3,5 min, Finisher ≈ 10–15 min).
 
@@ -33,7 +35,7 @@ Ausgabe:
 - "note" pro Übung: höchstens ein kurzer Satz, nur wenn er hilft (sonst leer). "note" der Einheit: 1–2 Sätze zum Fokus heute.
 - Alles auf Deutsch.`;
 
-const REVIEW_SYSTEM = `Du bist ein evidenzbasierter Kraft- und Athletiktrainer und machst den wöchentlichen Check für einen Athleten (Ziel 70 % Muskelaufbau, 30 % Athletik).
+const REVIEW_SYSTEM = `Du bist ein evidenzbasierter Kraft-, Ausdauer- und Athletiktrainer und machst den wöchentlichen Check für einen Athleten. Sein Trainingsziel steht in der Nachricht und ist der Maßstab für deine Bewertung (bei Ausdauer-, Marathon- oder HYROX-Zielen zählen Laufumfang, langer Lauf, Intensitätsverteilung und Wettkampfnähe stärker als das Satzvolumen).
 Beurteile anhand der Daten: Wochenvolumen pro Muskel (Ziel 10–20 Sätze), Leistungstrends (geschätztes 1RM), Stagnation, Körpergewicht (für Muskelaufbau ideal ca. +0,25–0,5 % pro Monat im Aufbau) und Trainingsfrequenz.
 Nachgetragene Trainings (HIIT, Joggen, CrossFit, Padel, Yoga …) mit Session-RPE-Last (Minuten × Anstrengung) gehören zur Gesamtbelastung: Sie decken Ausdauer/Athletik ab, können aber Erholung und Kraftleistung kosten. Bewerte, ob Ausdauer (Ziel ca. 2 Reize/Woche) und Mobilität ausreichend abgedeckt sind und ob die Gesamtlast plötzlich stark gestiegen ist.
 Gib konkrete Anpassungen:
@@ -130,6 +132,7 @@ export async function planSession(data, { templateId, equip, wish, ruleSession, 
     `Datum: ${todayISO()}`,
     `Athlet: ${p.sex || "Geschlecht k. A."}, ${p.age} Jahre, ${p.weight} kg, ${p.level}. ${p.notes ? 'Hinweise: ' + p.notes : ''}`,
     `Trainingstage pro Woche: ${p.days}. Geplante Dauer heute: ${p.duration} min.`,
+    (() => { const g = goalOf(data); const dtr = daysToRace(data); return `Trainingsziel: ${g.name}. ${g.prompt}${dtr !== null ? ` Wettkampf in ${dtr} Tagen (${data.profile.goalDate})${dtr <= 14 ? ' – Tapering-Phase.' : '.'}` : ''}`; })(),
     `Heutiger Einheitstyp: ${tpl.name} (Fokus: ${tpl.focus}).`,
     templateId === 'RUN' ? (() => {
       const auto = autoRunType(data);
@@ -184,6 +187,7 @@ export async function weeklyReview(data) {
   const user = [
     `Datum: ${todayISO()}`,
     `Athlet: ${p.sex || "Geschlecht k. A."}, ${p.age} Jahre, ${p.weight} kg, ${p.level}. ${p.notes ? 'Hinweise: ' + p.notes : ''}`,
+    (() => { const g = goalOf(data); const dtr = daysToRace(data); return `Trainingsziel: ${g.name}. ${g.prompt}${dtr !== null ? ` Wettkampf in ${dtr} Tagen.` : ''}`; })(),
     `Trainingstage pro Woche (geplant): ${p.days}. Block-Woche ${block.week} von 5${block.deload ? ' (Deload)' : ''}.`,
     `Einheiten in den letzten 7 Tagen: ${data.sessions.filter((s) => (new Date(todayISO()) - new Date(s.date)) / 86400000 < 7).length} Plan-Einheiten, dazu nachgetragen: ${(() => { const a = activitySummary(data, 7); return `${a.count} ${a.count === 1 ? 'Training' : 'Trainings'}, ${a.minutes} min, sRPE-Last ${a.load}`; })()}.`,
     `Nachgetragene Trainings vorherige Woche (Tag 8–14): sRPE-Last ${activitySummary(data, 14).load - activitySummary(data, 7).load}.`,

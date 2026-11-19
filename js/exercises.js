@@ -17,6 +17,8 @@ export const EQUIPMENT = [
   { id: 'medball', name: 'Medizinball' },
   { id: 'box', name: 'Plyo-Box / Kasten' },
   { id: 'cardio', name: 'Cardio-Gerät (Rad/Ruder/Laufband)' },
+  { id: 'sled', name: 'Schlitten (Sled)' },
+  { id: 'skierg', name: 'SkiErg' },
   { id: 'space', name: 'Freifläche / Laufstrecke' },
 ];
 
@@ -357,6 +359,26 @@ export const EXERCISES = [
     ['10 min einlaufen, Lauf-ABC, 4 Steigerungen', '6–8 × 40–60 m maximal schnell, zurückgehen als Pause', 'Volle Erholung – Qualität vor Menge, 5 min auslaufen'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 6–8 × 40–60 m Sprint · 5 min aus' }),
   E('run_long', 'Langer Lauf', 'long run', 'run', [], [], [],
     ['Locker, gleichmäßiges Tempo', 'Unterwegs trinken, wenn über 60 min', 'Höchstens etwa 1 × pro Woche'], { cat: 'run', load: 'none', inc: 0, presc: '50–75 min locker' }),
+
+  // ---------- HYROX ----------
+  E('hx_runs', 'HYROX-Läufe (Compromised Running)', 'hyrox compromised running', 'run', [], [], [],
+    ['Je 1 km zügig im geplanten Wettkampftempo', 'Direkt nach jeder Station weiterlaufen – die ersten 200 m bewusst ruhig', 'Gesamtzeit und -strecke unten eintragen'], { cat: 'run', load: 'none', inc: 0, presc: '4 × 1 km zügig, jeweils vor einer Station' }),
+  E('hx_skierg', 'SkiErg', 'skierg technique', 'hyrox_station', ['skierg'], [], [],
+    ['Zug aus Hüfte und Rumpf, Arme folgen', 'Gleichmäßiger Rhythmus statt Start-Sprint', 'Im Wettkampf 1000 m'], { cat: 'conditioning', load: 'none', inc: 0, presc: '500–1000 m' }),
+  E('hx_sled_push', 'Sled Push', 'sled push technique', 'hyrox_station', ['sled'], [], [],
+    ['Arme lang, Körper tief und schräg', 'Kurze, kraftvolle Schritte', 'Im Wettkampf 50 m (4 × 12,5 m)'], { cat: 'conditioning', load: 'none', inc: 0, presc: '4 × 12,5 m schwer' }),
+  E('hx_sled_pull', 'Sled Pull', 'sled pull rope technique', 'hyrox_station', ['sled'], [], [],
+    ['Seil Hand über Hand, Beine und Hüfte mitnutzen', 'Tief stehen, Rücken neutral', 'Im Wettkampf 50 m'], { cat: 'conditioning', load: 'none', inc: 0, presc: '4 × 12,5 m' }),
+  E('hx_bbj', 'Burpee Broad Jumps', 'burpee broad jump', 'hyrox_station', [], [], [],
+    ['Burpee, dann mit beiden Beinen weit nach vorn springen', 'Gleichmäßiges Tempo, nicht überpacen', 'Im Wettkampf 80 m'], { cat: 'conditioning', load: 'none', inc: 0, presc: '40–80 m' }),
+  E('hx_row', 'Rudern', 'rowing technique', 'hyrox_station', ['cardio'], [], [],
+    ['Beine – Rumpf – Arme, zurück umgekehrt', 'Kraftvoller Beinstoß, ruhiger Rückweg', 'Im Wettkampf 1000 m'], { cat: 'conditioning', load: 'none', inc: 0, presc: '500–1000 m' }),
+  E('hx_farmers', 'Farmers Carry', 'farmers carry', 'hyrox_station', ['dumbbell'], [], [],
+    ['Schwere Hanteln (Wettkampf 2 × 24 kg Männer)', 'Aufrecht, schnelle kurze Schritte', 'Im Wettkampf 200 m'], { cat: 'conditioning', load: 'none', inc: 0, presc: '100–200 m schwer' }),
+  E('hx_lunges', 'Sandbag Lunges', 'sandbag walking lunges', 'hyrox_station', ['dumbbell'], [], [],
+    ['Gewicht auf den Schultern (Sandbag oder Kurzhanteln)', 'Hinteres Knie berührt fast den Boden', 'Im Wettkampf 100 m'], { cat: 'conditioning', load: 'none', inc: 0, presc: '50–100 m' }),
+  E('hx_wallballs', 'Wall Balls', 'wall ball shot', 'hyrox_station', ['medball'], [], [],
+    ['Tiefe Kniebeuge, Ball explosiv zum Ziel werfen', 'Fangen und direkt in die nächste Kniebeuge', 'Im Wettkampf 100 Wdh. (Männer 6 kg)'], { cat: 'conditioning', load: 'none', inc: 0, presc: '50–100 Wdh.' }),
 
   // ---------- Mobilität (Aufwärmen) ----------
   E('worlds_greatest', 'World’s Greatest Stretch', 'worlds greatest stretch', 'warmup', [], [], [],

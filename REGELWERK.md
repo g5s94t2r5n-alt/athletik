@@ -61,12 +61,27 @@ Die Regeln sind Vereinfachungen der Studienlage (Stand Ende 2026). Sie ersetzen 
 
 Die Übungen hängen von dem Equipment ab, das du vor dem Training auswählst.
 
+## 3a. Trainingsziele
+
+Das Ziel legt fest, welche Einheiten in einer Woche vorkommen (bei z. B. 4 Tagen) und wie trainiert wird:
+
+| Ziel | Woche (4 Tage) | Besonderheiten |
+|---|---|---|
+| Muskelaufbau & Athletik | Unterkörper A/B, Oberkörper A/B | 70/30, Ausdauer-Finisher, Volumen 10–20 Sätze |
+| Kraftaufbau | Unterkörper A/B, Oberkörper A/B | Grundübungen 3–6 Wdh. (Ergänzung 5–8), 2,5–3,5 min Pause, kein Finisher |
+| Ausdauer aufbauen | 2 × Lauf, 2 × Ganzkörper | Polarisiert, Kraft mit ~80 % Volumen zum Erhalt |
+| Marathon-Vorbereitung | 3 × Lauf, 1 × Ganzkörper | Wöchentlicher langer Lauf, Tempo/Intervalle, Kraft kurz (~⅔ Volumen); Tapering in den letzten 14 Tagen (−30 % Volumen, kein langer Lauf ab 10 Tagen, nur locker ab 3 Tagen) |
+| HYROX | 2 × Ganzkörper, 1 × Lauf, 1 × HYROX | HYROX-Einheit: 1-km-Läufe im Wechsel mit Stationen (Compromised Running), Tapering vor dem Wettkampf |
+| Allgemeine Fitness | 3 × Ganzkörper, 1 × Lauf | Moderates Volumen (~80 %) |
+
+Kraft vor Ausdauer-Zielen: Krafttraining verbessert die Laufökonomie (Balsalobre-Fernández et al. 2016) und wird deshalb auch bei Lauf-Zielen beibehalten.
+
 ## 3b. Welche Einheit heute? (Stern ★)
 
 Keine feste Reihenfolge – die App empfiehlt jedes Mal neu:
 
 1. **Erholung:** Eine Körperregion (Unter-/Oberkörper) wird frühestens nach ~48 h wieder hart trainiert. Läufe und nachgetragene Beinbelastung (HIIT, Joggen, Padel …) zählen für den Unterkörper mit.
-2. **Wochenvolumen:** Regionen mit Muskeln unter 10 Sätzen in den letzten 7 Tagen bekommen Vorrang (Ziel 10–20, s. Abschnitt 1).
+2. **Wochenplan des Ziels:** Einheiten, die diese Woche laut Ziel noch fehlen (z. B. der 3. Lauf beim Marathon), bekommen Vorrang. Bei Muskel-/Kraft-/Fitness-Zielen zählen zusätzlich Muskeln unter 10 Sätzen in den letzten 7 Tagen.
 3. **Abwechslung:** Innerhalb einer Region wechseln A- und B-Variante.
 4. **Alles noch müde?** Dann empfiehlt die App eine lockere Laufeinheit (aktive Erholung) bzw. den Regenerationstag.
 

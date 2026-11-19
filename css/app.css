@@ -144,6 +144,8 @@ select.in { appearance: none; -webkit-appearance: none; }
 .t-conditioning { background: var(--tag-conditioning); }
 .t-cooldown { background: var(--tag-cooldown); }
 .t-run { background: var(--tag-conditioning); }
+.goal-line { margin: -8px 0 14px; font-size: 14px; color: var(--text-2); }
+.goal-line strong { color: var(--accent); }
 .info-box { background: var(--accent-soft); border-radius: 14px; padding: 10px 12px; font-size: 14px; color: var(--text-2); margin: 4px 0 12px; }
 .info-box .rec-star, .rec .rec-star { color: var(--accent); }
 .rec { font-size: 14px; color: var(--text-2); margin: 2px 0 6px; }

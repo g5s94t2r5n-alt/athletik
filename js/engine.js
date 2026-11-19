@@ -1,6 +1,7 @@
 // Plan-Generator & Progression nach REGELWERK.md – funktioniert komplett offline.
 import { EXERCISES, EX, MUSCLES, ACT, INTENSITY, available } from './exercises.js';
 import { todayISO, daysBetween, uid } from './store.js';
+import { goalOf, rotationFor, daysToRace } from './goals.js';
 
 // ---------- Vorlagen (Split) ----------
 export const TEMPLATES = {
@@ -107,6 +108,7 @@ export const TEMPLATES = {
     name: 'Regeneration – Zone 2 & Mobilität', focus: 'full', cond: 'zone2', slots: [], longCooldown: true,
   },
   RUN: { name: 'Laufeinheit', focus: 'run', cond: null, slots: [], run: true },
+  HYX: { name: 'HYROX – Lauf & Stationen', focus: 'full', cond: null, slots: [], hyrox: true },
 };
 
 export const ROTATIONS = {
@@ -157,27 +159,37 @@ const REGION_NAME = { lower: 'Unterkörper', upper: 'Oberkörper' };
 const dayWord = (d) => (d === 0 ? 'heute' : d === 1 ? 'gestern' : `vor ${d} Tagen`);
 
 export function recommendTemplate(data, date = todayISO()) {
-  const rot = ROTATIONS[data.profile.days] || ROTATIONS[4];
+  const goal = goalOf(data);
+  const rot = rotationFor(data);
+  const ids = [...new Set(rot)];
+  const target = (id) => rot.filter((x) => x === id).length;
   const sessions = data.sessions.filter((s) => daysBetween(s.date, date) >= 0);
-  if (!sessions.length) return { id: rot[0], why: 'Start deines Plans.' };
+  const acts = recentActivities(data, 28, date);
+  if (!sessions.length && !acts.length) return { id: rot[0], why: `Start deines Plans (${goal.name}).` };
   const since = (d) => (d ? daysBetween(d, date) : 99);
   const latest = (dates) => dates.filter(Boolean).sort().pop() || null;
   const lastOf = (pred) => latest(sessions.filter(pred).map((s) => s.date));
   const focusOf = (s) => TEMPLATES[s.template]?.focus;
-  const legLoad = recentActivities(data, 7, date).filter((a) => ACT[a.type]?.legs && a.intensity !== 'leicht').map((a) => a.date);
+  const legLoad = acts.filter((a) => ACT[a.type]?.legs && a.intensity !== 'leicht').map((a) => a.date);
   const lastLower = latest([lastOf((s) => ['lower', 'full'].includes(focusOf(s))), ...legLoad]);
   const lastUpper = lastOf((s) => ['upper', 'full'].includes(focusOf(s)));
   const dRegion = { lower: since(lastLower), upper: since(lastUpper) };
+  const runs = acts.filter((a) => a.type === 'jogging');
+  const dRun = since(latest(runs.map((a) => a.date)));
   const vol = weeklyVolume(data, 7, date);
-  const deficit = (region) => REGION_MUSCLES[region].filter((m) => vol[m] < 10);
+  const deficit = (region) => (goal.volumeFocus ? REGION_MUSCLES[region].filter((m) => vol[m] < 10) : []);
+  const doneWeek = (id) => (id === 'RUN'
+    ? runs.filter((a) => daysBetween(a.date, date) < 7).length
+    : sessions.filter((s) => s.template === id && daysBetween(s.date, date) < 7).length);
 
-  const scored = rot.map((id) => {
+  const scored = ids.map((id) => {
     const tpl = TEMPLATES[id];
     const dTpl = since(lastOf((s) => s.template === id));
-    let d; let score; const reasons = [];
+    const tgt = target(id); const done = doneWeek(id); const missing = tgt - done;
+    let d = 99; let score = missing * 12; const reasons = [];
     if (tpl.focus === 'lower' || tpl.focus === 'upper') {
       d = dRegion[tpl.focus];
-      score = Math.min(d, 4) * 10 - (d < 2 ? 40 : 0);
+      score += Math.min(d, 4) * 10 - (d < 2 ? 40 : 0);
       const def = deficit(tpl.focus);
       score += def.length * 3;
       const lastSame = [...sessions].reverse().find((s) => focusOf(s) === tpl.focus);
@@ -185,27 +197,38 @@ export function recommendTemplate(data, date = todayISO()) {
       reasons.push(d >= 99 ? `${REGION_NAME[tpl.focus]} noch nicht trainiert.` : `${REGION_NAME[tpl.focus]} zuletzt ${dayWord(d)} – ${d >= 2 ? 'erholt' : 'noch nicht erholt'}.`);
       if (def.length && d >= 2) reasons.push(`Unter Zielvolumen: ${def.slice(0, 3).map((m) => MUSCLES[m]).join(', ')}.`);
       if (lastSame && lastSame.template !== id && d >= 2) reasons.push('Abwechslung zur letzten Variante.');
+    } else if (id === 'RUN') {
+      score += Math.min(dRun, 3) * 8 - (dRun < 1 ? 40 : 0) - (dRegion.lower === 0 ? 15 : 0);
+      const auto = autoRunType(data);
+      reasons.push(dRun >= 99 ? 'Noch kein Lauf.' : `Letzter Lauf ${dayWord(dRun)}.`);
+      if (missing <= 0) { score -= 10; reasons.push('Lauf-Wochenziel erreicht – heute nur locker (oder Pause).'); }
+      else reasons.push(`Diese Woche ${done} von ${tgt} ${tgt === 1 ? 'Lauf' : 'Läufen'}.`);
+      reasons.push(`Vorschlag: ${EX[auto.id].name}.`);
+    } else if (id === 'HYX') {
+      d = Math.min(dRegion.lower, dRegion.upper);
+      score += Math.min(d, 4) * 10 - (d < 2 ? 40 : 0) + Math.min(dTpl, 7);
+      reasons.push(dTpl >= 99 ? 'Noch keine HYROX-Einheit.' : `Letzte HYROX-Einheit ${dayWord(dTpl)}.`);
+      if (d < 2) reasons.push('Muskeln noch nicht ganz erholt.');
     } else if (id === 'ATH') {
       d = Math.min(dRegion.lower, dRegion.upper);
-      score = Math.min(dTpl, 7) * 5 - (dRegion.lower < 2 ? 25 : 0);
+      score += Math.min(dTpl, 7) * 5 - (dRegion.lower < 2 ? 25 : 0);
       reasons.push(dTpl >= 99 ? 'Athletik-Tag noch nicht gemacht.' : `Letzter Athletik-Tag ${dayWord(dTpl)}.`);
     } else if (id === 'REG') {
-      d = 99;
-      score = Math.min(dTpl, 7) * 2;
+      score += Math.min(dTpl, 7) * 2;
       reasons.push('Lockere Einheit zur Erholung.');
     } else { // Ganzkörper
       d = Math.min(dRegion.lower, dRegion.upper);
-      score = Math.min(d, 4) * 10 - (d < 2 ? 40 : 0) + Math.min(dTpl, 7);
+      score += Math.min(d, 4) * 10 - (d < 2 ? 40 : 0) + Math.min(dTpl, 7);
       reasons.push(d >= 99 ? 'Noch keine Krafteinheit.' : `Letzte Krafteinheit ${dayWord(d)} – ${d >= 2 ? 'erholt' : 'noch nicht erholt'}.`);
+      if (tgt > 1 || ['endurance', 'marathon', 'hyrox'].includes(goal.id)) reasons.push(`Kraft diese Woche: ${sessions.filter((s) => ['FB_A', 'FB_B', 'FB_C'].includes(s.template) && daysBetween(s.date, date) < 7).length}×.`);
     }
     return { id, score, d, why: reasons.join(' ') };
   }).sort((a, b) => b.score - a.score);
 
-  const strength = scored.filter((c) => !['ATH', 'REG'].includes(c.id));
-  if (strength.length && strength.every((c) => c.d < 2)) {
-    const reg = scored.find((c) => c.id === 'REG');
-    if (reg) return { id: 'REG', why: 'Ober- und Unterkörper wurden gerade erst trainiert – heute locker regenerieren.' };
-    return { id: 'RUN', why: 'Ober- und Unterkörper wurden gerade erst trainiert – heute lieber ein lockerer Lauf als aktive Erholung (oder Pause).' };
+  const heavy = scored.filter((c) => !['ATH', 'REG', 'RUN'].includes(c.id));
+  if (heavy.length && heavy.every((c) => c.d < 2) && !['RUN', 'REG'].includes(scored[0].id)) {
+    if (ids.includes('REG')) return { id: 'REG', why: 'Muskeln wurden gerade erst trainiert – heute locker regenerieren.' };
+    return { id: 'RUN', why: 'Muskeln wurden gerade erst trainiert – heute lieber ein lockerer Lauf als aktive Erholung (oder Pause).' };
   }
   return scored[0];
 }
@@ -407,7 +430,7 @@ export function estimateMinutes(session) {
   for (const b of session.blocks) {
     if (b.type === 'warmup') m += 7;
     else if (b.type === 'cooldown') m += b.items.length * 1.5;
-    else if (b.type === 'conditioning') m += b.items.reduce((s, i) => s + COND_MIN[condKind(i.exId)], 0);
+    else if (b.type === 'conditioning') m += b.items.reduce((s, i) => s + (i.exId.startsWith('hx_') ? 5 : COND_MIN[condKind(i.exId)]), 0);
     else if (b.type === 'run') m += b.items.reduce((s, i) => s + (RUN_MIN[i.exId] || 40), 0);
     else for (const it of b.items) {
       const ex = EX[it.exId];
@@ -423,7 +446,6 @@ export function estimateMinutes(session) {
 export function runActivities(data) {
   const out = [];
   for (const s of data.sessions) {
-    if (s.template !== 'RUN') continue;
     for (const b of s.blocks) for (const it of b.items) {
       const num = (v) => parseFloat(String(v ?? '').replace(',', '.')) || 0;
       if (EX[it.exId]?.cat !== 'run' || !(it.done || num(it.run?.min) > 0)) continue;
@@ -439,23 +461,35 @@ export function recentActivities(data, days, endDate = todayISO()) {
   return [...(data.activities || []), ...runActivities(data)].filter((a) => { const d = daysBetween(a.date, endDate); return d >= 0 && d < days; });
 }
 
-export const RUN_MIN = { run_easy: 40, run_4x4: 45, run_3030: 40, run_tempo: 45, run_fartlek: 40, run_sprints: 35, run_long: 65 };
-const RUN_INTENSITY = { run_easy: 'leicht', run_long: 'mittel', run_fartlek: 'mittel', run_4x4: 'hart', run_3030: 'hart', run_tempo: 'hart', run_sprints: 'hart' };
-const HARD_RUNS = ['run_4x4', 'run_tempo', 'run_3030', 'run_sprints', 'run_fartlek'];
+export const RUN_MIN = { hx_runs: 30, run_easy: 40, run_4x4: 45, run_3030: 40, run_tempo: 45, run_fartlek: 40, run_sprints: 35, run_long: 65 };
+const RUN_INTENSITY = { hx_runs: 'hart', run_easy: 'leicht', run_long: 'mittel', run_fartlek: 'mittel', run_4x4: 'hart', run_3030: 'hart', run_tempo: 'hart', run_sprints: 'hart' };
 
-// Polarisiert: hart nur nach lockeren Tagen, sonst locker.
+// Polarisiert: hart nur nach lockeren Tagen, sonst locker. Ziel bestimmt Schwerpunkte
+// (z. B. Marathon: wöchentlicher langer Lauf), vor dem Wettkampf Tapering.
 export function autoRunType(data) {
+  const goal = goalOf(data);
   const { deload } = blockInfo(data);
+  const dtr = daysToRace(data);
+  if (dtr !== null && dtr <= 3) return { id: 'run_easy', why: `Noch ${dtr} Tage bis zum Wettkampf – nur kurz und locker.` };
   if (deload) return { id: 'run_easy', why: 'Deload-Woche – nur locker.' };
   const last2 = recentActivities(data, 2);
   const hard = last2.find((a) => ACT[a.type]?.cardio && a.intensity === 'hart');
   if (hard) return { id: 'run_easy', why: `Locker, weil ${activityName(hard)} (hart) erst vor Kurzem war.` };
   const runs = runActivities(data);
   const lastRun = runs[runs.length - 1];
-  if (lastRun && RUN_INTENSITY[lastRun.runType] === 'hart' && daysBetween(lastRun.date, todayISO()) < 4) return { id: 'run_easy', why: 'Locker, weil dein letzter Lauf intensiv war.' };
-  const nHard = runs.filter((r) => HARD_RUNS.includes(r.runType)).length;
-  const id = HARD_RUNS[nHard % HARD_RUNS.length];
-  return { id, why: 'Intensiver Reiz – du bist ausgeruht genug.' };
+  if (lastRun && RUN_INTENSITY[lastRun.runType] !== 'leicht' && daysBetween(lastRun.date, todayISO()) < (lastRun.runType === 'run_long' ? 2 : 4)) {
+    return { id: 'run_easy', why: `Locker, weil dein letzter Lauf (${EX[lastRun.runType]?.name || 'intensiv'}) fordernd war.` };
+  }
+  const runTarget = rotationFor(data).filter((x) => x === 'RUN').length;
+  const runsWeek = recentActivities(data, 7).filter((a) => a.type === 'jogging').length;
+  if (runTarget && runsWeek >= runTarget) return { id: 'run_easy', why: `Wochenziel (${runTarget} ${runTarget === 1 ? 'Lauf' : 'Läufe'}) schon erreicht – heute nur locker.` };
+  const taper = dtr !== null && dtr <= 10;
+  const hadLong = runs.some((r) => r.runType === 'run_long' && daysBetween(r.date, todayISO()) < 6);
+  if (goal.longRun && !hadLong && !taper) return { id: 'run_long', why: 'Langer Lauf dieser Woche steht noch aus.' };
+  const cycle = goal.runCycle.filter((id) => !(taper && id === 'run_long'));
+  const nKey = runs.filter((r) => cycle.includes(r.runType)).length;
+  const id = cycle[nKey % cycle.length];
+  return { id, why: taper ? `Tapering (noch ${dtr} Tage): kurzer, knackiger Reiz.` : 'Intensiver Reiz – du bist ausgeruht genug.' };
 }
 
 export function buildRunSession(data, { equip, runType }) {
@@ -484,6 +518,36 @@ export function buildRunSession(data, { equip, runType }) {
     note: 'Draußen oder auf dem Laufband. Trag danach Dauer und Strecke ein.', blocks,
   };
 }
+const HX_STATIONS = ['hx_skierg', 'hx_sled_push', 'hx_sled_pull', 'hx_bbj', 'hx_row', 'hx_farmers', 'hx_lunges', 'hx_wallballs'];
+
+export function buildHyroxSession(data, { equip }) {
+  const { week, deload } = blockInfo(data);
+  const dtr = daysToRace(data);
+  const avail = HX_STATIONS.filter((id) => available(EX[id], equip));
+  const rounds = deload || (dtr !== null && dtr <= 7) ? 3 : 4;
+  const done = data.sessions.filter((s) => s.template === 'HYX').length;
+  const stations = [];
+  for (let i = 0; i < avail.length && stations.length < rounds; i++) stations.push(avail[(done * rounds + i) % avail.length]);
+  const runItem = makeItem(data, EX.hx_runs, 0);
+  runItem.presc = `${stations.length} × 1 km zügig, jeweils vor einer Station`;
+  const blocks = [
+    { type: 'warmup', title: 'Aufwärmen', items: WARMUP.full.slice(0, 4).map((w) => makeItem(data, EX[w], 0)) },
+    { type: 'run', title: 'HYROX-Läufe', items: [runItem] },
+    { type: 'conditioning', title: 'Stationen (im Wechsel mit den Läufen)', items: stations.map((id) => makeItem(data, EX[id], 0)) },
+    { type: 'cooldown', title: 'Cool-down & Beweglichkeit', items: COOLDOWN.full.slice(0, 4).map((c) => makeItem(data, EX[c], 0)) },
+  ];
+  return {
+    id: uid(), date: todayISO(), template: 'HYX', title: 'HYROX – Lauf & Stationen', week, deload,
+    source: 'regel', equipment: [...equip], status: 'active', startedAt: Date.now(),
+    note: [
+      `Ablauf: ${stations.map((id, i) => `1 km Lauf → ${EX[id].name}`).join(' → ')}.`,
+      'Stationen abhaken, am Ende Gesamtzeit und Strecke der Läufe eintragen.',
+      dtr !== null && dtr <= 14 ? `Noch ${dtr} Tage bis zum Wettkampf – Tempo kontrolliert, nicht ausbelasten.` : '',
+    ].filter(Boolean).join(' '),
+    blocks,
+  };
+}
+
 export const activityName = (a) => (a.fromPlan ? a.note : ACT[a.type]?.name || a.type);
 export const activityLoad = (a) => Math.round((Number(a.minutes) || 0) * (INTENSITY[a.intensity] || 5));
 
@@ -516,8 +580,13 @@ export function activityAdjust(data, focus) {
 
 export function buildSession(data, { templateId, equip, runType }) {
   if (templateId === 'RUN') return buildRunSession(data, { equip, runType });
+  if (templateId === 'HYX') return buildHyroxSession(data, { equip });
   const tpl = TEMPLATES[templateId];
   const { week, deload } = blockInfo(data);
+  const goal = goalOf(data);
+  const dtr = daysToRace(data);
+  const taper = dtr !== null && dtr <= 14;
+  const vf = goal.volume * (taper ? 0.7 : 1);
   const actAdj = activityAdjust(data, tpl.focus);
   const adj = muscleAdjustments(data);
   const adjUsed = new Set();
@@ -532,8 +601,10 @@ export function buildSession(data, { templateId, equip, runType }) {
     const m = ex.prim[0];
     if (m && adj[m] && !adjUsed.has(m) && ex.cat === 'strength') { a = adj[m]; adjUsed.add(m); }
     let n = setsFor(sd, week, deload, a);
+    if (ex.cat === 'strength' && vf !== 1) n = Math.max(2, Math.round(n * vf));
     if (actAdj.reducePower && ex.slot === 'power_lower') n = Math.max(2, n - 1);
-    const item = makeItem(data, ex, n, { main: sd.main, deload });
+    const heavy = goal.reps === 'strength' && ex.cat === 'strength' && ex.load === 'kg' && !ISOLATION.includes(ex.slot);
+    const item = makeItem(data, ex, n, { main: sd.main, deload, ...(heavy ? { lo: sd.main ? 3 : 5, hi: sd.main ? 6 : 8, rest: sd.main ? 210 : 150 } : {}) });
     item.prio = sd.prio;
     item.slotKey = key;
     (ex.cat === 'power' ? power : strength).push(item);
@@ -543,7 +614,7 @@ export function buildSession(data, { templateId, equip, runType }) {
   blocks.push({ type: 'warmup', title: 'Aufwärmen & Mobilität', items: mobilityBlock('warmup', tpl.focus, equip).map((id) => makeItem(data, EX[id], 0)) });
   if (power.length) blocks.push({ type: 'power', title: 'Schnellkraft', items: power });
   if (strength.length) blocks.push({ type: 'strength', title: 'Kraft & Muskelaufbau', items: strength });
-  if (tpl.cond && !(actAdj.dropCond && tpl.cond !== 'zone2')) {
+  if (tpl.cond && !(actAdj.dropCond && tpl.cond !== 'zone2') && (goal.finisher || tpl.cond === 'zone2')) {
     const c = COND[tpl.cond].map((id) => EX[id]).find((e) => available(e, equip));
     if (c) blocks.push({ type: 'conditioning', title: tpl.cond === 'zone2' ? 'Ausdauer – locker' : 'Ausdauer-Finisher', items: [makeItem(data, c, 0)] });
   }
@@ -552,7 +623,12 @@ export function buildSession(data, { templateId, equip, runType }) {
   const session = {
     id: uid(), date: todayISO(), template: templateId, title: tpl.name, week, deload,
     source: 'regel', equipment: [...equip], status: 'active', startedAt: Date.now(),
-    note: [deload ? 'Deload-Woche: weniger Sätze, −10 % Gewicht. Erholung ist Teil des Fortschritts.' : '', ...actAdj.notes].filter(Boolean).join(' '),
+    note: [
+      taper ? `Tapering: noch ${dtr} Tage bis zum Wettkampf – weniger Volumen, Frische zählt.` : '',
+      deload ? 'Deload-Woche: weniger Sätze, −10 % Gewicht. Erholung ist Teil des Fortschritts.' : '',
+      goal.reps === 'strength' ? 'Kraftaufbau: Grundübungen schwer, lange Pausen, saubere Technik.' : '',
+      ...actAdj.notes,
+    ].filter(Boolean).join(' '),
     blocks,
   };
   fitDuration(session, data.profile.duration, equip);

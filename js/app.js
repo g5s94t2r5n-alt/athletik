@@ -6,6 +6,7 @@ import {
   activityAdjust, activitySummary, activityLoad, autoRunType,
 } from './engine.js';
 import { planSession, weeklyReview, CoachError, MODEL } from './coach.js';
+import { GOALS, GOAL, goalOf, rotationFor, daysToRace } from './goals.js';
 import { lineChart, barChart } from './charts.js';
 
 const params = new URLSearchParams(location.search);
@@ -55,10 +56,12 @@ function render() {
 // ---------- Heute (Planung) ----------
 function renderToday() {
   const b = blockInfo(data);
-  const rot = ROTATIONS[data.profile.days] || ROTATIONS[4];
+  const rot = [...new Set(rotationFor(data))];
   const rec = recommendTemplate(data);
   todayTpl = todayTpl || rec.id;
   const others = Object.keys(TEMPLATES).filter((k) => !rot.includes(k) && k !== 'RUN');
+  const goal = goalOf(data);
+  const dtr = daysToRace(data);
   const hasKey = data.settings.useClaude && data.settings.apiKey;
   const reviewDue = hasKey && data.sessions.length >= 2 && (!data.coach || daysBetween(data.coach.date, todayISO()) >= 7);
   const last = data.sessions[data.sessions.length - 1];
@@ -68,6 +71,7 @@ function renderToday() {
     <h1>Heute</h1>
     <span class="pill ${b.deload ? 'warn' : ''}">${b.deload ? 'Deload-Woche' : `Block-Woche ${b.week}/4`}</span>
   </header>
+  <p class="goal-line">Ziel: <strong>${esc(goal.name)}</strong>${dtr !== null ? ` · noch ${dtr} ${dtr === 1 ? 'Tag' : 'Tage'} bis zum Wettkampf` : ''}</p>
   ${!data.profile.setup ? `<button class="banner" data-action="setup">Profil & Home-Gym einrichten →</button>` : ''}
   ${reviewDue ? `<button class="banner" data-action="goto" data-to="coach">Wochen-Check fällig – Claude passt deinen Plan an →</button>` : ''}
   ${data.coach && data.coach.focus ? `<div class="card soft"><div class="label">Fokus diese Woche</div><p>${esc(data.coach.focus)}</p></div>` : ''}
@@ -76,7 +80,7 @@ function renderToday() {
     <div class="label">Einheit</div>
     <div class="chips">
       ${rot.map((k) => `<button class="chip ${k === todayTpl ? 'on' : ''}" data-action="tpl" data-tpl="${k}">${esc(TEMPLATES[k].name.split(' – ')[0])}${k === rec.id ? ' ★' : ''}</button>`).join('')}
-      <button class="chip ${todayTpl === 'RUN' ? 'on' : ''}" data-action="tpl" data-tpl="RUN">Laufeinheit${rec.id === 'RUN' ? ' ★' : ''}</button>
+      ${rot.includes('RUN') ? '' : `<button class="chip ${todayTpl === 'RUN' ? 'on' : ''}" data-action="tpl" data-tpl="RUN">Laufeinheit${rec.id === 'RUN' ? ' ★' : ''}</button>`}
     </div>
     <p class="rec"><span class="rec-star">★</span> ${todayTpl === rec.id ? `<strong>Empfohlen:</strong> ${esc(rec.why)}` : `Empfohlen wäre <button class="link" data-action="tpl" data-tpl="${rec.id}">${esc(TEMPLATES[rec.id].name.split(' – ')[0])}</button>: ${esc(rec.why)}`}</p>
     <p class="muted small">${esc(TEMPLATES[todayTpl].name)}</p>
@@ -267,7 +271,7 @@ function renderItem(it, bi, ii, type) {
     </div>` : ''}
     <div class="ex-tools">
       <button class="link" data-action="cues" data-ex="${ex.id}" data-uid="${it.uid}">Technik</button>
-      ${type === 'strength' || type === 'power' ? `<button class="link" data-action="swap" data-b="${bi}" data-i="${ii}">Tauschen</button>` : ''}
+      ${type === 'strength' || type === 'power' || ex.slot === 'hyrox_station' ? `<button class="link" data-action="swap" data-b="${bi}" data-i="${ii}">Tauschen</button>` : ''}
       ${tracked ? `<button class="link" data-action="add-set" data-b="${bi}" data-i="${ii}">+ Satz</button>` : ''}
       <button class="link danger" data-action="remove" data-b="${bi}" data-i="${ii}">Entfernen</button>
     </div>
@@ -406,6 +410,7 @@ function openSetup() {
   const p = data.profile;
   setupDraft = {
     age: p.setup ? p.age : '', weight: p.setup ? p.weight : '', sex: p.sex || '', level: p.level || '',
+    goal: p.goal || 'muscle', goalDate: p.goalDate || '',
     days: p.days, duration: p.duration, notes: p.notes || '',
     homeGym: [...(data.homeGym || [])], homeGymNotes: data.homeGymNotes || '',
   };
@@ -422,6 +427,10 @@ function setupModal() {
       <label class="field"><span>Alter</span><input class="in" data-su="age" inputmode="numeric" value="${esc(s.age)}" placeholder="Jahre"></label>
       <label class="field"><span>Gewicht (kg)</span><input class="in" data-su="weight" inputmode="decimal" value="${esc(s.weight)}" placeholder="kg"></label>
     </div>
+    <div class="label">Trainingsziel</div>
+    <div class="chips">${GOALS.map((g) => `<button class="chip ${s.goal === g.id ? 'on' : ''}" data-action="su-goal" data-v="${g.id}">${esc(g.name)}</button>`).join('')}</div>
+    <p class="muted small">${esc(GOAL[s.goal].desc)}</p>
+    ${GOAL[s.goal].race ? `<label class="field"><span>Wettkampfdatum (optional)</span><input type="date" class="in" data-su="goalDate" min="${todayISO()}" value="${esc(s.goalDate)}"></label>` : ''}
     <div class="label">Geschlecht</div>
     <div class="chips">${chips('su-sex', ['männlich', 'weiblich', 'divers'], s.sex)}</div>
     <label class="field"><span>Niveau</span><input class="in wide" data-su="level" value="${esc(s.level)}" placeholder="z. B. Leistungssportler, fortgeschritten"></label>
@@ -445,7 +454,7 @@ function saveSetup() {
   const kg = parseFloat(String(s.weight).replace(',', '.'));
   if (!(age >= 14 && age <= 90)) { toast('Bitte ein Alter zwischen 14 und 90 eingeben.'); return; }
   if (!(kg > 35 && kg < 250)) { toast('Bitte ein gültiges Gewicht eingeben.'); return; }
-  Object.assign(data.profile, { age, weight: kg, sex: s.sex, level: s.level.trim(), days: s.days, duration: s.duration, notes: s.notes.trim(), setup: true });
+  Object.assign(data.profile, { age, weight: kg, sex: s.sex, level: s.level.trim(), days: s.days, duration: s.duration, notes: s.notes.trim(), goal: s.goal, goalDate: GOAL[s.goal].race ? s.goalDate : '', setup: true });
   data.bodyweight = data.bodyweight.filter((x) => x.date !== todayISO());
   data.bodyweight.push({ date: todayISO(), kg });
   data.homeGym = s.homeGym.length ? [...s.homeGym] : null;
@@ -718,11 +727,13 @@ function renderSettings() {
       <label class="field"><span>Dauer (min)</span>
         <select class="in" data-prof="duration">${[30, 45, 60, 75, 90, 105, 120].map((d) => `<option ${p.duration === d ? 'selected' : ''}>${d}</option>`).join('')}</select></label>
     </div>
+    <label class="field"><span>Trainingsziel</span><select class="in" data-prof="goal">${GOALS.map((g) => `<option value="${g.id}" ${goalOf(data).id === g.id ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select></label>
+    ${goalOf(data).race ? `<label class="field"><span>Wettkampfdatum (optional)</span><input type="date" class="in" data-prof="goalDate" min="${todayISO()}" value="${esc(p.goalDate || '')}"></label>` : ''}
     <label class="field"><span>Geschlecht</span><select class="in" data-prof="sex">${['', 'männlich', 'weiblich', 'divers'].map((s) => `<option value="${s}" ${p.sex === s ? 'selected' : ''}>${s || '– bitte wählen –'}</option>`).join('')}</select></label>
     <label class="field"><span>Niveau</span><input class="in wide" data-prof="level" placeholder="z. B. Leistungssportler, fortgeschritten" value="${esc(p.level)}"></label>
     <label class="field"><span>Verletzungen / Hinweise für Claude</span><textarea class="in wide" data-prof="notes" rows="2" placeholder="z. B. Knie links empfindlich bei tiefen Sprüngen">${esc(p.notes)}</textarea></label>
     <button class="btn small" data-action="setup">Einrichtungs-Assistent öffnen</button>
-    <p class="muted small">Split bei ${p.days} Tagen: ${(ROTATIONS[p.days] || []).map((k) => TEMPLATES[k].name.split(' – ')[0]).join(' → ')}</p>
+    <p class="muted small">Wochenplan bei ${p.days} Tagen (${esc(goalOf(data).name)}): ${rotationFor(data).map((k) => TEMPLATES[k].name.split(' – ')[0]).join(', ')}. Die Reihenfolge empfiehlt der Stern ★ jeden Tag neu.</p>
   </section>
   <section class="card">
     <div class="label">Trainingsblock</div>
@@ -762,6 +773,7 @@ document.addEventListener('click', async (e) => {
     case 'setup': openSetup(); break;
     case 'su-sex': setupDraft.sex = t.dataset.v; setupModal(); break;
     case 'su-days': setupDraft.days = +t.dataset.v; setupModal(); break;
+    case 'su-goal': setupDraft.goal = t.dataset.v; setupModal(); break;
     case 'su-dur': setupDraft.duration = +t.dataset.v; setupModal(); break;
     case 'su-equip': { const id = t.dataset.id; setupDraft.homeGym = setupDraft.homeGym.includes(id) ? setupDraft.homeGym.filter((x) => x !== id) : [...setupDraft.homeGym, id]; setupModal(); break; }
     case 'su-save': saveSetup(); break;
@@ -880,9 +892,9 @@ document.addEventListener('change', async (e) => {
     if (numeric && isNaN(v)) return;
     data.profile[k] = v;
     data.profile.setup = true;
-    if (k === 'days') todayTpl = null;
+    if (k === 'days' || k === 'goal') todayTpl = null;
     persist();
-    if (k === 'days') render();
+    if (k === 'days' || k === 'goal') render();
   }
   if (t.id === 'ex-select') { progressEx = t.value; render(); }
   if (t.id === 'import-file' && t.files[0]) {

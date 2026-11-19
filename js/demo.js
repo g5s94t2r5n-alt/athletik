@@ -7,6 +7,7 @@ export function demoData(view) {
   Object.assign(d, { active: null, sessions: [], bodyweight: [], activities: [], slotMemory: {}, coach: null, videos: {} });
   d.settings = { apiKey: 'demo', useClaude: true };
   d.profile = { ...d.profile, days: 4, duration: 75, setup: true };
+  d.location = 'gym';
   d.equipment = ['barbell', 'dumbbell', 'kettlebell', 'bench', 'cable', 'machine', 'pullup', 'dip', 'band', 'medball', 'box', 'cardio'];
   const start = new Date(); start.setDate(start.getDate() - 42);
   d.block.start = todayISO(start);

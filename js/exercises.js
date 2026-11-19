@@ -20,12 +20,13 @@ export const EQUIPMENT = [
   { id: 'space', name: 'Freifläche / Laufstrecke' },
 ];
 
-export const EQUIP_PRESETS = [
-  { name: 'Fitnessstudio', equip: ['barbell', 'dumbbell', 'kettlebell', 'bench', 'cable', 'machine', 'pullup', 'dip', 'band', 'medball', 'box', 'cardio'] },
-  { id: 'home', name: 'Home-Gym', equip: ['barbell', 'dumbbell', 'bench', 'pullup', 'band'] },
-  { name: 'Hotel / unterwegs', equip: ['dumbbell', 'cardio'] },
-  { name: 'Nur Körpergewicht', equip: [] },
-  { name: 'Draußen', equip: ['space', 'band'] },
+// Trainingsorte: Ausstattung kommt automatisch, nur unterwegs wird sie ausgewählt.
+export const LOCATIONS = [
+  { id: 'gym', name: 'Fitnessstudio', equip: EQUIPMENT.map((e) => e.id) },
+  { id: 'home', name: 'Home-Gym' },
+  { id: 'travel', name: 'Hotel / unterwegs' },
+  { id: 'outdoor', name: 'Draußen', equip: ['space'] },
+  { id: 'bodyweight', name: 'Nur Körpergewicht', equip: [] },
 ];
 
 // Nachgetragene Trainings außerhalb des Plans.

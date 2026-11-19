@@ -19,6 +19,8 @@ function defaults() {
     version: 1,
     profile: { age: 30, weight: 80, sex: '', level: 'fortgeschritten', days: 4, duration: 75, notes: '', setup: false },
     settings: { apiKey: '', useClaude: true, accent: 'lavender' },
+    location: 'gym',
+    travelEquip: ['dumbbell', 'cardio'],
     homeGym: null,
     homeGymNotes: '',
     equipment: ['barbell', 'dumbbell', 'kettlebell', 'bench', 'cable', 'machine', 'pullup', 'dip', 'band', 'medball', 'box', 'cardio'],

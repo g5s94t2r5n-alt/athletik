@@ -1,4 +1,4 @@
-import { EX, EQUIPMENT, EQUIP_PRESETS, MUSCLES, ACTIVITIES, ACT, INTENSITY, videoSearchUrl, youtubeId } from './exercises.js';
+import { EX, EQUIPMENT, LOCATIONS, MUSCLES, ACTIVITIES, ACT, INTENSITY, videoSearchUrl, youtubeId } from './exercises.js';
 import { load, save, todayISO, daysBetween, uid, exportJSON, importJSON, requestPersistence } from './store.js';
 import {
   TEMPLATES, ROTATIONS, blockInfo, nextTemplate, buildSession, sessionFromPlan, rememberSlots, alternatives,
@@ -60,6 +60,7 @@ function renderToday() {
   const hasKey = data.settings.useClaude && data.settings.apiKey;
   const reviewDue = hasKey && data.sessions.length >= 2 && (!data.coach || daysBetween(data.coach.date, todayISO()) >= 7);
   const last = data.sessions[data.sessions.length - 1];
+  const loc = data.location || 'gym';
   return `
   <header class="page-head">
     <h1>Heute</h1>
@@ -81,14 +82,15 @@ function renderToday() {
   </section>
 
   <section class="card">
-    <div class="label">Welches Equipment hast du heute?</div>
-    <div class="chips presets">
-      ${EQUIP_PRESETS.map((p, i) => `<button class="chip outline" data-action="preset" data-i="${i}">${esc(p.name)}${p.id === 'home' && !data.homeGym ? ' +' : ''}</button>`).join('')}
-    </div>
+    <div class="label">Wo trainierst du heute?</div>
     <div class="chips">
-      ${EQUIPMENT.map((e) => `<button class="chip ${data.equipment.includes(e.id) ? 'on' : ''}" data-action="equip" data-id="${e.id}">${esc(e.name)}</button>`).join('')}
+      ${LOCATIONS.map((l) => `<button class="chip ${loc === l.id ? 'on' : ''}" data-action="loc" data-id="${l.id}">${esc(l.name)}${l.id === 'home' && !data.homeGym ? ' +' : ''}</button>`).join('')}
     </div>
-    <p class="muted small">Körpergewicht-Übungen gehen immer.</p>
+    ${loc === 'travel' ? `
+      <p class="muted small">Was ist verfügbar? Körpergewicht-Übungen gehen immer.</p>
+      <div class="chips">
+        ${EQUIPMENT.map((e) => `<button class="chip ${(data.travelEquip || []).includes(e.id) ? 'on' : ''}" data-action="equip" data-id="${e.id}">${esc(e.name)}</button>`).join('')}
+      </div>` : `<p class="muted small">${locationSummary(loc)}</p>`}
   </section>
 
   <section class="card">
@@ -116,11 +118,28 @@ function renderToday() {
   `;
 }
 
+function equipFor(loc) {
+  if (loc === 'home') return [...(data.homeGym || [])];
+  if (loc === 'travel') return [...(data.travelEquip || [])];
+  return [...((LOCATIONS.find((l) => l.id === loc) || LOCATIONS[0]).equip)];
+}
+
+function locationSummary(loc) {
+  if (loc === 'gym') return 'Alle Geräte verfügbar.';
+  if (loc === 'home') {
+    const names = (data.homeGym || []).map((id) => EQUIPMENT.find((e) => e.id === id)?.name).filter(Boolean);
+    return `${names.length ? esc(names.join(', ')) : 'Nur Körpergewicht'} · <button class="link" data-action="goto" data-to="settings">ändern</button>`;
+  }
+  if (loc === 'outdoor') return 'Freifläche zum Laufen und Springen, dazu Körpergewicht-Übungen.';
+  return 'Nur Körpergewicht-Übungen, keine Geräte.';
+}
+
 function countSets(s) { return s.blocks.flatMap((b) => b.items).reduce((n, it) => n + (it.sets || []).filter((x) => x.done).length, 0); }
 function tonnage(s) { return s.blocks.flatMap((b) => b.items).reduce((n, it) => n + (it.sets || []).filter((x) => x.done).reduce((m, x) => m + (Number(x.w) || 0) * (Number(x.r) || 0), 0), 0); }
 
 async function startPlan(useAI) {
-  const equip = [...data.equipment];
+  const equip = equipFor(data.location || 'gym');
+  data.equipment = equip;
   const rule = buildSession(data, { templateId: todayTpl, equip });
   let session = rule;
   if (useAI) {
@@ -389,6 +408,7 @@ function saveSetup() {
   data.bodyweight = data.bodyweight.filter((x) => x.date !== todayISO());
   data.bodyweight.push({ date: todayISO(), kg });
   data.homeGym = s.homeGym.length ? [...s.homeGym] : null;
+  if (data.location === 'home' && !data.homeGym) data.location = 'gym';
   data.homeGymNotes = s.homeGymNotes.trim();
   todayTpl = null;
   persist();
@@ -692,10 +712,10 @@ document.addEventListener('click', async (e) => {
     case 'goto': setView(t.dataset.to); break;
     case 'tpl': todayTpl = t.dataset.tpl; render(); break;
     case 'dur': data.profile.duration = +t.dataset.min; persist(); render(); break;
-    case 'preset': {
-      const pr = EQUIP_PRESETS[+t.dataset.i];
-      if (pr.id === 'home' && !data.homeGym) { toast('Richte zuerst dein Home-Gym ein.'); openSetup(); break; }
-      data.equipment = pr.id === 'home' ? [...data.homeGym] : [...pr.equip]; persist(); render(); break;
+    case 'loc': {
+      const id = t.dataset.id;
+      if (id === 'home' && !data.homeGym) { toast('Richte zuerst dein Home-Gym ein.'); openSetup(); break; }
+      data.location = id; data.equipment = equipFor(id); persist(); render(); break;
     }
     case 'setup': openSetup(); break;
     case 'su-sex': setupDraft.sex = t.dataset.v; setupModal(); break;
@@ -709,8 +729,9 @@ document.addEventListener('click', async (e) => {
     }
     case 'accent': setAccent(t.dataset.v); render(); break;
     case 'equip': {
-      const id = t.dataset.id;
-      data.equipment = data.equipment.includes(id) ? data.equipment.filter((x) => x !== id) : [...data.equipment, id];
+      const id = t.dataset.id; const tr = data.travelEquip || [];
+      data.travelEquip = tr.includes(id) ? tr.filter((x) => x !== id) : [...tr, id];
+      data.equipment = [...data.travelEquip];
       persist(); render(); break;
     }
     case 'plan-ai': wish = ($('#wish') || {}).value || ''; startPlan(true); break;

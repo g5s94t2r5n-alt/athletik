@@ -107,7 +107,6 @@ h1, h2, p { margin: 0; }
 .chip.on { background: var(--text); color: var(--bg); border-color: var(--text); }
 .chip.outline { background: transparent; }
 .chip.small { padding: 5px 10px; font-size: 13px; }
-.presets { padding-bottom: 8px; border-bottom: 1px dashed var(--line); margin-bottom: 10px; }
 details.more summary { color: var(--muted); font-size: 14px; margin-top: 8px; cursor: pointer; }
 details.more .chips { margin-top: 8px; }
 

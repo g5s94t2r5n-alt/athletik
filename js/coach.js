@@ -1,6 +1,6 @@
 // Claude als Coach: erstellt Einheiten und macht den Wochen-Check.
 // Der API-Key bleibt lokal auf dem Gerät und geht nur an api.anthropic.com.
-import { EXERCISES, MUSCLES, available } from './exercises.js';
+import { EXERCISES, MUSCLES, LOCATIONS, available } from './exercises.js';
 import { TEMPLATES, blockInfo, aiContext, estimateMinutes, activityAdjust, activitySummary } from './engine.js';
 import { todayISO } from './store.js';
 
@@ -131,9 +131,9 @@ export async function planSession(data, { templateId, equip, wish, ruleSession }
     `Trainingstage pro Woche: ${p.days}. Geplante Dauer heute: ${p.duration} min.`,
     `Heutiger Einheitstyp laut Split: ${tpl.name} (Fokus: ${tpl.focus}).`,
     (() => {
-      const hg = data.homeGym || [];
-      const atHome = hg.length && hg.length === equip.length && hg.every((x) => equip.includes(x));
-      return atHome ? `Training heute im Home-Gym.${data.homeGymNotes ? ' Details zur Ausstattung: ' + data.homeGymNotes.trim().replace(/[.!]?$/, '.') : ''} Wähle Übungen und Wdh.-Bereiche, die mit diesen Gewichten sinnvoll fordern (z. B. höhere Wdh. oder langsameres Tempo, wenn Hanteln leicht sind).` : '';
+      const loc = LOCATIONS.find((l) => l.id === (data.location || 'gym'));
+      const atHome = data.location === 'home';
+      return `Trainingsort heute: ${loc ? loc.name : 'Fitnessstudio'}. ` + (atHome ? `${data.homeGymNotes ? 'Details zur Ausstattung: ' + data.homeGymNotes.trim().replace(/[.!]?$/, '.') : ''} Wähle Übungen und Wdh.-Bereiche, die mit diesen Gewichten sinnvoll fordern (z. B. höhere Wdh. oder langsameres Tempo, wenn Hanteln leicht sind).` : '');
     })(),
     `Block-Woche ${block.week} von 5${block.deload ? ' – DELOAD-WOCHE' : ''}.`,
     data.coach ? `Letzter Wochen-Check (${data.coach.date}): Fokus "${data.coach.focus}". Volumenanpassung: ${JSON.stringify(data.coach.volumeAdjust || [])}. Ersetzen: ${JSON.stringify(data.coach.avoid || [])}.` : 'Noch kein Wochen-Check vorhanden.',

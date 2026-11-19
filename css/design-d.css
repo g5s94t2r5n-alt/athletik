@@ -58,7 +58,7 @@
 [data-design="d"] .t-warmup { background: var(--lav); }
 [data-design="d"] .t-power { background: var(--peach); }
 [data-design="d"] .t-strength { background: var(--sky); }
-[data-design="d"] .t-conditioning { background: var(--mint); }
+[data-design="d"] .t-conditioning, [data-design="d"] .t-run { background: var(--mint); }
 [data-design="d"] .t-cooldown { background: var(--butter); }
 [data-design="d"] .t-activity { background: var(--pink); }
 [data-design="d"] .block-title { font-size: 18px; font-weight: 800; }

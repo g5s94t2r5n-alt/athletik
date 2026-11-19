@@ -1,7 +1,7 @@
 // Claude als Coach: erstellt Einheiten und macht den Wochen-Check.
 // Der API-Key bleibt lokal auf dem Gerät und geht nur an api.anthropic.com.
-import { EXERCISES, MUSCLES, LOCATIONS, available } from './exercises.js';
-import { TEMPLATES, blockInfo, aiContext, estimateMinutes, activityAdjust, activitySummary } from './engine.js';
+import { EXERCISES, EX, MUSCLES, LOCATIONS, available } from './exercises.js';
+import { TEMPLATES, blockInfo, aiContext, estimateMinutes, activityAdjust, activitySummary, autoRunType } from './engine.js';
 import { todayISO } from './store.js';
 
 const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.4.0/+esm';
@@ -22,6 +22,7 @@ Regeln (aus der Sportwissenschaft, nicht verhandelbar):
 - Deload-Woche: Sätze ca. halbieren, keine Übungen bis ans Limit, Ausdauer nur locker.
 - Für Progression ist Konstanz wichtig: Nutze bevorzugt dieselben Übungen wie in den letzten Einheiten desselben Typs, außer eine Übung stagniert, das Equipment fehlt oder der Athlet wünscht etwas anderes.
 - Nachgetragene Trainings (HIIT, Joggen, CrossFit, Padel, Yoga usw.) zählen mit: Hartes Ausdauer- oder Beintraining in den letzten 48 h → keinen Ausdauer-Finisher, weniger Sprungvolumen, beinlastige Grundübungen ggf. 1 Satz weniger. Wurde diese Woche schon ≥ 2× Ausdauer gemacht, ist kein Finisher nötig. Yoga/Mobility ersetzt keinen Kraftreiz, kann aber das Cool-down verkürzen.
+- Laufeinheit (Einheitstyp „Laufeinheit“): Blöcke warmup (laufspezifisch, inkl. Lauf-ABC) → run (genau eine Übung der Kategorie run, mit konkretem Ablauf und Zielintensität in "prescription") → optional strength „Kraft für Läufer“ (2–3 Übungen à 2 Sätze: Waden, einbeinig, Rumpf; verbessert die Laufökonomie) → cooldown. Polarisiert planen: ca. 80 % der Läufe locker, höchstens 1–2 harte Läufe pro Woche, nie hart, wenn in den letzten 48 h hart trainiert wurde. Für run-Items: sets = 0, repsLow = 0, repsHigh = 0.
 - Berücksichtige Wünsche und Beschwerden des Athleten für heute (z. B. Schmerzen → schonende Alternative, keine Belastung der Stelle).
 - Halte die geplante Dauer ein (warmup ≈ 7 min, pro Kraftsatz inkl. Pause ≈ 2,5–3,5 min, Finisher ≈ 10–15 min).
 
@@ -104,7 +105,7 @@ function sessionSchema(ids) {
         items: {
           type: 'object', additionalProperties: false, required: ['type', 'title', 'items'],
           properties: {
-            type: { type: 'string', enum: ['warmup', 'power', 'strength', 'conditioning', 'cooldown'] },
+            type: { type: 'string', enum: ['warmup', 'power', 'strength', 'conditioning', 'run', 'cooldown'] },
             title: { type: 'string' },
             items: { type: 'array', items: item },
           },
@@ -119,7 +120,7 @@ function catalog(equip) {
     `${e.id} | ${e.name} | ${e.cat}/${e.slot} | Wdh. ${e.reps[0]}-${e.reps[1]} | ${e.prim.join(',') || '-'}`).join('\n');
 }
 
-export async function planSession(data, { templateId, equip, wish, ruleSession }) {
+export async function planSession(data, { templateId, equip, wish, ruleSession, runType }) {
   const ids = EXERCISES.filter((e) => available(e, equip)).map((e) => e.id);
   const block = blockInfo(data);
   const tpl = TEMPLATES[templateId];
@@ -129,7 +130,13 @@ export async function planSession(data, { templateId, equip, wish, ruleSession }
     `Datum: ${todayISO()}`,
     `Athlet: ${p.sex || "Geschlecht k. A."}, ${p.age} Jahre, ${p.weight} kg, ${p.level}. ${p.notes ? 'Hinweise: ' + p.notes : ''}`,
     `Trainingstage pro Woche: ${p.days}. Geplante Dauer heute: ${p.duration} min.`,
-    `Heutiger Einheitstyp laut Split: ${tpl.name} (Fokus: ${tpl.focus}).`,
+    `Heutiger Einheitstyp: ${tpl.name} (Fokus: ${tpl.focus}).`,
+    templateId === 'RUN' ? (() => {
+      const auto = autoRunType(data);
+      return runType && runType !== 'auto' && EX[runType]
+        ? `Gewünschter Lauftyp: ${EX[runType].name} (${runType}). Halte dich daran, außer die Belastung spricht klar dagegen – dann erkläre es in "note".`
+        : `Lauftyp: automatisch. Vorschlag der Regel-Logik: ${EX[auto.id].name} (${auto.id}) – ${auto.why}`;
+    })() : '',
     (() => {
       const loc = LOCATIONS.find((l) => l.id === (data.location || 'gym'));
       const atHome = data.location === 'home';

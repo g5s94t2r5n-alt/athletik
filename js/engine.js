@@ -106,6 +106,7 @@ export const TEMPLATES = {
   REG: {
     name: 'Regeneration – Zone 2 & Mobilität', focus: 'full', cond: 'zone2', slots: [], longCooldown: true,
   },
+  RUN: { name: 'Laufeinheit', focus: 'run', cond: null, slots: [], run: true },
 };
 
 export const ROTATIONS = {
@@ -122,11 +123,13 @@ const COND = {
   zone2: ['zone2_cardio', 'zone2_run'],
 };
 const WARMUP = {
+  run: ['leg_swings', 'ankle_mob', 'hip_9090', 'a_skips'],
   lower: ['leg_swings', 'hip_9090', 'ankle_mob', 'worlds_greatest', 'glute_bridge_wu', 'a_skips'],
   upper: ['cat_cow', 'thoracic_rot', 'arm_circles', 'band_pull_apart', 'worlds_greatest'],
   full: ['worlds_greatest', 'inchworm', 'hip_9090', 'thoracic_rot', 'leg_swings', 'a_skips'],
 };
 const COOLDOWN = {
+  run: ['calf_stretch', 'couch_stretch', 'ham_stretch', 'pigeon'],
   lower: ['couch_stretch', 'pigeon', 'ham_stretch', 'calf_stretch'],
   upper: ['lat_stretch', 'doorway_stretch', 'childs_pose'],
   full: ['couch_stretch', 'ham_stretch', 'lat_stretch', 'doorway_stretch', 'pigeon', 'deep_squat_hold'],
@@ -321,6 +324,7 @@ export function makeItem(data, ex, nSets, opts = {}) {
     note: [opts.note, t.note].filter(Boolean).join(' '),
     presc: ex.presc || '',
     done: false,
+    ...(ex.cat === 'run' ? { run: { min: '', km: '' } } : {}),
     sets: tracked || ex.cat === 'power'
       ? Array.from({ length: nSets }, () => ({ tw: t.w, w: t.w ?? '', r: '', done: false }))
       : [],
@@ -344,6 +348,7 @@ export function estimateMinutes(session) {
     if (b.type === 'warmup') m += 7;
     else if (b.type === 'cooldown') m += b.items.length * 1.5;
     else if (b.type === 'conditioning') m += b.items.reduce((s, i) => s + COND_MIN[condKind(i.exId)], 0);
+    else if (b.type === 'run') m += b.items.reduce((s, i) => s + (RUN_MIN[i.exId] || 40), 0);
     else for (const it of b.items) {
       const ex = EX[it.exId];
       const per = b.type === 'power' ? 2 : it.main ? 3.5 : ex && ISOLATION.includes(ex.slot) ? 1.75 : 2.75;
@@ -354,9 +359,72 @@ export function estimateMinutes(session) {
 }
 
 // ---------- Nachgetragene Aktivitäten ----------
-export function recentActivities(data, days, endDate = todayISO()) {
-  return (data.activities || []).filter((a) => { const d = daysBetween(a.date, endDate); return d >= 0 && d < days; });
+// Abgeschlossene Laufeinheiten als Aktivitäten (für Belastung, Interferenz, Claude)
+export function runActivities(data) {
+  const out = [];
+  for (const s of data.sessions) {
+    if (s.template !== 'RUN') continue;
+    for (const b of s.blocks) for (const it of b.items) {
+      const num = (v) => parseFloat(String(v ?? '').replace(',', '.')) || 0;
+      if (EX[it.exId]?.cat !== 'run' || !(it.done || num(it.run?.min) > 0)) continue;
+      const min = num(it.run?.min) || RUN_MIN[it.exId] || 40;
+      const km = num(it.run?.km);
+      out.push({ id: `run-${s.id}`, type: 'jogging', date: s.date, minutes: min, intensity: RUN_INTENSITY[it.exId] || 'mittel', ...(km > 0 ? { km } : {}), note: EX[it.exId].name, fromPlan: true, runType: it.exId });
+    }
+  }
+  return out;
 }
+
+export function recentActivities(data, days, endDate = todayISO()) {
+  return [...(data.activities || []), ...runActivities(data)].filter((a) => { const d = daysBetween(a.date, endDate); return d >= 0 && d < days; });
+}
+
+export const RUN_MIN = { run_easy: 40, run_4x4: 45, run_3030: 40, run_tempo: 45, run_fartlek: 40, run_sprints: 35, run_long: 65 };
+const RUN_INTENSITY = { run_easy: 'leicht', run_long: 'mittel', run_fartlek: 'mittel', run_4x4: 'hart', run_3030: 'hart', run_tempo: 'hart', run_sprints: 'hart' };
+const HARD_RUNS = ['run_4x4', 'run_tempo', 'run_3030', 'run_sprints', 'run_fartlek'];
+
+// Polarisiert: hart nur nach lockeren Tagen, sonst locker.
+export function autoRunType(data) {
+  const { deload } = blockInfo(data);
+  if (deload) return { id: 'run_easy', why: 'Deload-Woche – nur locker.' };
+  const last2 = recentActivities(data, 2);
+  const hard = last2.find((a) => ACT[a.type]?.cardio && a.intensity === 'hart');
+  if (hard) return { id: 'run_easy', why: `Locker, weil ${activityName(hard)} (hart) erst vor Kurzem war.` };
+  const runs = runActivities(data);
+  const lastRun = runs[runs.length - 1];
+  if (lastRun && RUN_INTENSITY[lastRun.runType] === 'hart' && daysBetween(lastRun.date, todayISO()) < 4) return { id: 'run_easy', why: 'Locker, weil dein letzter Lauf intensiv war.' };
+  const nHard = runs.filter((r) => HARD_RUNS.includes(r.runType)).length;
+  const id = HARD_RUNS[nHard % HARD_RUNS.length];
+  return { id, why: 'Intensiver Reiz – du bist ausgeruht genug.' };
+}
+
+export function buildRunSession(data, { equip, runType }) {
+  const { week, deload } = blockInfo(data);
+  const auto = autoRunType(data);
+  const id = runType && runType !== 'auto' && EX[runType] ? runType : auto.id;
+  const ex = EX[id];
+  const blocks = [
+    { type: 'warmup', title: 'Lauf-Aufwärmen', items: WARMUP.run.map((w) => makeItem(data, EX[w], 0)) },
+    { type: 'run', title: 'Laufen', items: [makeItem(data, ex, 0, { note: runType && runType !== 'auto' ? '' : auto.why })] },
+  ];
+  // Kurzes Kraftprogramm für Läufer (verbessert die Laufökonomie) – nur wenn Zeit bleibt
+  const extra = [];
+  const pick = (ids) => ids.map((x) => EX[x]).find((e) => e && available(e, equip));
+  [['db_calf', 'bw_calf'], ['bss_db', 'bss_bw', 'sl_rdl_bw'], ['copenhagen', 'dead_bug']].forEach((ids) => {
+    const e = pick(ids);
+    if (e) { const it = makeItem(data, e, deload ? 1 : 2); it.prio = 3; extra.push(it); }
+  });
+  if (extra.length && RUN_MIN[id] + 7 + 6 + extra.length * 4 <= (data.profile.duration || 75)) {
+    blocks.push({ type: 'strength', title: 'Kraft für Läufer', items: extra });
+  }
+  blocks.push({ type: 'cooldown', title: 'Cool-down & Beweglichkeit', items: COOLDOWN.run.map((c) => makeItem(data, EX[c], 0)) });
+  return {
+    id: uid(), date: todayISO(), template: 'RUN', title: `Laufeinheit – ${ex.name}`, week, deload,
+    source: 'regel', equipment: [...equip], status: 'active', startedAt: Date.now(),
+    note: 'Draußen oder auf dem Laufband. Trag danach Dauer und Strecke ein.', blocks,
+  };
+}
+export const activityName = (a) => (a.fromPlan ? a.note : ACT[a.type]?.name || a.type);
 export const activityLoad = (a) => Math.round((Number(a.minutes) || 0) * (INTENSITY[a.intensity] || 5));
 
 export function activitySummary(data, days = 7) {
@@ -366,6 +434,7 @@ export function activitySummary(data, days = 7) {
     minutes: list.reduce((s, a) => s + (Number(a.minutes) || 0), 0),
     cardioMinutes: list.filter((a) => ACT[a.type]?.cardio).reduce((s, a) => s + (Number(a.minutes) || 0), 0),
     load: list.reduce((s, a) => s + activityLoad(a), 0),
+    km: Math.round(list.filter((a) => a.type === 'jogging').reduce((s, a) => s + (Number(a.km) || 0), 0) * 10) / 10,
   };
 }
 
@@ -378,14 +447,15 @@ export function activityAdjust(data, focus) {
   const legs = last2.filter((a) => ACT[a.type]?.legs && a.intensity === 'hart');
   const notes = [];
   let dropCond = false;
-  if (hardCardio.length) { dropCond = true; notes.push(`Kein Ausdauer-Finisher – ${ACT[hardCardio[0].type].name} (${hardCardio[0].intensity}) war erst vor Kurzem.`); }
+  if (hardCardio.length) { dropCond = true; notes.push(`Kein Ausdauer-Finisher – ${activityName(hardCardio[0])} (${hardCardio[0].intensity}) war erst vor Kurzem.`); }
   else if (weekCardio.length >= 2) { dropCond = true; notes.push(`Kein Ausdauer-Finisher – diese Woche schon ${weekCardio.length}× Ausdauer nachgetragen.`); }
   const reducePower = legs.length > 0 && focus !== 'upper';
-  if (reducePower) notes.push(`Beine durch ${ACT[legs[0].type].name} vorbelastet – weniger Sprünge, nur mit voller Qualität.`);
+  if (reducePower) notes.push(`Beine durch ${activityName(legs[0])} vorbelastet – weniger Sprünge, nur mit voller Qualität.`);
   return { dropCond, reducePower, notes };
 }
 
-export function buildSession(data, { templateId, equip }) {
+export function buildSession(data, { templateId, equip, runType }) {
+  if (templateId === 'RUN') return buildRunSession(data, { equip, runType });
   const tpl = TEMPLATES[templateId];
   const { week, deload } = blockInfo(data);
   const actAdj = activityAdjust(data, tpl.focus);
@@ -557,7 +627,7 @@ export function aiContext(data) {
     leistungstrends: trends,
     koerpergewicht: { aktuell_7_tage_mittel: bwNow, vor_4_wochen: bwThen },
     weitere_aktivitaeten_14_tage: recentActivities(data, 14).map((a) => ({
-      datum: a.date, art: ACT[a.type]?.name || a.type, minuten: a.minutes, intensitaet: a.intensity,
+      datum: a.date, art: activityName(a), minuten: a.minutes, intensitaet: a.intensity,
       ...(a.km ? { km: a.km } : {}), ...(a.note ? { notiz: a.note } : {}), last_srpe: activityLoad(a),
     })),
   };

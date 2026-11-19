@@ -3,7 +3,7 @@ import { load, save, todayISO, daysBetween, uid, exportJSON, importJSON, request
 import {
   TEMPLATES, ROTATIONS, blockInfo, nextTemplate, buildSession, sessionFromPlan, rememberSlots, alternatives,
   makeItem, estimateMinutes, bodyweightSeries, exerciseSeries, trackedExercises, weeklyVolume, isStagnating,
-  activityAdjust, activitySummary, activityLoad,
+  activityAdjust, activitySummary, activityLoad, autoRunType,
 } from './engine.js';
 import { planSession, weeklyReview, CoachError, MODEL } from './coach.js';
 import { lineChart, barChart } from './charts.js';
@@ -15,6 +15,7 @@ let view = 'today';
 let busy = null;
 let todayTpl = null;
 let wish = '';
+let runType = 'auto';
 let progressEx = null;
 let openHistory = null;
 const persist = () => { if (DEMO) return; if (!save(data)) toast('Speichern fehlgeschlagen – bitte Backup exportieren.'); };
@@ -56,7 +57,7 @@ function renderToday() {
   const b = blockInfo(data);
   const rot = ROTATIONS[data.profile.days] || ROTATIONS[4];
   todayTpl = todayTpl || nextTemplate(data);
-  const others = Object.keys(TEMPLATES).filter((k) => !rot.includes(k));
+  const others = Object.keys(TEMPLATES).filter((k) => !rot.includes(k) && k !== 'RUN');
   const hasKey = data.settings.useClaude && data.settings.apiKey;
   const reviewDue = hasKey && data.sessions.length >= 2 && (!data.coach || daysBetween(data.coach.date, todayISO()) >= 7);
   const last = data.sessions[data.sessions.length - 1];
@@ -74,8 +75,18 @@ function renderToday() {
     <div class="label">Einheit</div>
     <div class="chips">
       ${rot.map((k) => `<button class="chip ${k === todayTpl ? 'on' : ''}" data-action="tpl" data-tpl="${k}">${esc(TEMPLATES[k].name.split(' – ')[0])}${k === nextTemplate(data) ? ' ★' : ''}</button>`).join('')}
+      <button class="chip ${todayTpl === 'RUN' ? 'on' : ''}" data-action="tpl" data-tpl="RUN">Laufeinheit</button>
     </div>
     <p class="muted small">${esc(TEMPLATES[todayTpl].name)}</p>
+    ${todayTpl === 'RUN' ? (() => {
+      const auto = autoRunType(data);
+      return `<div class="label mt">Lauftyp</div>
+      <div class="chips">
+        <button class="chip ${runType === 'auto' ? 'on' : ''}" data-action="runtype" data-id="auto">Automatisch: ${esc(EX[auto.id].name)}</button>
+        ${RUN_TYPES.map((id) => `<button class="chip ${runType === id ? 'on' : ''}" data-action="runtype" data-id="${id}">${esc(EX[id].name)}</button>`).join('')}
+      </div>
+      <p class="muted small">${runType === 'auto' ? esc(auto.why) : esc(EX[runType].presc)}</p>`;
+    })() : ''}
     <details class="more"><summary>Andere Einheit</summary>
       <div class="chips">${others.map((k) => `<button class="chip ${k === todayTpl ? 'on' : ''}" data-action="tpl" data-tpl="${k}">${esc(TEMPLATES[k].name)}</button>`).join('')}</div>
     </details>
@@ -114,7 +125,7 @@ function renderToday() {
   </div>
 
   ${last ? `<section class="card soft"><div class="label">Letzte Einheit</div>
-    <p><strong>${esc(last.title)}</strong><br><span class="muted">${fmtDate(last.date)} · ${countSets(last)} Sätze · ${num(tonnage(last))} kg bewegt</span></p></section>` : ''}
+    <p><strong>${esc(last.title)}</strong><br><span class="muted">${fmtDate(last.date)} · ${sessionSummary(last)}${last.template === 'RUN' ? '' : ' bewegt'}</span></p></section>` : ''}
   `;
 }
 
@@ -140,12 +151,12 @@ function tonnage(s) { return s.blocks.flatMap((b) => b.items).reduce((n, it) => 
 async function startPlan(useAI) {
   const equip = equipFor(data.location || 'gym');
   data.equipment = equip;
-  const rule = buildSession(data, { templateId: todayTpl, equip });
+  const rule = buildSession(data, { templateId: todayTpl, equip, runType });
   let session = rule;
   if (useAI) {
     busy = 'plan'; render();
     try {
-      const plan = await planSession(data, { templateId: todayTpl, equip, wish, ruleSession: rule });
+      const plan = await planSession(data, { templateId: todayTpl, equip, wish, ruleSession: rule, runType });
       const s = sessionFromPlan(data, plan, { templateId: todayTpl, equip });
       if (s.blocks.some((b) => b.type === 'strength' || b.type === 'power' || b.type === 'conditioning')) {
         // Slot-Gedächtnis aus der Regel-Logik übernehmen, wenn Claude dieselbe Übung gewählt hat
@@ -172,7 +183,27 @@ async function startPlan(useAI) {
 }
 
 // ---------- Aktive Einheit ----------
-const BLOCK_ICON = { warmup: 'Aufwärmen', power: 'Schnellkraft', strength: 'Kraft', conditioning: 'Ausdauer', cooldown: 'Mobilität' };
+const BLOCK_ICON = { warmup: 'Aufwärmen', power: 'Schnellkraft', strength: 'Kraft', conditioning: 'Ausdauer', run: 'Laufen', cooldown: 'Mobilität' };
+const RUN_TYPES = ['run_easy', 'run_4x4', 'run_3030', 'run_tempo', 'run_fartlek', 'run_sprints', 'run_long'];
+
+function pace(min, km) {
+  const m = parseFloat(String(min).replace(',', '.')); const k = parseFloat(String(km).replace(',', '.'));
+  if (!(m > 0 && k > 0)) return '';
+  const p = m / k; const s = Math.round((p % 1) * 60);
+  return `${Math.floor(p) + (s === 60 ? 1 : 0)}:${String(s === 60 ? 0 : s).padStart(2, '0')} min/km`;
+}
+
+function sessionSummary(s) {
+  if (s.template !== 'RUN') return `${countSets(s)} Sätze · ${num(tonnage(s))} kg`;
+  const r = runStats(s);
+  return `${r.km ? num(r.km) + ' km · ' : ''}${r.min ? num(r.min) + ' min' : 'Lauf'}${pace(r.min, r.km) ? ' · ' + pace(r.min, r.km) : ''}${countSets(s) ? ` · ${countSets(s)} Sätze` : ''}`;
+}
+
+function runStats(s) {
+  let min = 0; let km = 0;
+  s.blocks.forEach((b) => b.items.forEach((it) => { if (it.run) { min += parseFloat(String(it.run.min).replace(',', '.')) || 0; km += parseFloat(String(it.run.km).replace(',', '.')) || 0; } }));
+  return { min, km };
+}
 
 function renderSession() {
   const s = data.active;
@@ -215,6 +246,12 @@ function renderItem(it, bi, ii, type) {
       <button class="icon-btn" data-action="video" data-ex="${ex.id}" aria-label="Video">${ICON_PLAY}</button>
     </div>
     ${it.note ? `<p class="ex-note">${esc(it.note)}</p>` : ''}
+    ${it.run ? `
+    <div class="run-log">
+      <label class="field"><span>Dauer (min)</span><input class="in" inputmode="decimal" data-run="min" data-b="${bi}" data-i="${ii}" value="${esc(it.run.min)}" placeholder="min"></label>
+      <label class="field"><span>Strecke (km)</span><input class="in" inputmode="decimal" data-run="km" data-b="${bi}" data-i="${ii}" value="${esc(it.run.km)}" placeholder="km"></label>
+      <div class="pace" id="pace-${it.uid}">${pace(it.run.min, it.run.km) || 'Pace –'}</div>
+    </div>` : ''}
     ${tracked ? `
     <div class="sets">
       <div class="set-row head"><span>Satz</span>${showW ? '<span>kg</span>' : '<span></span>'}<span>Wdh.</span><span></span></div>
@@ -243,6 +280,7 @@ function finishSession() {
   if (!countSets(s) && !s.blocks.some((b) => b.items.some((i) => i.done))) {
     if (!confirm('Noch nichts abgehakt. Trotzdem abschließen?')) return;
   }
+  s.blocks.forEach((b) => b.items.forEach((it) => { if (it.run && parseFloat(String(it.run.min).replace(',', '.')) > 0) it.done = true; }));
   s.status = 'done';
   s.finishedAt = Date.now();
   s.blocks.forEach((b) => b.items.forEach((it) => { it.sets = it.sets.filter((x) => x.done || x.r !== ''); }));
@@ -506,7 +544,7 @@ function renderSessionCard(s) {
   return `
     <article class="card hist ${openHistory === s.id ? 'open' : ''}">
       <button class="hist-head" data-action="hist" data-id="${s.id}">
-        <div><strong>${esc(s.title)}</strong><div class="muted small">${fmtDate(s.date)} · ${countSets(s)} Sätze · ${num(tonnage(s))} kg${s.source === 'claude' ? ' · Claude' : ''}</div></div>
+        <div><strong>${esc(s.title)}</strong><div class="muted small">${fmtDate(s.date)} · ${sessionSummary(s)}${s.source === 'claude' ? ' · Claude' : ''}</div></div>
         <span class="chev">›</span>
       </button>
       ${openHistory === s.id ? `<div class="hist-body">
@@ -534,8 +572,8 @@ function renderProgress() {
     <div class="tile"><div class="tile-label">Körpergewicht Ø 7 Tage</div><div class="tile-val">${bwLast ? num(bwLast.avg) : '–'}<span class="muted small"> kg</span></div>
       ${bwLast && bwOld ? `<div class="tile-delta">${bwLast.avg - bwOld.avg >= 0 ? '+' : '−'}${num(Math.abs(bwLast.avg - bwOld.avg))} kg vs. vor 4 Wochen</div>` : ''}</div>
     ${(() => { const a = activitySummary(data, 7); const prev = activitySummary(data, 14).load - a.load; return `
-    <div class="tile"><div class="tile-label">Nachgetragen (7 Tage)</div><div class="tile-val">${a.minutes}<span class="muted small"> min</span></div>
-      <div class="tile-delta">${a.count} ${a.count === 1 ? 'Training' : 'Trainings'} · ${a.cardioMinutes} min Ausdauer</div></div>
+    <div class="tile"><div class="tile-label">Ausdauer & Sport (7 Tage)</div><div class="tile-val">${a.minutes}<span class="muted small"> min</span></div>
+      <div class="tile-delta">${a.count} ${a.count === 1 ? 'Einheit' : 'Einheiten'}${a.km ? ` · ${num(a.km)} km gelaufen` : ''}</div></div>
     <div class="tile"><div class="tile-label">Zusatz-Last (sRPE)</div><div class="tile-val">${a.load}</div>
       <div class="tile-delta">Vorwoche: ${prev}</div></div>`; })()}
   </div>
@@ -711,6 +749,7 @@ document.addEventListener('click', async (e) => {
   switch (a) {
     case 'goto': setView(t.dataset.to); break;
     case 'tpl': todayTpl = t.dataset.tpl; render(); break;
+    case 'runtype': runType = t.dataset.id; render(); break;
     case 'dur': data.profile.duration = +t.dataset.min; persist(); render(); break;
     case 'loc': {
       const id = t.dataset.id;
@@ -805,6 +844,13 @@ document.addEventListener('click', async (e) => {
 
 document.addEventListener('input', (e) => {
   const t = e.target;
+  if (t.dataset.run && data.active) {
+    const it = itemAt(t);
+    it.run[t.dataset.run] = t.value;
+    const p = document.getElementById(`pace-${it.uid}`);
+    if (p) p.textContent = pace(it.run.min, it.run.km) || 'Pace –';
+    persist();
+  }
   if (t.dataset.field && data.active) {
     const st = itemAt(t).sets[+t.dataset.s];
     const v = t.value.replace(',', '.');

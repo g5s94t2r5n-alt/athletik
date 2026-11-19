@@ -342,6 +342,22 @@ export const EXERCISES = [
   E('row_2k', 'Ruder-Pyramide', 'rowing machine intervals', 'conditioning', ['cardio'], [], [],
     ['250 – 500 – 750 – 500 – 250 m', 'Pause = halbe Arbeitszeit', 'Kraftvoller Beinstoß'], { ...C, presc: '250-500-750-500-250 m' }),
 
+  // ---------- Laufeinheiten (Hauptteil) ----------
+  E('run_easy', 'Lockerer Dauerlauf (Zone 2)', 'easy run zone 2', 'run', [], [], [],
+    ['Tempo so, dass du in ganzen Sätzen reden kannst', 'Kurze, lockere Schritte, aufrecht laufen', 'Basis für Ausdauer und Erholung (ca. 80 % deiner Läufe)'], { cat: 'run', load: 'none', inc: 0, presc: '30–45 min locker' }),
+  E('run_4x4', 'Intervalle 4 × 4 min', 'running 4x4 intervals', 'run', [], [], [],
+    ['10 min einlaufen, 2–3 Steigerungen', '4 × 4 min bei ~90 % HFmax, 3 min Trab dazwischen', '10 min auslaufen – stärkster Reiz für die VO₂max'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 4 × 4 min hart / 3 min Trab · 10 min aus' }),
+  E('run_3030', 'Kurze Intervalle 30/30', 'running 30 30 intervals', 'run', [], [], [],
+    ['10 min einlaufen', '2 × 8 × 30 s schnell / 30 s Trab, 3 min Pause zwischen den Serien', 'Schnell, aber kontrolliert – nicht maximal sprinten'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 2 × 8 × 30 s schnell / 30 s Trab · 10 min aus' }),
+  E('run_tempo', 'Tempolauf (Schwelle)', 'threshold tempo run', 'run', [], [], [],
+    ['10 min einlaufen', '2 × 10 min „angenehm schwer“ (kurze Sätze möglich), 3 min Trab', '10 min auslaufen'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 2 × 10 min zügig / 3 min Trab · 10 min aus' }),
+  E('run_fartlek', 'Fahrtspiel', 'fartlek run', 'run', [], [], [],
+    ['Locker laufen und 8–10 × nach Gefühl beschleunigen', 'Tempowechsel 30–90 s, danach wieder locker', 'Spielerisch – gut, wenn du keine Lust auf Uhr hast'], { cat: 'run', load: 'none', inc: 0, presc: '35–45 min mit 8–10 Tempowechseln' }),
+  E('run_sprints', 'Sprints & Steigerungen', 'sprint session', 'run', [], [], [],
+    ['10 min einlaufen, Lauf-ABC, 4 Steigerungen', '6–8 × 40–60 m maximal schnell, zurückgehen als Pause', 'Volle Erholung – Qualität vor Menge, 5 min auslaufen'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 6–8 × 40–60 m Sprint · 5 min aus' }),
+  E('run_long', 'Langer Lauf', 'long run', 'run', [], [], [],
+    ['Locker, gleichmäßiges Tempo', 'Unterwegs trinken, wenn über 60 min', 'Höchstens etwa 1 × pro Woche'], { cat: 'run', load: 'none', inc: 0, presc: '50–75 min locker' }),
+
   // ---------- Mobilität (Aufwärmen) ----------
   E('worlds_greatest', 'World’s Greatest Stretch', 'worlds greatest stretch', 'warmup', [], [], [],
     ['Tiefer Ausfallschritt, Ellbogen zum Fuß', 'Oberkörper aufdrehen, Arm zur Decke', '5 je Seite'], { ...M, presc: '5 je Seite' }),

@@ -106,6 +106,13 @@
   .bar { position: absolute; left: 0; bottom: 0; height: .8cqw; width: 0; background: linear-gradient(90deg, var(--mint), var(--sky), var(--lav)); z-index: 10; }
   .start { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(11,10,16,.72); backdrop-filter: blur(1.5cqw); -webkit-backdrop-filter: blur(1.5cqw); }
   [hidden] { display: none !important; }
+  .embed .controls { display: none; }
+  .embed .stage { width: 100vw; height: 100dvh; aspect-ratio: auto; border-radius: 0; }
+  .embed .cap { top: calc(env(safe-area-inset-top, 0px) + 16cqw); }
+  .embed .scene.top { padding-top: 18cqw; }
+  .snd { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 3cqw); left: 4cqw; z-index: 15; font: 700 3.6cqw -apple-system, sans-serif; color: var(--text); background: rgba(28,25,38,.8); border: .3cqw solid rgba(255,255,255,.12); border-radius: 99cqw; padding: 2cqw 3.6cqw; cursor: pointer; }
+  .cta { cursor: default; border: 0; font-family: inherit; }
+  .embed .cta { cursor: pointer; }
   .start button { font: inherit; font-size: 5cqw; font-weight: 800; color: var(--ink); background: linear-gradient(120deg, var(--lav), var(--pink)); border: 0; padding: 4cqw 8cqw; border-radius: 99cqw; cursor: pointer; }
   .start small { display: block; margin-top: 3cqw; font-size: 3.4cqw; color: var(--muted); text-align: center; }
   .controls { display: flex; gap: 8px; }
@@ -181,7 +188,7 @@
       <div class="logo"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M58 12 26 56h21l-7 32 34-46H53l9-30z" fill="url(#g)"/></svg></div>
       <div class="brand grad" aria-label="Athletik"></div>
       <div class="tag">Muskelaufbau · Kraft · Ausdauer · Marathon · HYROX</div>
-      <div class="cta">Öffnen &amp; zum Home-Bildschirm hinzufügen</div>
+      <button class="cta" id="cta">Öffnen &amp; zum Home-Bildschirm hinzufügen</button>
       <div class="url" id="url"></div>
     </section>
 
@@ -194,6 +201,7 @@
       </div>
     </div>
 
+    <button class="snd" id="snd" hidden>🔈 Ton an</button>
     <div class="bar" id="bar"></div>
     <div class="start" id="start"><div><button id="go">▶ Trailer abspielen</button><small>mit Ton · ca. 60 Sekunden</small></div></div>
   </div>
@@ -205,6 +213,8 @@
 
 <script>
 (() => {
+  const EMBED = new URLSearchParams(location.search).has('embed');
+  if (EMBED) document.body.classList.add('embed');
   const stage = document.getElementById('stage');
   const scenes = [...stage.querySelectorAll('.scene')];
   const phone = document.getElementById('phone');
@@ -283,7 +293,8 @@
     t0 = performance.now(); cancelAnimationFrame(raf); tick();
     show(0);
   };
-  const end = () => { cancelAnimationFrame(raf); bar.style.width = '100%'; stopMusic(); };
+  const finish = () => { if (EMBED && window.parent !== window) window.parent.postMessage({ type: 'trailer-end' }, location.origin); };
+  const end = () => { cancelAnimationFrame(raf); bar.style.width = '100%'; stopMusic(); if (EMBED) setTimeout(finish, 2500); };
 
   // Optionaler Soundtrack (synthetisch, 120 BPM)
   let ctx = null; let musicTimer = 0; let musicOn = false;
@@ -302,8 +313,9 @@
       nextT += 0.125; step++;
     }
   };
-  const startMusic = () => { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); musicOn = true; step = 0; nextT = ctx.currentTime + 0.05; clearInterval(musicTimer); musicTimer = setInterval(schedule, 50); document.getElementById('sound').textContent = '🔇 Ton aus'; };
-  const stopMusic = () => { musicOn = false; clearInterval(musicTimer); document.getElementById('sound').textContent = '🔈 Ton an'; };
+  const label = (on) => { document.getElementById('sound').textContent = on ? '🔇 Ton aus' : '🔈 Ton an'; document.getElementById('snd').textContent = on ? '🔇 Ton aus' : '🔈 Ton an'; };
+  const startMusic = () => { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); musicOn = true; step = 0; nextT = ctx.currentTime + 0.05; clearInterval(musicTimer); musicTimer = setInterval(schedule, 50); label(true); };
+  const stopMusic = () => { musicOn = false; clearInterval(musicTimer); label(false); };
 
   // Zum Prüfen: trailer.html#szene=5 springt direkt zu Szene 5
   window.trailerScene = (n) => { document.getElementById('start').hidden = true; fit(); show(n - 1); };
@@ -311,6 +323,16 @@
   if (jump) setTimeout(() => window.trailerScene(Number(jump[1])), 600);
 
   document.getElementById('go').addEventListener('click', () => { startMusic(); start(); });
+  document.getElementById('snd').addEventListener('click', () => (musicOn ? stopMusic() : startMusic()));
+  if (EMBED) {
+    // In der App: sofort starten (ohne Ton – Browser erlauben Ton erst nach Tippen), Abschluss-Knopf führt zur Einrichtung
+    const cta = document.getElementById('cta');
+    cta.textContent = 'Los geht’s – Profil einrichten';
+    cta.addEventListener('click', finish);
+    document.getElementById('url').hidden = true;
+    document.getElementById('snd').hidden = false;
+    setTimeout(start, 300);
+  }
   document.getElementById('restart').addEventListener('click', () => { if (musicOn) startMusic(); start(); });
   document.getElementById('sound').addEventListener('click', () => (musicOn ? stopMusic() : startMusic()));
 })();

@@ -388,6 +388,25 @@ function swapModal(bi, ii) {
     <button class="btn ghost mt" data-action="close">Abbrechen</button>`);
 }
 
+// ---------- Intro-Trailer ----------
+function introSeen() { try { return localStorage.getItem('athletik.introSeen') === '1'; } catch (e) { return true; } }
+
+function showIntro(then) {
+  const ov = document.createElement('div');
+  ov.className = 'intro';
+  ov.innerHTML = '<iframe src="trailer.html?embed=1" title="Intro-Trailer"></iframe><button class="intro-skip">Überspringen ›</button>';
+  document.body.appendChild(ov);
+  const done = () => {
+    window.removeEventListener('message', onMsg);
+    ov.remove();
+    try { localStorage.setItem('athletik.introSeen', '1'); } catch (e) { /* optional */ }
+    if (then) then();
+  };
+  const onMsg = (e) => { if (e.origin === location.origin && e.data && e.data.type === 'trailer-end') done(); };
+  window.addEventListener('message', onMsg);
+  ov.querySelector('.intro-skip').addEventListener('click', done);
+}
+
 // ---------- Einrichtung: Profil & Home-Gym ----------
 let setupDraft = null;
 const ACCENTS = [
@@ -744,6 +763,10 @@ function renderSettings() {
     <button class="btn small" data-action="new-block">Neuen Block starten</button>
   </section>
   <section class="card">
+    <div class="label">Über die App</div>
+    <button class="btn small" data-action="intro">▶ Intro-Trailer ansehen</button>
+  </section>
+  <section class="card">
     <div class="label">Daten</div>
     <p class="muted small">Alle Daten liegen lokal auf dem iPhone. Exportiere regelmäßig ein Backup (z. B. in iCloud Drive).</p>
     <div class="row wrap">
@@ -774,6 +797,7 @@ document.addEventListener('click', async (e) => {
       data.location = id; data.equipment = equipFor(id); persist(); render(); break;
     }
     case 'setup': openSetup(); break;
+    case 'intro': showIntro(null); break;
     case 'su-sex': setupDraft.sex = t.dataset.v; setupModal(); break;
     case 'su-days': setupDraft.days = +t.dataset.v; setupModal(); break;
     case 'su-goal': setupDraft.goal = t.dataset.v; setupModal(); break;
@@ -916,7 +940,10 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:' && !DEMO) {
 setAccent(data.settings.accent || 'lavender');
 if (!DEMO) requestPersistence();
 if (data.active && !DEMO) keepAwake(true);
+// Allererster Start: erst der Trailer, dann die Einrichtung
+const firstLaunch = !DEMO && !data.profile.setup && !data.sessions.length && !introSeen();
 if (['history', 'progress', 'coach', 'settings'].includes(params.get('view'))) setView(params.get('view')); else render();
+if (firstLaunch) showIntro(() => openSetup());
 if (DEMO && params.get('view') === 'session') {
   const b = document.querySelector('.t-power') || document.querySelector('.t-strength');
   if (b) window.scrollTo(0, b.closest('.block').offsetTop - 12);

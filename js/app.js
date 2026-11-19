@@ -49,7 +49,7 @@ function render() {
   if (view === 'history') root.innerHTML = renderHistory();
   if (view === 'progress') { root.innerHTML = renderProgress(); drawCharts(); }
   if (view === 'coach') root.innerHTML = renderCoach();
-  if (view === 'settings') root.innerHTML = renderSettings();
+  if (view === 'settings') { root.innerHTML = renderSettings(); fillVersion(); }
   renderTimer();
 }
 
@@ -424,6 +424,30 @@ function swapModal(bi, ii) {
     ${alts.length ? `<div class="list">${alts.map((a) => `<button class="list-item" data-action="do-swap" data-b="${bi}" data-i="${ii}" data-ex="${a.id}"><strong>${esc(a.name)}</strong><span class="muted small">${a.reps[0]}–${a.reps[1]} Wdh.${isStagnating(data, a.id) ? ' · stagniert' : ''}</span></button>`).join('')}</div>`
       : '<p>Keine Alternative mit deinem heutigen Equipment.</p>'}
     <button class="btn ghost mt" data-action="close">Abbrechen</button>`);
+}
+
+// ---------- Version & Update ----------
+const APP_FILES = ['./', 'index.html', 'manifest.webmanifest', 'css/app.css', 'css/design-d.css', 'js/app.js', 'js/store.js', 'js/engine.js', 'js/exercises.js', 'js/coach.js', 'js/charts.js', 'js/goals.js', 'js/demo.js', 'trailer.html', 'sw.js'];
+
+async function fillVersion() {
+  const el = document.getElementById('app-version');
+  if (!el) return;
+  let v = 0;
+  try { (await caches.keys()).forEach((k) => { const m = /^athletik-v(\d+)$/.exec(k); if (m) v = Math.max(v, +m[1]); }); } catch (e) { /* kein Cache */ }
+  el.textContent = v ? `Version ${v}` : 'Version unbekannt';
+}
+
+// Notfall-Knopf: Offline-Speicher leeren, alle App-Dateien frisch vom Server holen, neu laden.
+// Trainingsdaten (localStorage) bleiben unberührt.
+async function forceUpdate() {
+  if (!confirm('App-Dateien neu vom Server laden? Deine Trainingsdaten bleiben erhalten.')) return;
+  toast('Lade neue Version …', 8000);
+  try {
+    for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
+    for (const k of await caches.keys()) await caches.delete(k);
+    await Promise.all(APP_FILES.map((u) => fetch(u, { cache: 'reload' }).catch(() => null)));
+  } catch (e) { /* trotzdem neu laden */ }
+  location.reload();
 }
 
 // ---------- Intro-Trailer ----------
@@ -802,6 +826,8 @@ function renderSettings() {
   <section class="card">
     <div class="label">Über die App</div>
     <button class="btn small" data-action="intro">▶ Intro-Trailer ansehen</button>
+    <p class="muted small mt"><span id="app-version">Version …</span> · Neue Versionen lädt die App automatisch.</p>
+    <button class="btn small ghost" data-action="force-update">Update erzwingen</button>
   </section>
   <section class="card">
     <div class="label">Daten</div>
@@ -812,7 +838,7 @@ function renderSettings() {
       <button class="btn small ghost danger" data-action="wipe">Alles löschen</button>
     </div>
   </section>
-  <p class="muted small center">Athletik · lokale Version · Regelwerk siehe REGELWERK.md</p>`;
+  <p class="muted small center">Athletik · Regelwerk siehe REGELWERK.md</p>`;
 }
 
 // ---------- Events ----------
@@ -835,6 +861,7 @@ document.addEventListener('click', async (e) => {
     }
     case 'setup': openSetup(); break;
     case 'intro': showIntro(null); break;
+    case 'force-update': forceUpdate(); break;
     case 'su-sex': setupDraft.sex = t.dataset.v; setupModal(); break;
     case 'su-days': setupDraft.days = +t.dataset.v; setupModal(); break;
     case 'su-goal': setupDraft.goal = t.dataset.v; setupModal(); break;
@@ -971,7 +998,20 @@ window.addEventListener('resize', () => { if (view === 'progress') drawCharts();
 
 // ---------- Start ----------
 if ('serviceWorker' in navigator && location.protocol !== 'file:' && !DEMO) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  // Updates: neuen Service Worker suchen (beim Start und beim Zurückkehren in die App);
+  // wird er aktiv, lädt die App einmal neu – nie mitten in einem Training.
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloaded) return;
+    if (data.active) { toast('Update geladen – aktiv beim nächsten Öffnen.'); return; }
+    reloaded = true;
+    location.reload();
+  });
+  navigator.serviceWorker.register('sw.js').then((reg) => {
+    reg.update().catch(() => {});
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+  }).catch(() => {});
 }
 setAccent(data.settings.accent || 'lavender');
 if (!DEMO) requestPersistence();

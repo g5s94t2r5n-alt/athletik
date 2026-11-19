@@ -32,7 +32,7 @@ Die Regeln sind Vereinfachungen der Studienlage (Stand Ende 2026). Sie ersetzen 
 | Ausdauer | 2 Reize/Woche: 1× Intervalle (z. B. 4×4 min oder 6–10×30 s), 1× locker/Zone 2 (20–40 min), sonst als kurzer Finisher | Milanović et al. 2015 (HIIT & VO₂max); Stöggl & Sperlich 2014 (polarisiertes Training) |
 | Mobilität | Vor dem Training: dynamisch (RAMP-Aufwärmen). Danach oder separat: statisches Dehnen bzw. Krafttraining über die volle Bewegungsamplitude | Behm et al. 2016 (akute Wirkung von Dehnen); Afonso et al. 2021 (Krafttraining vs. Dehnen für die Beweglichkeit) |
 
-### Nachgetragene Trainings (HIIT, Joggen, Yoga, CrossFit, Padel …)
+### Nachgetragene Trainings (HIIT, Joggen, Yoga, Kurse, CrossFit, Padel …)
 
 | Regel in der App | Grundlage |
 |---|---|

@@ -40,6 +40,7 @@ export const ACTIVITIES = [
   { id: 'padel', name: 'Padel', cardio: true, legs: true },
   { id: 'paddling', name: 'Paddeln (SUP/Kajak)', cardio: true, dist: true },
   { id: 'yoga', name: 'Yoga', mobility: true },
+  { id: 'course', name: 'Kurs', cardio: true },
   { id: 'cycling', name: 'Radfahren', cardio: true, dist: true },
   { id: 'swimming', name: 'Schwimmen', cardio: true, dist: true },
   { id: 'teamsport', name: 'Fußball / Teamsport', cardio: true, legs: true },

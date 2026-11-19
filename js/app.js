@@ -450,7 +450,6 @@ let setupDraft = null;
 const ACCENTS = [
   { id: 'lavender', name: 'Lavendel', a: '#c7b8ff', b: '#ffb8d2' },
   { id: 'mint', name: 'Mint', a: '#a7ecc9', b: '#acd8ff' },
-  { id: 'peach', name: 'Pfirsich', a: '#ffc6a5', b: '#ffb8d2' },
   { id: 'sky', name: 'Himmelblau', a: '#acd8ff', b: '#c7b8ff' },
   { id: 'rose', name: 'Rosa', a: '#ffb8d2', b: '#ffc6a5' },
   { id: 'butter', name: 'Butter', a: '#ffe59c', b: '#ffc6a5' },
@@ -558,7 +557,7 @@ function activityModal() {
     <div class="chips">${Object.keys(INTENSITY).map((k) => `<button class="chip ${a.intensity === k ? 'on' : ''}" data-action="act-int" data-k="${k}">${k[0].toUpperCase() + k.slice(1)}</button>`).join('')}</div>
     <p class="muted small">${INT_HELP[a.intensity]}</p>
     ${def.dist ? `<label class="field"><span>Strecke in km (optional)</span><input class="in" id="act-km" inputmode="decimal" value="${esc(a.km || '')}"></label>` : ''}
-    <label class="field"><span>Notiz (optional)</span><textarea class="in wide" id="act-note" rows="2" placeholder="z. B. 6 × 400 m Intervalle, Knie ok">${esc(a.note || '')}</textarea></label>
+    <label class="field"><span>${a.type === 'course' ? 'Welcher Kurs?' : 'Notiz (optional)'}</span><textarea class="in wide" id="act-note" rows="2" placeholder="${a.type === 'course' ? 'z. B. Spinning, Bodypump, Pilates, Zumba' : 'z. B. 6 × 400 m Intervalle, Knie ok'}">${esc(a.note || '')}</textarea></label>
     <button class="btn primary" data-action="act-save">Speichern</button>
     <button class="btn ghost" data-action="close">Abbrechen</button>`);
 }

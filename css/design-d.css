@@ -89,7 +89,6 @@
 
 /* Akzentfarben (Mehr → Farbe) */
 :root[data-design="d"][data-accent="mint"] { --accent: #a7ecc9; --accent-2: #acd8ff; --accent-ink: #0f261b; --accent-soft: rgba(167, 236, 201, 0.14); --series-1: #a7ecc9; }
-:root[data-design="d"][data-accent="peach"] { --accent: #ffc6a5; --accent-2: #ffb8d2; --accent-ink: #2e170a; --accent-soft: rgba(255, 198, 165, 0.14); --series-1: #ffc6a5; }
 :root[data-design="d"][data-accent="sky"] { --accent: #acd8ff; --accent-2: #c7b8ff; --accent-ink: #0d1c2e; --accent-soft: rgba(172, 216, 255, 0.14); --series-1: #acd8ff; }
 :root[data-design="d"][data-accent="rose"] { --accent: #ffb8d2; --accent-2: #ffc6a5; --accent-ink: #2e1120; --accent-soft: rgba(255, 184, 210, 0.14); --series-1: #ffb8d2; }
 :root[data-design="d"][data-accent="butter"] { --accent: #ffe59c; --accent-2: #ffc6a5; --accent-ink: #2b2108; --accent-soft: rgba(255, 229, 156, 0.13); --series-1: #ffe59c; }

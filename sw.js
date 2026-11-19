@@ -1,5 +1,5 @@
 // Offline-Cache: App läuft im Gym auch ohne Netz. Claude-Anfragen gehen immer live ans Netz.
-const VERSION = 'athletik-v14';
+const VERSION = 'athletik-v15';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'css/design-d.css',
   'js/app.js', 'js/store.js', 'js/engine.js', 'js/exercises.js', 'js/coach.js', 'js/charts.js', 'js/goals.js', 'js/demo.js', 'trailer.html',

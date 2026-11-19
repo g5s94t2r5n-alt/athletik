@@ -652,7 +652,7 @@ export function buildHyroxSession(data, { equip }) {
   };
 }
 
-export const activityName = (a) => (a.fromPlan ? a.note : ACT[a.type]?.name || a.type);
+export const activityName = (a) => (a.fromPlan ? a.note : a.type === 'course' && a.note ? `Kurs „${a.note.split(/[,\n]/)[0].trim()}“` : ACT[a.type]?.name || a.type);
 export const activityLoad = (a) => Math.round((Number(a.minutes) || 0) * (INTENSITY[a.intensity] || 5));
 
 export function activitySummary(data, days = 7) {

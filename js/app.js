@@ -65,7 +65,7 @@ function renderToday() {
     <h1>Heute</h1>
     <span class="pill ${b.deload ? 'warn' : ''}">${b.deload ? 'Deload-Woche' : `Block-Woche ${b.week}/4`}</span>
   </header>
-  ${!data.profile.setup ? `<button class="banner" data-action="goto" data-to="settings">Profil einrichten: Alter, Gewicht, Niveau →</button>` : ''}
+  ${!data.profile.setup ? `<button class="banner" data-action="setup">Profil & Home-Gym einrichten →</button>` : ''}
   ${reviewDue ? `<button class="banner" data-action="goto" data-to="coach">Wochen-Check fällig – Claude passt deinen Plan an →</button>` : ''}
   ${data.coach && data.coach.focus ? `<div class="card soft"><div class="label">Fokus diese Woche</div><p>${esc(data.coach.focus)}</p></div>` : ''}
 
@@ -83,7 +83,7 @@ function renderToday() {
   <section class="card">
     <div class="label">Welches Equipment hast du heute?</div>
     <div class="chips presets">
-      ${EQUIP_PRESETS.map((p, i) => `<button class="chip outline" data-action="preset" data-i="${i}">${esc(p.name)}</button>`).join('')}
+      ${EQUIP_PRESETS.map((p, i) => `<button class="chip outline" data-action="preset" data-i="${i}">${esc(p.name)}${p.id === 'home' && !data.homeGym ? ' +' : ''}</button>`).join('')}
     </div>
     <div class="chips">
       ${EQUIPMENT.map((e) => `<button class="chip ${data.equipment.includes(e.id) ? 'on' : ''}" data-action="equip" data-id="${e.id}">${esc(e.name)}</button>`).join('')}
@@ -323,6 +323,81 @@ function swapModal(bi, ii) {
     <button class="btn ghost mt" data-action="close">Abbrechen</button>`);
 }
 
+// ---------- Einrichtung: Profil & Home-Gym ----------
+let setupDraft = null;
+const ACCENTS = [
+  { id: 'lavender', name: 'Lavendel', a: '#c7b8ff', b: '#ffb8d2' },
+  { id: 'mint', name: 'Mint', a: '#a7ecc9', b: '#acd8ff' },
+  { id: 'peach', name: 'Pfirsich', a: '#ffc6a5', b: '#ffb8d2' },
+  { id: 'sky', name: 'Himmelblau', a: '#acd8ff', b: '#c7b8ff' },
+  { id: 'rose', name: 'Rosa', a: '#ffb8d2', b: '#ffc6a5' },
+  { id: 'butter', name: 'Butter', a: '#ffe59c', b: '#ffc6a5' },
+];
+
+function setAccent(id) {
+  if (!ACCENTS.some((c) => c.id === id)) id = 'lavender';
+  data.settings.accent = id;
+  if (id === 'lavender') document.documentElement.removeAttribute('data-accent');
+  else document.documentElement.setAttribute('data-accent', id);
+  try { localStorage.setItem('athletik.accent', id); } catch (e) { /* optional */ }
+  persist();
+}
+
+function openSetup() {
+  const p = data.profile;
+  setupDraft = {
+    age: p.setup ? p.age : '', weight: p.setup ? p.weight : '', sex: p.sex || '', level: p.level || '',
+    days: p.days, duration: p.duration, notes: p.notes || '',
+    homeGym: [...(data.homeGym || [])], homeGymNotes: data.homeGymNotes || '',
+  };
+  setupModal();
+}
+
+function setupModal() {
+  const s = setupDraft;
+  const chips = (action, values, cur, fmt = (v) => v) => values.map((v) => `<button class="chip small ${String(cur) === String(v) ? 'on' : ''}" data-action="${action}" data-v="${v}">${esc(fmt(v))}</button>`).join('');
+  openModal(`
+    <h2>Profil & Home-Gym</h2>
+    <p class="muted small">Damit Plan und Claude zu dir passen. Alles bleibt nur auf diesem Gerät.</p>
+    <div class="grid2">
+      <label class="field"><span>Alter</span><input class="in" data-su="age" inputmode="numeric" value="${esc(s.age)}" placeholder="Jahre"></label>
+      <label class="field"><span>Gewicht (kg)</span><input class="in" data-su="weight" inputmode="decimal" value="${esc(s.weight)}" placeholder="kg"></label>
+    </div>
+    <div class="label">Geschlecht</div>
+    <div class="chips">${chips('su-sex', ['männlich', 'weiblich', 'divers'], s.sex)}</div>
+    <label class="field"><span>Niveau</span><input class="in wide" data-su="level" value="${esc(s.level)}" placeholder="z. B. Leistungssportler, fortgeschritten"></label>
+    <div class="label">Trainingstage pro Woche</div>
+    <div class="chips">${chips('su-days', [2, 3, 4, 5, 6], s.days)}</div>
+    <div class="label">Übliche Dauer</div>
+    <div class="chips">${chips('su-dur', [45, 60, 75, 90, 105], s.duration, (v) => `${v} min`)}</div>
+    <label class="field"><span>Verletzungen / Hinweise (optional)</span><textarea class="in wide" data-su="notes" rows="2" placeholder="z. B. Knie links empfindlich bei tiefen Sprüngen">${esc(s.notes)}</textarea></label>
+    <div class="label mt">Dein Home-Gym</div>
+    <p class="muted small">Was hast du zu Hause? Leer lassen, wenn du nur im Studio trainierst.</p>
+    <div class="chips">${EQUIPMENT.map((e) => `<button class="chip ${s.homeGym.includes(e.id) ? 'on' : ''}" data-action="su-equip" data-id="${e.id}">${esc(e.name)}</button>`).join('')}</div>
+    <label class="field"><span>Details (optional)</span><textarea class="in wide" data-su="homeGymNotes" rows="2" placeholder="z. B. Kurzhanteln verstellbar 2–24 kg, Langhantel mit 100 kg Scheiben">${esc(s.homeGymNotes)}</textarea></label>
+    <button class="btn primary" data-action="su-save">Speichern</button>
+    <button class="btn ghost" data-action="close">Später</button>`);
+}
+
+function saveSetup() {
+  const s = setupDraft;
+  const age = parseInt(s.age, 10);
+  const kg = parseFloat(String(s.weight).replace(',', '.'));
+  if (!(age >= 14 && age <= 90)) { toast('Bitte ein Alter zwischen 14 und 90 eingeben.'); return; }
+  if (!(kg > 35 && kg < 250)) { toast('Bitte ein gültiges Gewicht eingeben.'); return; }
+  Object.assign(data.profile, { age, weight: kg, sex: s.sex, level: s.level.trim(), days: s.days, duration: s.duration, notes: s.notes.trim(), setup: true });
+  data.bodyweight = data.bodyweight.filter((x) => x.date !== todayISO());
+  data.bodyweight.push({ date: todayISO(), kg });
+  data.homeGym = s.homeGym.length ? [...s.homeGym] : null;
+  data.homeGymNotes = s.homeGymNotes.trim();
+  todayTpl = null;
+  persist();
+  closeModal();
+  setupDraft = null;
+  toast('Profil gespeichert.');
+  render();
+}
+
 // ---------- Training nachtragen ----------
 let actDraft = null;
 const INT_HELP = {
@@ -557,6 +632,16 @@ function renderSettings() {
   return `
   <header class="page-head"><h1>Einstellungen</h1></header>
   <section class="card">
+    <div class="label">Farbe</div>
+    <div class="swatches">${ACCENTS.map((c) => `<div class="swatch-wrap"><button class="swatch ${(data.settings.accent || 'lavender') === c.id ? 'on' : ''}" style="background:linear-gradient(135deg, ${c.a}, ${c.b})" data-action="accent" data-v="${c.id}" aria-label="${c.name}"></button><span class="swatch-label">${c.name}</span></div>`).join('')}</div>
+  </section>
+  <section class="card">
+    <div class="label">Mein Home-Gym</div>
+    <div class="chips">${EQUIPMENT.map((e) => `<button class="chip ${(data.homeGym || []).includes(e.id) ? 'on' : ''}" data-action="home-equip" data-id="${e.id}">${esc(e.name)}</button>`).join('')}</div>
+    <label class="field"><span>Details (optional, für Claude)</span><textarea class="in wide" id="home-notes" rows="2" placeholder="z. B. Kurzhanteln verstellbar 2–24 kg, Langhantel mit 100 kg Scheiben, Klimmzugstange im Türrahmen">${esc(data.homeGymNotes || '')}</textarea></label>
+    <p class="muted small">Wird mit „Home-Gym“ beim Training übernommen.</p>
+  </section>
+  <section class="card">
     <div class="label">Claude</div>
     <label class="field"><span>API-Key</span><input id="api-key" class="in wide" type="password" autocomplete="off" placeholder="sk-ant-…" value="${esc(data.settings.apiKey)}"></label>
     <label class="switch"><input type="checkbox" id="use-claude" ${data.settings.useClaude ? 'checked' : ''}> Claude für Planung & Wochen-Check nutzen</label>
@@ -575,6 +660,7 @@ function renderSettings() {
     <label class="field"><span>Geschlecht</span><select class="in" data-prof="sex">${['', 'männlich', 'weiblich', 'divers'].map((s) => `<option value="${s}" ${p.sex === s ? 'selected' : ''}>${s || '– bitte wählen –'}</option>`).join('')}</select></label>
     <label class="field"><span>Niveau</span><input class="in wide" data-prof="level" placeholder="z. B. Leistungssportler, fortgeschritten" value="${esc(p.level)}"></label>
     <label class="field"><span>Verletzungen / Hinweise für Claude</span><textarea class="in wide" data-prof="notes" rows="2" placeholder="z. B. Knie links empfindlich bei tiefen Sprüngen">${esc(p.notes)}</textarea></label>
+    <button class="btn small" data-action="setup">Einrichtungs-Assistent öffnen</button>
     <p class="muted small">Split bei ${p.days} Tagen: ${(ROTATIONS[p.days] || []).map((k) => TEMPLATES[k].name.split(' – ')[0]).join(' → ')}</p>
   </section>
   <section class="card">
@@ -606,7 +692,22 @@ document.addEventListener('click', async (e) => {
     case 'goto': setView(t.dataset.to); break;
     case 'tpl': todayTpl = t.dataset.tpl; render(); break;
     case 'dur': data.profile.duration = +t.dataset.min; persist(); render(); break;
-    case 'preset': data.equipment = [...EQUIP_PRESETS[+t.dataset.i].equip]; persist(); render(); break;
+    case 'preset': {
+      const pr = EQUIP_PRESETS[+t.dataset.i];
+      if (pr.id === 'home' && !data.homeGym) { toast('Richte zuerst dein Home-Gym ein.'); openSetup(); break; }
+      data.equipment = pr.id === 'home' ? [...data.homeGym] : [...pr.equip]; persist(); render(); break;
+    }
+    case 'setup': openSetup(); break;
+    case 'su-sex': setupDraft.sex = t.dataset.v; setupModal(); break;
+    case 'su-days': setupDraft.days = +t.dataset.v; setupModal(); break;
+    case 'su-dur': setupDraft.duration = +t.dataset.v; setupModal(); break;
+    case 'su-equip': { const id = t.dataset.id; setupDraft.homeGym = setupDraft.homeGym.includes(id) ? setupDraft.homeGym.filter((x) => x !== id) : [...setupDraft.homeGym, id]; setupModal(); break; }
+    case 'su-save': saveSetup(); break;
+    case 'home-equip': {
+      const id = t.dataset.id; const hg = data.homeGym || [];
+      data.homeGym = hg.includes(id) ? hg.filter((x) => x !== id) : [...hg, id]; persist(); render(); break;
+    }
+    case 'accent': setAccent(t.dataset.v); render(); break;
     case 'equip': {
       const id = t.dataset.id;
       data.equipment = data.equipment.includes(id) ? data.equipment.filter((x) => x !== id) : [...data.equipment, id];
@@ -649,7 +750,7 @@ document.addEventListener('click', async (e) => {
       data.active.blocks[+t.dataset.b].items[+t.dataset.i] = n;
       persist(); closeModal(); render(); break;
     }
-    case 'close': closeModal(); actDraft = null; break;
+    case 'close': closeModal(); actDraft = null; setupDraft = null; break;
     case 'act-new': newActivity(); break;
     case 'act-type': actDraft.type = t.dataset.id; activityModal(); break;
     case 'act-min': actDraft.minutes = +t.dataset.min; activityModal(); break;
@@ -690,6 +791,8 @@ document.addEventListener('input', (e) => {
     persist();
   }
   if (t.id === 'wish') wish = t.value;
+  if (t.id === 'home-notes') { data.homeGymNotes = t.value; persist(); }
+  if (setupDraft && t.dataset.su) setupDraft[t.dataset.su] = t.value;
   if (actDraft && t.id && t.id.startsWith('act-')) {
     const map = { 'act-date': 'date', 'act-min': 'minutes', 'act-km': 'km', 'act-note': 'note' };
     if (map[t.id]) actDraft[map[t.id]] = t.value;
@@ -725,6 +828,7 @@ window.addEventListener('resize', () => { if (view === 'progress') drawCharts();
 if ('serviceWorker' in navigator && location.protocol !== 'file:' && !DEMO) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+setAccent(data.settings.accent || 'lavender');
 if (!DEMO) requestPersistence();
 if (data.active && !DEMO) keepAwake(true);
 if (['history', 'progress', 'coach', 'settings'].includes(params.get('view'))) setView(params.get('view')); else render();

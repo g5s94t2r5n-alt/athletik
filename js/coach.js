@@ -130,6 +130,11 @@ export async function planSession(data, { templateId, equip, wish, ruleSession }
     `Athlet: ${p.sex || "Geschlecht k. A."}, ${p.age} Jahre, ${p.weight} kg, ${p.level}. ${p.notes ? 'Hinweise: ' + p.notes : ''}`,
     `Trainingstage pro Woche: ${p.days}. Geplante Dauer heute: ${p.duration} min.`,
     `Heutiger Einheitstyp laut Split: ${tpl.name} (Fokus: ${tpl.focus}).`,
+    (() => {
+      const hg = data.homeGym || [];
+      const atHome = hg.length && hg.length === equip.length && hg.every((x) => equip.includes(x));
+      return atHome ? `Training heute im Home-Gym.${data.homeGymNotes ? ' Details zur Ausstattung: ' + data.homeGymNotes.trim().replace(/[.!]?$/, '.') : ''} Wähle Übungen und Wdh.-Bereiche, die mit diesen Gewichten sinnvoll fordern (z. B. höhere Wdh. oder langsameres Tempo, wenn Hanteln leicht sind).` : '';
+    })(),
     `Block-Woche ${block.week} von 5${block.deload ? ' – DELOAD-WOCHE' : ''}.`,
     data.coach ? `Letzter Wochen-Check (${data.coach.date}): Fokus "${data.coach.focus}". Volumenanpassung: ${JSON.stringify(data.coach.volumeAdjust || [])}. Ersetzen: ${JSON.stringify(data.coach.avoid || [])}.` : 'Noch kein Wochen-Check vorhanden.',
     `Wunsch/Befinden heute: ${wish ? wish : '(keine Angabe)'}`,

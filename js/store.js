@@ -21,6 +21,7 @@ function defaults() {
     settings: { apiKey: '', useClaude: true, accent: 'lavender' },
     location: 'gym',
     travelEquip: ['dumbbell', 'cardio'],
+    dislikes: [],
     homeGym: null,
     homeGymNotes: '',
     equipment: ['barbell', 'dumbbell', 'kettlebell', 'bench', 'cable', 'machine', 'pullup', 'dip', 'band', 'medball', 'box', 'cardio'],

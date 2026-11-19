@@ -1,7 +1,7 @@
 // Claude als Coach: erstellt Einheiten und macht den Wochen-Check.
 // Der API-Key bleibt lokal auf dem Gerät und geht nur an api.anthropic.com.
 import { EXERCISES, EX, MUSCLES, LOCATIONS, available } from './exercises.js';
-import { TEMPLATES, blockInfo, aiContext, estimateMinutes, activityAdjust, activitySummary, autoRunType } from './engine.js';
+import { TEMPLATES, blockInfo, aiContext, estimateMinutes, activityAdjust, activitySummary, autoRunType, feedbackAdjust } from './engine.js';
 import { todayISO } from './store.js';
 import { goalOf, daysToRace } from './goals.js';
 
@@ -25,6 +25,7 @@ Regeln (aus der Sportwissenschaft, nicht verhandelbar):
 - Nachgetragene Trainings (HIIT, Joggen, CrossFit, Padel, Yoga usw.) zählen mit: Hartes Ausdauer- oder Beintraining in den letzten 48 h → keinen Ausdauer-Finisher, weniger Sprungvolumen, beinlastige Grundübungen ggf. 1 Satz weniger. Wurde diese Woche schon ≥ 2× Ausdauer gemacht, ist kein Finisher nötig. Yoga/Mobility ersetzt keinen Kraftreiz, kann aber das Cool-down verkürzen.
 - Laufeinheit (Einheitstyp „Laufeinheit“): Blöcke warmup (laufspezifisch, inkl. Lauf-ABC) → run (genau eine Übung der Kategorie run, mit konkretem Ablauf und Zielintensität in "prescription") → cooldown. KEINE Kraftübungen in der Laufeinheit (Wunsch des Athleten) – Kraft für Läufer gehört in die Ganzkörper-Einheiten. Polarisiert planen: ca. 80 % der Läufe locker, höchstens 1–2 harte Läufe pro Woche, nie hart, wenn in den letzten 48 h hart trainiert wurde. Für run-Items: sets = 0, repsLow = 0, repsHigh = 0.
 - HYROX-Einheit (Einheitstyp „HYROX“): warmup → run (hx_runs, in "prescription" z. B. „4 × 1 km zügig, jeweils vor einer Station“) → conditioning (3–5 Stationen hx_*, in "prescription" Distanz bzw. Wdh. fürs Training) → cooldown. Läufe und Stationen im Wechsel, Wettkampftempo üben.
+- Rückmeldungen nach dem Training (Daten: rueckmeldungen_letzte_einheiten; die Anstrengung schätzt die App aus den Wiederholungen) ernst nehmen: „too_hard“ → weniger Volumen, kein Finisher, bei Wiederholung Deload-Charakter; „easy“ → etwas mehr Volumen bei den Hauptübungen; „nicht gefallen“ → andere Übungsvarianten; Beschwerden → die Region schonen. Nicht gemochte oder schmerzauslösende Übungen sind bereits aus dem Katalog entfernt.
 - Berücksichtige Wünsche und Beschwerden des Athleten für heute (z. B. Schmerzen → schonende Alternative, keine Belastung der Stelle).
 - Halte die geplante Dauer ein (warmup ≈ 7 min, pro Kraftsatz inkl. Pause ≈ 2,5–3,5 min, Finisher ≈ 10–15 min).
 
@@ -43,7 +44,8 @@ Gib konkrete Anpassungen:
 - deloadNow: true nur bei klaren Ermüdungszeichen (Leistung fällt bei mehreren Übungen).
 - avoid: Übungs-IDs, die vorerst ersetzt werden sollen (z. B. bei Stagnation über mehrere Einheiten), sonst leer.
 - summary: 2–4 Sätze, ehrlich und konkret. focus: ein Satz für die nächste Woche. tips: 2–4 kurze Tipps (Training, Regeneration, Ernährung).
-Wenn kaum Daten vorliegen, sag das und gib trotzdem sinnvolle Starttipps. Alles auf Deutsch.`;
+Wenn kaum Daten vorliegen, sag das und gib trotzdem sinnvolle Starttipps. Alles auf Deutsch.
+Berücksichtige die Rückmeldungen nach den Einheiten (aus den Wiederholungen geschätzte Anstrengung, Gefallen, Beschwerden): wiederholt „too_hard“ spricht für weniger Volumen oder einen Deload, „easy“ für mehr; wiederkehrende Beschwerden kurz und vorsichtig ansprechen (bei anhaltenden Schmerzen ärztliche Abklärung empfehlen).`;
 
 let sdkPromise = null;
 async function getClient(apiKey) {
@@ -117,13 +119,15 @@ function sessionSchema(ids) {
   };
 }
 
-function catalog(equip) {
-  return EXERCISES.filter((e) => available(e, equip)).map((e) =>
+function catalog(equip, avoid = []) {
+  return EXERCISES.filter((e) => available(e, equip) && !avoid.includes(e.id)).map((e) =>
     `${e.id} | ${e.name} | ${e.cat}/${e.slot} | Wdh. ${e.reps[0]}-${e.reps[1]} | ${e.prim.join(',') || '-'}`).join('\n');
 }
 
 export async function planSession(data, { templateId, equip, wish, ruleSession, runType }) {
-  const ids = EXERCISES.filter((e) => available(e, equip)).map((e) => e.id);
+  const fb = feedbackAdjust(data, templateId);
+  const blocked = [...fb.avoid, ...fb.pain];
+  const ids = EXERCISES.filter((e) => available(e, equip) && !blocked.includes(e.id)).map((e) => e.id);
   const block = blockInfo(data);
   const tpl = TEMPLATES[templateId];
   const p = data.profile;
@@ -149,6 +153,7 @@ export async function planSession(data, { templateId, equip, wish, ruleSession, 
     data.coach ? `Letzter Wochen-Check (${data.coach.date}): Fokus "${data.coach.focus}". Volumenanpassung: ${JSON.stringify(data.coach.volumeAdjust || [])}. Ersetzen: ${JSON.stringify(data.coach.avoid || [])}.` : 'Noch kein Wochen-Check vorhanden.',
     `Wunsch/Befinden heute: ${wish ? wish : '(keine Angabe)'}`,
     `Nachgetragene Trainings – Auswirkung laut Regel-Logik: ${activityAdjust(data, tpl.focus).notes.join(' ') || 'keine'}`,
+    `Rückmeldungen nach den letzten Einheiten – Auswirkung laut Regel-Logik: ${fb.notes.join(' ') || 'keine'}`,
     '',
     `Vorschlag der lokalen Regel-Logik (${estimateMinutes(ruleSession)} min) – übernimm, verbessere oder passe an:`,
     ruleSummary,
@@ -157,7 +162,7 @@ export async function planSession(data, { templateId, equip, wish, ruleSession, 
     JSON.stringify(aiContext(data)),
     '',
     'Verfügbare Übungen mit dem heutigen Equipment (id | Name | Kategorie/Slot | Standard-Wdh. | Muskeln):',
-    catalog(equip),
+    catalog(equip, blocked),
     '',
     'Erstelle die heutige Einheit.',
   ].join('\n');

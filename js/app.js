@@ -4,6 +4,7 @@ import {
   TEMPLATES, ROTATIONS, blockInfo, recommendTemplate, buildSession, sessionFromPlan, rememberSlots, alternatives,
   makeItem, estimateMinutes, bodyweightSeries, exerciseSeries, trackedExercises, weeklyVolume, isStagnating,
   activityAdjust, activitySummary, activityLoad, activityName, autoRunType,
+  feedbackAdjust, sessionRecords, allRecords, PAIN_NAME, autoEffort,
 } from './engine.js';
 import { planSession, weeklyReview, CoachError, MODEL } from './coach.js';
 import { GOALS, GOAL, goalOf, rotationFor, daysToRace, weightStatus } from './goals.js';
@@ -122,7 +123,7 @@ function renderToday() {
     <div class="chips">${[45, 60, 75, 90, 105].map((m) => `<button class="chip ${data.profile.duration === m ? 'on' : ''}" data-action="dur" data-min="${m}">${m} min</button>`).join('')}</div>
   </section>
 
-  ${(() => { const n = activityAdjust(data, TEMPLATES[todayTpl].focus).notes; return n.length ? `<div class="card soft"><div class="label">Berücksichtigt</div><p>${n.map(esc).join('<br>')}</p></div>` : ''; })()}
+  ${(() => { const n = [...activityAdjust(data, TEMPLATES[todayTpl].focus).notes, ...(todayTpl === 'RUN' ? [] : feedbackAdjust(data, todayTpl).notes)]; return n.length ? `<div class="card soft"><div class="label">Berücksichtigt</div><p>${n.map(esc).join('<br>')}</p></div>` : ''; })()}
 
   ${hasKey ? `<section class="card">
     <div class="label">Wunsch oder Befinden (optional)</div>
@@ -349,10 +350,66 @@ function finishSession() {
   todayTpl = null;
   stopTimer();
   keepAwake(false);
+  s.records = sessionRecords(data, s);
+  s.autoEffort = autoEffort(s);
   persist();
-  toast(`Stark! ${plural(countSets(s), 'Satz', 'Sätze')}, ${num(tonnage(s))} kg bewegt.`);
   setView('history');
   openHistory = s.id;
+  render();
+  openFeedback(s);
+}
+
+// ---------- Rekorde & Umfrage nach dem Training ----------
+const kgTxt = (v) => num(Math.round(v * 10) / 10);
+const paceTxt = (p) => `${Math.floor(p)}:${String(Math.round((p % 1) * 60)).padStart(2, '0')} min/km`;
+function recordText(r) {
+  const name = r.exId ? EX[r.exId]?.name || r.exId : '';
+  if (r.kind === '1rm') return { name, text: `1RM ca. ${kgTxt(r.value)} kg (+${kgTxt(r.value - r.prev)} kg) · ${r.bw ? '+' : ''}${kgTxt(r.w)} kg × ${r.r}` };
+  if (r.kind === 'weight') return { name, text: `schwerster Satz ${r.bw ? '+' : ''}${kgTxt(r.value)} kg (vorher ${kgTxt(r.prev)} kg)` };
+  if (r.kind === 'distance') return { name: 'Längster Lauf', text: `${kgTxt(r.value)} km (vorher ${kgTxt(r.prev)} km)` };
+  return { name: 'Schnellste Pace', text: `${paceTxt(r.value)} (vorher ${paceTxt(r.prev)})` };
+}
+
+let fbDraft = null;
+function openFeedback(s) {
+  fbDraft = { sid: s.id, liked: '', pain: [], dislikes: [], note: '' };
+  feedbackModal();
+}
+
+function feedbackModal() {
+  const s = data.sessions.find((x) => x.id === fbDraft.sid);
+  if (!s) return;
+  const f = fbDraft;
+  const recs = s.records || [];
+  const chips = (key, opts) => `<div class="chips">${opts.map(([v, l]) => `<button class="chip ${f[key] === v ? 'on' : ''}" data-action="fb" data-k="${key}" data-v="${v}">${l}</button>`).join('')}</div>`;
+  const exs = [...new Set(s.blocks.filter((b) => b.type === 'strength' || b.type === 'power').flatMap((b) => b.items.map((i) => i.exId)))];
+  openModal(`
+    ${recs.length ? '<div class="confetti" aria-hidden="true">' + Array.from({ length: 36 }, (_, i) => `<i style="left:${(i * 37) % 100}%;animation-delay:${(i % 9) * 0.12}s;background:var(--${['lav', 'mint', 'pink', 'sky', 'butter'][i % 5]})"></i>`).join('') + '</div>' : ''}
+    <h2>Geschafft!</h2>
+    <p class="muted">${esc(s.title)} · ${sessionSummary(s)}</p>
+    ${recs.length ? `<div class="pr-box"><div class="pr-title">🏆 ${recs.length === 1 ? 'Neuer Rekord!' : `${recs.length} neue Rekorde!`}</div>${recs.map((r) => { const t = recordText(r); return `<div class="pr-row"><b>${esc(t.name)}</b><span>${esc(t.text)}</span></div>`; }).join('')}</div>` : ''}
+    <div class="label mt">Hat dir das Training gefallen?</div>
+    ${chips('liked', [['yes', 'Ja'], ['meh', 'Geht so'], ['no', 'Nein']])}
+    ${(f.liked === 'no' || f.liked === 'meh') && exs.length ? `<div class="label">Welche Übungen magst du nicht? <span class="muted small">(werden künftig ersetzt)</span></div>
+      <div class="chips">${exs.map((id) => `<button class="chip small ${f.dislikes.includes(id) ? 'on' : ''}" data-action="fb-dislike" data-id="${id}">${esc(EX[id]?.name || id)}</button>`).join('')}</div>` : ''}
+    <div class="label">Beschwerden?</div>
+    <div class="chips"><button class="chip ${!f.pain.length ? 'on' : ''}" data-action="fb-pain" data-id="none">Keine</button>${Object.entries(PAIN_NAME).map(([k, l]) => `<button class="chip ${f.pain.includes(k) ? 'on' : ''}" data-action="fb-pain" data-id="${k}">${l}</button>`).join('')}</div>
+    <label class="field"><span>Notiz (optional)</span><textarea class="in wide" id="fb-note" rows="2" placeholder="z. B. Kniebeuge lief super, Schulter zwickt bei Überkopf">${esc(f.note)}</textarea></label>
+    <button class="btn primary" data-action="fb-save">Speichern</button>
+    <button class="btn ghost" data-action="fb-skip">Überspringen</button>`);
+}
+
+function saveFeedback() {
+  const s = data.sessions.find((x) => x.id === fbDraft.sid);
+  if (s) {
+    const { liked, pain, dislikes, note } = fbDraft;
+    s.feedback = { liked, pain: [...pain], dislikes: [...dislikes], note: note.trim(), at: todayISO() };
+    data.dislikes = [...new Set([...(data.dislikes || []), ...dislikes])];
+    persist();
+  }
+  fbDraft = null;
+  closeModal();
+  toast('Danke! Die nächsten Einheiten berücksichtigen deine Rückmeldung.');
   render();
 }
 
@@ -686,13 +743,16 @@ function renderSessionCard(s) {
   return `
     <article class="card hist ${openHistory === s.id ? 'open' : ''}">
       <button class="hist-head" data-action="hist" data-id="${s.id}">
-        <div><strong>${esc(s.title)}</strong><div class="muted small">${fmtDate(s.date)} · ${sessionSummary(s)}${s.source === 'claude' ? ' · Claude' : ''}</div></div>
+        <div><strong>${esc(s.title)}</strong>${(s.records || []).length ? ' <span class="tag t-pr">Rekord</span>' : ''}<div class="muted small">${fmtDate(s.date)} · ${sessionSummary(s)}${s.source === 'claude' ? ' · Claude' : ''}</div></div>
         <span class="chev">›</span>
       </button>
       ${openHistory === s.id ? `<div class="hist-body">
         ${s.blocks.flatMap((b) => b.items).filter((it) => it.sets.some((x) => x.done) || it.done).map((it) => `
           <div class="hist-ex"><span>${esc(EX[it.exId]?.name || it.exId)}</span>
           <span class="muted">${it.sets.length ? it.sets.filter((x) => x.done).map((x) => `${x.w !== '' && x.w != null && EX[it.exId]?.load !== 'none' ? `${num(Number(x.w))}×` : ''}${x.r}`).join(' · ') : '✓'}</span></div>`).join('')}
+        ${(s.records || []).length ? `<div class="pr-box small">${s.records.map((r) => { const t = recordText(r); return `<div class="pr-row"><b>${esc(t.name)}</b><span>${esc(t.text)}</span></div>`; }).join('')}</div>` : ''}
+        ${s.autoEffort ? `<p class="muted small mt-s">Belastung laut Wdh.: ${({ easy: 'eher zu leicht', right: 'passend', too_hard: 'eher zu schwer' })[s.autoEffort]}</p>` : ''}
+        ${s.feedback ? `<p class="muted small mt-s">Rückmeldung: ${esc([s.feedback.liked ? ({ yes: 'gefallen', meh: 'geht so', no: 'nicht gefallen' })[s.feedback.liked] : '', ...(s.feedback.pain || []).map((p) => PAIN_NAME[p])].filter(Boolean).join(' · ') || '–')}${s.feedback.note ? ` – „${esc(s.feedback.note)}“` : ''}</p>` : `<button class="link mt" data-action="fb-later" data-id="${s.id}">Rückmeldung geben</button>`}
         <button class="link danger mt" data-action="del-session" data-id="${s.id}">Einheit löschen</button>
       </div>` : ''}
     </article>`;
@@ -740,6 +800,16 @@ function renderProgress() {
     <p class="muted small">Am besten morgens nüchtern, gleiche Bedingungen.</p>
   </section>
   <div id="chart-bw"></div>
+
+  ${(() => {
+    const rec = allRecords(data);
+    if (!rec.lifts.length && !rec.longest) return '';
+    return `<section class="card"><div class="label">🏆 Deine Rekorde</div>
+      ${rec.lifts.slice(0, 8).map((r) => `<div class="pr-row"><b>${esc(r.name)}</b><span>1RM ca. ${kgTxt(r.e1rm)} kg · ${r.bw ? '+' : ''}${kgTxt(r.w)} × ${r.r} · ${fmtDate(r.date)}</span></div>`).join('')}
+      ${rec.longest ? `<div class="pr-row"><b>Längster Lauf</b><span>${kgTxt(rec.longest.km)} km · ${fmtDate(rec.longest.date)}</span></div>` : ''}
+      ${rec.fastest ? `<div class="pr-row"><b>Schnellste Pace (ab 3 km)</b><span>${paceTxt(rec.fastest.min / rec.fastest.km)} · ${fmtDate(rec.fastest.date)}</span></div>` : ''}
+    </section>`;
+  })()}
 
   <section class="card">
     <div class="label">Kraftentwicklung</div>
@@ -885,6 +955,11 @@ function renderSettings() {
     <p class="muted small">Aktueller Block seit ${fmtDate(data.block.start)} · Woche ${blockInfo(data).week} von 5.</p>
     <button class="btn small" data-action="new-block">Neuen Block starten</button>
   </section>
+  ${(data.dislikes || []).length ? `<section class="card">
+    <div class="label">Ausgeblendete Übungen</div>
+    <p class="muted small">Werden bei der Planung ersetzt. Tippen zum Wieder-Einblenden.</p>
+    <div class="chips">${data.dislikes.map((id) => `<button class="chip small" data-action="undislike" data-id="${id}">${esc(EX[id]?.name || id)} ✕</button>`).join('')}</div>
+  </section>` : ''}
   <section class="card">
     <div class="label">Über die App</div>
     <button class="btn small" data-action="intro">▶ Intro-Trailer ansehen</button>
@@ -924,6 +999,13 @@ document.addEventListener('click', async (e) => {
     case 'setup': openSetup(); break;
     case 'intro': showIntro(null); break;
     case 'force-update': forceUpdate(); break;
+    case 'fb': fbDraft[t.dataset.k] = fbDraft[t.dataset.k] === t.dataset.v ? '' : t.dataset.v; feedbackModal(); break;
+    case 'fb-pain': { const id = t.dataset.id; fbDraft.pain = id === 'none' ? [] : fbDraft.pain.includes(id) ? fbDraft.pain.filter((x) => x !== id) : [...fbDraft.pain, id]; feedbackModal(); break; }
+    case 'fb-dislike': { const id = t.dataset.id; fbDraft.dislikes = fbDraft.dislikes.includes(id) ? fbDraft.dislikes.filter((x) => x !== id) : [...fbDraft.dislikes, id]; feedbackModal(); break; }
+    case 'fb-save': saveFeedback(); break;
+    case 'fb-skip': fbDraft = null; closeModal(); toast('Okay – du kannst die Rückmeldung im Verlauf nachholen.'); break;
+    case 'fb-later': { const s = data.sessions.find((x) => x.id === t.dataset.id); if (s) openFeedback(s); break; }
+    case 'undislike': data.dislikes = (data.dislikes || []).filter((x) => x !== t.dataset.id); persist(); render(); toast('Übung wieder eingeblendet.'); break;
     case 'su-sex': setupDraft.sex = t.dataset.v; setupModal(); break;
     case 'su-days': setupDraft.days = +t.dataset.v; setupModal(); break;
     case 'su-goal': setupDraft.goal = t.dataset.v; setupModal(); break;
@@ -976,7 +1058,7 @@ document.addEventListener('click', async (e) => {
       data.active.blocks[+t.dataset.b].items[+t.dataset.i] = n;
       persist(); closeModal(); render(); break;
     }
-    case 'close': closeModal(); actDraft = null; setupDraft = null; break;
+    case 'close': closeModal(); actDraft = null; setupDraft = null; fbDraft = null; break;
     case 'act-new': newActivity(); break;
     case 'act-type': actDraft.type = t.dataset.id; activityModal(); break;
     case 'act-min': actDraft.minutes = +t.dataset.min; activityModal(); break;
@@ -1031,6 +1113,7 @@ document.addEventListener('input', (e) => {
     persist();
   }
   if (t.id === 'wish') wish = t.value;
+  if (t.id === 'fb-note' && fbDraft) fbDraft.note = t.value;
   if (t.id === 'home-notes') { data.homeGymNotes = t.value; persist(); }
   if (setupDraft && t.dataset.su) setupDraft[t.dataset.su] = t.value;
   if (actDraft && t.id && t.id.startsWith('act-')) {

@@ -453,19 +453,23 @@ export function candidates(slot, equip, exclude = []) {
   return EXERCISES.filter((e) => e.slot === slot && available(e, equip) && !exclude.includes(e.id));
 }
 
-function pick(data, key, slotDef, equip, used) {
-  const avoid = (data.coach && data.coach.avoid) || [];
-  const pool = candidates(slotDef.slot, equip, [...used, ...avoid]);
+function pick(data, key, slotDef, equip, used, opts = {}) {
+  const coachAvoid = (data.coach && data.coach.avoid) || [];
+  // Ausgeblendete Übungen meiden (notfalls doch nehmen); bei Beschwerden belastende Übungen nie –
+  // dann entfällt der Platz lieber
+  const pain = opts.pain || [];
+  let pool = candidates(slotDef.slot, equip, [...used, ...coachAvoid, ...pain, ...(opts.avoid || [])]);
+  if (!pool.length) pool = candidates(slotDef.slot, equip, [...used, ...coachAvoid, ...pain]);
   if (!pool.length) return null;
   const remembered = data.slotMemory[key];
-  if (remembered && pool.some((e) => e.id === remembered) && !isStagnating(data, remembered)) return EX[remembered];
+  if (remembered && !opts.vary && pool.some((e) => e.id === remembered) && !isStagnating(data, remembered)) return EX[remembered];
   const order = slotDef.prefer || [];
   const sorted = [...pool].sort((a, b) => {
     const ia = order.indexOf(a.id); const ib = order.indexOf(b.id);
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
   });
-  // Bei Stagnation die nächste Variante nehmen
-  if (remembered && isStagnating(data, remembered)) {
+  // Bei Stagnation oder Wunsch nach Abwechslung die nächste Variante nehmen
+  if (remembered && (opts.vary || isStagnating(data, remembered))) {
     const alt = sorted.find((e) => e.id !== remembered);
     if (alt) return alt;
   }
@@ -547,6 +551,126 @@ export function estimateMinutes(session) {
   return Math.round(m);
 }
 
+// ---------- Rückmeldungen nach dem Training ----------
+export const PAIN_NAME = { knie: 'Knie', schulter: 'Schulter', ruecken: 'Rücken', ellbogen: 'Ellbogen', huefte: 'Hüfte' };
+// Übungen, die die jeweilige Region stark belasten → 7 Tage lang ersetzen
+const PAIN_AVOID = {
+  knie: ['box_jump', 'cmj', 'broad_jump', 'lateral_bound', 'db_jump_squat', 'sissy_squat', 'bss_db', 'bss_bw', 'walking_lunge', 'reverse_lunge_bb', 'step_up', 'leg_extension', 'front_squat', 'hack_squat', 'tempo_squat_bw', 'hx_bbj', 'hx_lunges', 'hx_wallballs'],
+  schulter: ['ohp', 'db_shoulder_press', 'db_shoulder_press_st', 'machine_shoulder', 'kb_press', 'dips', 'plyo_pushup', 'db_push_press', 'pike_pushup', 'skullcrusher', 'incline_bench', 'mb_slam', 'hx_wallballs', 'hx_skierg'],
+  ruecken: ['deadlift', 'back_squat', 'bb_row', 'rdl', 'kb_swing', 'hang_power_clean', 'reverse_lunge_bb', 'farmer_walk', 'hx_sled_pull', 'hx_farmers'],
+  ellbogen: ['skullcrusher', 'oh_cable_ext', 'db_oh_ext', 'chinup', 'bb_curl', 'dips', 'diamond_pushup', 'pushdown'],
+  huefte: ['deadlift', 'hip_thrust', 'bss_db', 'bss_bw', 'walking_lunge', 'lateral_bound', 'broad_jump', 'copenhagen', 'hx_lunges'],
+};
+
+// Anstrengung automatisch aus den Wiederholungen: viele Sätze unter dem Ziel = zu schwer,
+// fast alle am oberen Ende = zu leicht
+export function autoEffort(session) {
+  let total = 0; let miss = 0; let top = 0;
+  for (const b of session.blocks) for (const it of b.items) {
+    if (EX[it.exId]?.cat !== 'strength') continue;
+    for (const st of it.sets || []) {
+      if (!st.done || !(Number(st.r) > 0)) continue;
+      total++; if (Number(st.r) < it.lo) miss++; if (Number(st.r) >= it.hi) top++;
+    }
+  }
+  if (total < 3) return '';
+  if (miss / total >= 0.5) return 'too_hard';
+  if (top / total >= 0.8) return 'easy';
+  return 'right';
+}
+export const effortOf = (s) => (s.feedback && s.feedback.effort) || s.autoEffort || '';
+
+export function feedbackAdjust(data, templateId, date = todayISO()) {
+  const out = { setDelta: 0, mainDelta: 0, deload: false, dropCond: false, vary: false, avoid: [...(data.dislikes || [])], pain: [], notes: [] };
+  const recent = data.sessions.filter((s) => (s.feedback || s.autoEffort) && daysBetween(s.date, date) >= 0 && daysBetween(s.date, date) < 10);
+  if (!recent.length) return out;
+  const rated = recent.filter((s) => effortOf(s));
+  const lastEff = rated.length ? effortOf(rated[rated.length - 1]) : '';
+  const heavy = rated.slice(-3).filter((s) => effortOf(s) === 'too_hard').length;
+  if (heavy >= 2) {
+    out.deload = true; out.setDelta = -1; out.dropCond = true;
+    out.notes.push('Zuletzt mehrmals viele Sätze unter dem Wdh.-Ziel – heute Deload-Charakter (weniger Sätze, −10 % Gewicht).');
+  } else if (lastEff === 'too_hard') {
+    out.setDelta = -1; out.dropCond = true;
+    out.notes.push('Letzte Einheit: viele Sätze unter dem Wdh.-Ziel – heute 1 Satz weniger pro Übung und kein Finisher.');
+  } else if (lastEff === 'easy') {
+    out.mainDelta = 1;
+    out.notes.push('Letzte Einheit: fast alle Sätze am oberen Wdh.-Ende – heute 1 Satz mehr bei den Hauptübungen.');
+  }
+  const sameTpl = [...recent].reverse().find((s) => s.template === templateId && s.feedback);
+  if (sameTpl && sameTpl.feedback.liked === 'no') { out.vary = true; out.notes.push('Diese Einheit hat dir zuletzt nicht gefallen – heute andere Übungsvarianten.'); }
+  const pain = new Set(recent.filter((s) => s.feedback && daysBetween(s.date, date) < 7).flatMap((s) => s.feedback.pain || []));
+  pain.forEach((p) => out.pain.push(...(PAIN_AVOID[p] || [])));
+  if (pain.size) out.notes.push(`Beschwerden (${[...pain].map((p) => PAIN_NAME[p]).join(', ')}): belastende Übungen vorerst ersetzt. Bei anhaltenden Schmerzen bitte ärztlich abklären.`);
+  return out;
+}
+
+// ---------- Persönliche Rekorde ----------
+const num = (v) => parseFloat(String(v ?? '').replace(',', '.')) || 0;
+function runEntries(data, exclude) {
+  const out = [];
+  for (const s of data.sessions) {
+    if (s.id === exclude) continue;
+    for (const b of s.blocks) for (const it of b.items) if (it.run && num(it.run.km) > 0) out.push({ km: num(it.run.km), min: num(it.run.min), date: s.date });
+  }
+  for (const a of data.activities || []) if (a.type === 'jogging' && num(a.km) > 0) out.push({ km: num(a.km), min: num(a.minutes), date: a.date });
+  return out;
+}
+const paceOf = (r) => (r.km >= 3 && r.min > 0 ? r.min / r.km : null);
+
+// Rekorde einer abgeschlossenen Einheit im Vergleich zu allen früheren Einheiten
+export function sessionRecords(data, session) {
+  const prior = data.sessions.filter((x) => x.id !== session.id);
+  const best = (exId) => {
+    const ex = EX[exId]; let e1 = 0; let w = 0; let any = false;
+    for (const p of prior) for (const b of p.blocks) for (const it of b.items) {
+      if (it.exId !== exId) continue;
+      for (const st of it.sets || []) { if (!st.done || !(Number(st.r) > 0)) continue; any = true; e1 = Math.max(e1, e1rm(loadOf(data, ex, st.w, p.date), Number(st.r))); w = Math.max(w, Number(st.w) || 0); }
+    }
+    return any ? { e1, w } : null;
+  };
+  const recs = [];
+  for (const b of session.blocks) for (const it of b.items) {
+    const ex = EX[it.exId];
+    if (!ex) continue;
+    const sets = (it.sets || []).filter((st) => st.done && Number(st.r) > 0);
+    if (sets.length && ex.load !== 'none') {
+      const prev = best(ex.id);
+      if (prev) {
+        const top = sets.reduce((a, st) => { const e = e1rm(loadOf(data, ex, st.w, session.date), Number(st.r)); return e > a.e ? { e, w: Number(st.w) || 0, r: Number(st.r) } : a; }, { e: 0, w: 0, r: 0 });
+        const maxW = Math.max(...sets.map((st) => Number(st.w) || 0));
+        if (ex.cat === 'strength' && top.e > prev.e1 + 0.4) recs.push({ exId: ex.id, kind: '1rm', value: top.e, prev: prev.e1, w: top.w, r: top.r, bw: ex.load === 'bw' });
+        else if (maxW > prev.w && maxW > 0) recs.push({ exId: ex.id, kind: 'weight', value: maxW, prev: prev.w, bw: ex.load === 'bw' });
+      }
+    }
+    if (it.run && num(it.run.km) > 0) {
+      const runs = runEntries(data, session.id);
+      const cur = { km: num(it.run.km), min: num(it.run.min) };
+      if (runs.length) {
+        const longest = Math.max(...runs.map((r) => r.km));
+        if (cur.km > longest) recs.push({ kind: 'distance', value: cur.km, prev: longest });
+        const paces = runs.map(paceOf).filter(Boolean);
+        const p = paceOf(cur);
+        if (p && paces.length && p < Math.min(...paces)) recs.push({ kind: 'pace', value: p, prev: Math.min(...paces) });
+      }
+    }
+  }
+  return recs;
+}
+
+// Bestwerte für die Rekordliste im Fortschritt
+export function allRecords(data) {
+  const lifts = trackedExercises(data).map((ex) => {
+    const ser = exerciseSeries(data, ex.id);
+    const top = ser.reduce((a, x) => (x.e1rm > a.e1rm ? x : a), ser[0]);
+    return { exId: ex.id, name: ex.name, e1rm: top.e1rm, w: top.w, r: top.r, date: top.date, bw: top.bw };
+  });
+  const runs = runEntries(data, null);
+  const longest = runs.reduce((a, r) => (!a || r.km > a.km ? r : a), null);
+  const fastest = runs.filter(paceOf).reduce((a, r) => (!a || paceOf(r) < paceOf(a) ? r : a), null);
+  return { lifts, longest, fastest };
+}
+
 // ---------- Nachgetragene Aktivitäten ----------
 // Abgeschlossene Laufeinheiten als Aktivitäten (für Belastung, Interferenz, Claude)
 export function runActivities(data) {
@@ -579,6 +703,8 @@ export function autoRunType(data) {
   if (dtr !== null && dtr <= 3) return { id: 'run_easy', why: `Noch ${dtr} Tage bis zum Wettkampf – nur kurz und locker.` };
   const runsAll = runActivities(data);
   const hadLongWeek = runsAll.some((r) => r.runType === 'run_long' && daysBetween(r.date, todayISO()) < 6);
+  const lastHard = [...data.sessions].reverse().find((x) => daysBetween(x.date, todayISO()) < 2 && effortOf(x) === 'too_hard');
+  if (lastHard) return { id: 'run_easy', why: 'Locker, weil bei deiner letzten Einheit viele Sätze unter dem Wdh.-Ziel lagen.' };
   if (deload) {
     if (goal.longRun && !hadLongWeek && !(dtr !== null && dtr <= 10)) return { id: 'run_long', why: 'Deload-Woche: langer Lauf etwas kürzer (ca. 45–60 min), ganz locker.' };
     return { id: 'run_easy', why: 'Deload-Woche – nur locker.' };
@@ -692,13 +818,14 @@ export function buildSession(data, { templateId, equip, runType }) {
   const taper = dtr !== null && dtr <= 14;
   const vf = goal.volume * (taper ? 0.7 : 1);
   const actAdj = activityAdjust(data, tpl.focus);
+  const fb = feedbackAdjust(data, templateId);
   const adj = muscleAdjustments(data);
   const adjUsed = new Set();
   const used = [];
   const power = []; const strength = [];
   tpl.slots.forEach((sd, idx) => {
     const key = `${templateId}:${idx}`;
-    const ex = pick(data, key, sd, equip, used);
+    const ex = pick(data, key, sd, equip, used, { avoid: fb.avoid, pain: fb.pain, vary: fb.vary });
     if (!ex) return;
     used.push(ex.id);
     let a = 0;
@@ -707,8 +834,9 @@ export function buildSession(data, { templateId, equip, runType }) {
     let n = setsFor(sd, week, deload, a);
     if (ex.cat === 'strength' && vf !== 1) n = Math.max(2, Math.round(n * vf));
     if (actAdj.reducePower && ex.slot === 'power_lower') n = Math.max(2, n - 1);
+    if (ex.cat === 'strength') n = Math.min(6, Math.max(sd.main ? 2 : 1, n + fb.setDelta + (sd.main ? fb.mainDelta : 0)));
     const heavy = goal.reps === 'strength' && ex.cat === 'strength' && ex.load === 'kg' && !ISOLATION.includes(ex.slot);
-    const item = makeItem(data, ex, n, { main: sd.main, deload, ...(heavy ? { lo: sd.main ? 3 : 5, hi: sd.main ? 6 : 8, rest: sd.main ? 210 : 150 } : {}) });
+    const item = makeItem(data, ex, n, { main: sd.main, deload: deload || fb.deload, ...(heavy ? { lo: sd.main ? 3 : 5, hi: sd.main ? 6 : 8, rest: sd.main ? 210 : 150 } : {}) });
     item.prio = sd.prio;
     item.slotKey = key;
     (ex.cat === 'power' ? power : strength).push(item);
@@ -718,7 +846,7 @@ export function buildSession(data, { templateId, equip, runType }) {
   blocks.push({ type: 'warmup', title: 'Aufwärmen & Mobilität', items: mobilityBlock('warmup', tpl.focus, equip).map((id) => makeItem(data, EX[id], 0)) });
   if (power.length) blocks.push({ type: 'power', title: 'Schnellkraft', items: power });
   if (strength.length) blocks.push({ type: 'strength', title: 'Kraft & Muskelaufbau', items: strength });
-  if (tpl.cond && !(actAdj.dropCond && tpl.cond !== 'zone2') && (goal.finisher || tpl.cond === 'zone2')) {
+  if (tpl.cond && !((actAdj.dropCond || fb.dropCond) && tpl.cond !== 'zone2') && (goal.finisher || tpl.cond === 'zone2')) {
     const c = COND[tpl.cond].map((id) => EX[id]).find((e) => available(e, equip));
     if (c) blocks.push({ type: 'conditioning', title: tpl.cond === 'zone2' ? 'Ausdauer – locker' : 'Ausdauer-Finisher', items: [makeItem(data, c, 0)] });
   }
@@ -732,6 +860,7 @@ export function buildSession(data, { templateId, equip, runType }) {
       deload ? 'Deload-Woche: weniger Sätze, −10 % Gewicht. Erholung ist Teil des Fortschritts.' : '',
       goal.reps === 'strength' ? 'Kraftaufbau: Grundübungen schwer, lange Pausen, saubere Technik.' : '',
       ...actAdj.notes,
+      ...fb.notes,
     ].filter(Boolean).join(' '),
     blocks,
   };
@@ -867,6 +996,11 @@ export function aiContext(data) {
     wochenvolumen_saetze_7_tage: weeklyVolume(data, 7),
     leistungstrends: trends,
     koerpergewicht: { aktuell_7_tage_mittel: bwNow, vor_4_wochen: bwThen, ...(goalOf(data).weightGoal && data.profile.goalWeight ? { zielgewicht: data.profile.goalWeight } : {}) },
+    rueckmeldungen_letzte_einheiten: data.sessions.filter((x) => (x.feedback || x.autoEffort) && daysBetween(x.date, todayISO()) < 21).slice(-6).map((x) => ({
+      datum: x.date, einheit: x.title, anstrengung_aus_wdh: effortOf(x) || null,
+      ...(x.feedback ? { gefallen: x.feedback.liked || null, beschwerden: (x.feedback.pain || []).map((p) => PAIN_NAME[p]), ...(x.feedback.note ? { notiz: x.feedback.note } : {}) } : {}),
+    })),
+    nicht_gemochte_uebungen: (data.dislikes || []).map((id) => EX[id]?.name || id),
     weitere_aktivitaeten_14_tage: recentActivities(data, 14).map((a) => ({
       datum: a.date, art: activityName(a), minuten: a.minutes, intensitaet: a.intensity,
       ...(a.km ? { km: a.km } : {}), ...(a.note ? { notiz: a.note } : {}), last_srpe: activityLoad(a),

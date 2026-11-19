@@ -91,14 +91,15 @@ function renderToday() {
         <button class="chip ${runType === 'auto' ? 'on' : ''}" data-action="runtype" data-id="auto">Automatisch: ${esc(EX[auto.id].name)}</button>
         ${RUN_TYPES.map((id) => `<button class="chip ${runType === id ? 'on' : ''}" data-action="runtype" data-id="${id}">${esc(EX[id].name)}</button>`).join('')}
       </div>
-      <p class="muted small">${runType === 'auto' ? esc(auto.why) : esc(EX[runType].presc)}</p>`;
+      <p class="muted small">${runType === 'auto' ? esc(auto.why) : esc(EX[runType].presc)}</p>
+      <p class="muted small">Draußen oder auf dem Laufband – das Kraftprogramm danach braucht keine Geräte.</p>`;
     })() : ''}
     <details class="more"><summary>Andere Einheit</summary>
       <div class="chips">${others.map((k) => `<button class="chip ${k === todayTpl ? 'on' : ''}" data-action="tpl" data-tpl="${k}">${esc(TEMPLATES[k].name)}</button>`).join('')}</div>
     </details>
   </section>
 
-  <section class="card">
+  ${todayTpl === 'RUN' ? '' : `<section class="card">
     <div class="label">Wo trainierst du heute?</div>
     <div class="chips">
       ${LOCATIONS.map((l) => `<button class="chip ${loc === l.id ? 'on' : ''}" data-action="loc" data-id="${l.id}">${esc(l.name)}${l.id === 'home' && !data.homeGym ? ' +' : ''}</button>`).join('')}
@@ -108,7 +109,7 @@ function renderToday() {
       <div class="chips">
         ${EQUIPMENT.map((e) => `<button class="chip ${(data.travelEquip || []).includes(e.id) ? 'on' : ''}" data-action="equip" data-id="${e.id}">${esc(e.name)}</button>`).join('')}
       </div>` : `<p class="muted small">${locationSummary(loc)}</p>`}
-  </section>
+  </section>`}
 
   <section class="card">
     <div class="label">Zeit heute</div>
@@ -155,8 +156,9 @@ function countSets(s) { return s.blocks.flatMap((b) => b.items).reduce((n, it) =
 function tonnage(s) { return s.blocks.flatMap((b) => b.items).reduce((n, it) => n + (it.sets || []).filter((x) => x.done).reduce((m, x) => m + (Number(x.w) || 0) * (Number(x.r) || 0), 0), 0); }
 
 async function startPlan(useAI) {
-  const equip = equipFor(data.location || 'gym');
-  data.equipment = equip;
+  // Laufeinheit: kein Trainingsort, Kraft für Läufer nur mit Körpergewicht
+  const equip = todayTpl === 'RUN' ? [] : equipFor(data.location || 'gym');
+  if (todayTpl !== 'RUN') data.equipment = equip;
   const rule = buildSession(data, { templateId: todayTpl, equip, runType });
   let session = rule;
   if (useAI) {
@@ -439,6 +441,7 @@ function setupModal() {
     <div class="info-box"><span class="rec-star">★</span> <strong>Der Stern</strong> markiert beim Training die empfohlene Einheit für heute. Es gibt keine feste Reihenfolge: Die App schaut, welche Körperregion erholt ist (mind. 48 h), welche Muskeln diese Woche unter Zielvolumen liegen und welche Variante zuletzt dran war. Läufe und nachgetragene Trainings zählen mit. Du kannst jederzeit eine andere Einheit wählen.</div>
     <div class="label">Übliche Dauer</div>
     <div class="chips">${chips('su-dur', [45, 60, 75, 90, 105], s.duration, (v) => `${v} min`)}</div>
+    ${GOAL[s.goal].volumeFocus && s.days <= 2 && s.goal !== 'fitness' ? '<p class="muted small">Hinweis: Mit 2 Tagen kommt jeder Muskel auf ca. 6–9 Sätze pro Woche – das wirkt, für optimalen Muskel- bzw. Kraftaufbau sind aber 3–4 Tage besser.</p>' : GOAL[s.goal].volumeFocus && s.duration < 90 && (s.days <= 2 || (s.days <= 3 && s.goal !== 'fitness')) ? '<p class="muted small">Tipp: Bei nur ' + s.days + ' Tagen sind für dieses Ziel 90 min sinnvoll, damit jeder Muskel auf ~10 Sätze pro Woche kommt.</p>' : ''}
     <label class="field"><span>Verletzungen / Hinweise (optional)</span><textarea class="in wide" data-su="notes" rows="2" placeholder="z. B. Knie links empfindlich bei tiefen Sprüngen">${esc(s.notes)}</textarea></label>
     <div class="label mt">Dein Home-Gym</div>
     <p class="muted small">Was hast du zu Hause? Leer lassen, wenn du nur im Studio trainierst.</p>

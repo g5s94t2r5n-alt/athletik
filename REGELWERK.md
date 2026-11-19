@@ -69,10 +69,12 @@ Das Ziel legt fest, welche Einheiten in einer Woche vorkommen (bei z. B. 4 Tagen
 |---|---|---|
 | Muskelaufbau & Athletik | Unterkörper A/B, Oberkörper A/B | 70/30, Ausdauer-Finisher, Volumen 10–20 Sätze |
 | Kraftaufbau | Unterkörper A/B, Oberkörper A/B | Grundübungen 3–6 Wdh. (Ergänzung 5–8), 2,5–3,5 min Pause, kein Finisher |
-| Ausdauer aufbauen | 2 × Lauf, 2 × Ganzkörper | Polarisiert, Kraft mit ~80 % Volumen zum Erhalt |
-| Marathon-Vorbereitung | 3 × Lauf, 1 × Ganzkörper | Wöchentlicher langer Lauf, Tempo/Intervalle, Kraft kurz (~⅔ Volumen); Tapering in den letzten 14 Tagen (−30 % Volumen, kein langer Lauf ab 10 Tagen, nur locker ab 3 Tagen) |
-| HYROX | 2 × Ganzkörper, 1 × Lauf, 1 × HYROX | HYROX-Einheit: 1-km-Läufe im Wechsel mit Stationen (Compromised Running), Tapering vor dem Wettkampf |
-| Allgemeine Fitness | 3 × Ganzkörper, 1 × Lauf | Moderates Volumen (~80 %) |
+| Ausdauer aufbauen | 2 × Lauf, 2 × Ganzkörper | Polarisiert, Kraft mit ~65 % Volumen zum Erhalt |
+| Marathon-Vorbereitung | 3 × Lauf, 1 × Ganzkörper | Wöchentlicher langer Lauf (auch im Deload, dann kürzer), Tempo/Intervalle, Kraft kurz (~60 % Volumen); Tapering in den letzten 14 Tagen (−30 % Volumen, kein langer Lauf ab 10 Tagen, nur locker ab 3 Tagen) |
+| HYROX | 2 × Ganzkörper, 1 × Lauf, 1 × HYROX | HYROX-Einheit: 1-km-Läufe im Wechsel mit Stationen (Compromised Running), alle 8 Stationen rotieren, Kraft ~70 % Volumen, Tapering vor dem Wettkampf |
+| Allgemeine Fitness | 3 × Ganzkörper, 1 × Lauf | Moderates Volumen (~90 %, Ziel ≥ 6 Sätze/Muskel), Läufe abwechselnd locker und fordernd |
+
+Hinweise: Bei 5–6 Tagen ergänzen Athletik- bzw. Regenerationstage den Plan, damit die 48-h-Regel einhaltbar bleibt. Mit nur 2 Tagen sind ca. 6–9 Sätze pro Muskel und Woche realistisch (wirksam, aber unter dem Optimum).
 
 Kraft vor Ausdauer-Zielen: Krafttraining verbessert die Laufökonomie (Balsalobre-Fernández et al. 2016) und wird deshalb auch bei Lauf-Zielen beibehalten.
 
@@ -80,10 +82,14 @@ Kraft vor Ausdauer-Zielen: Krafttraining verbessert die Laufökonomie (Balsalobr
 
 Keine feste Reihenfolge – die App empfiehlt jedes Mal neu:
 
-1. **Erholung:** Eine Körperregion (Unter-/Oberkörper) wird frühestens nach ~48 h wieder hart trainiert. Läufe und nachgetragene Beinbelastung (HIIT, Joggen, Padel …) zählen für den Unterkörper mit.
+1. **Erholung:** Eine Körperregion (Unter-/Oberkörper) wird frühestens nach ~48 h wieder hart trainiert – auch dann nicht, wenn eine Einheit dieser Region im Wochenplan noch fehlt (dann erholte Einheit oder locker). Nachgetragene Beinbelastung (HIIT, Joggen, Padel …) zählt für den Unterkörper mit; bei Lauf-Zielen zählt ein Lauf nur 24 h („harte Tage hart, lockere Tage locker“). Athletik-Tage belasten nur die Beine, Regenerationstage gar nicht.
 2. **Wochenplan des Ziels:** Einheiten, die diese Woche laut Ziel noch fehlen (z. B. der 3. Lauf beim Marathon), bekommen Vorrang. Bei Muskel-/Kraft-/Fitness-Zielen zählen zusätzlich Muskeln unter 10 Sätzen in den letzten 7 Tagen.
 3. **Abwechslung:** Innerhalb einer Region wechseln A- und B-Variante.
-4. **Alles noch müde?** Dann empfiehlt die App eine lockere Laufeinheit (aktive Erholung) bzw. den Regenerationstag.
+4. **Schlüsseleinheit:** Bei Gleichstand gewinnt die Kerneinheit des Ziels (HYROX-Einheit bzw. Lauf beim Marathon).
+5. **Alles noch müde?** Dann empfiehlt die App eine lockere Laufeinheit (aktive Erholung) bzw. den Regenerationstag.
+6. **Wettkampfwoche:** In den letzten 3 Tagen vor dem Wettkampf nur noch kurz locker laufen oder Pause.
+
+Geprüft mit `tools/simulate.js`: 6 Ziele × 2–6 Trainingstage × 3 Startbedingungen über je 8 Wochen (inkl. Deload und Tapering) – alle Prüfungen bestanden.
 
 ## 4. Anpassung (die „lernende“ Komponente)
 

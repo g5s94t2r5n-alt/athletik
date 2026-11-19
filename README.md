@@ -64,3 +64,5 @@ Pro geplanter Einheit ca. 5–10 Cent, pro Wochen-Check ähnlich. Ohne API-Key l
 | `js/app.js` | Oberfläche |
 | `sw.js` | Offline-Cache |
 | `tools/make_icons.py` | Erzeugt die App-Icons |
+| `tools/simulate.js` | Plan-Simulator: spielt je Ziel mehrere Wochen durch und prüft die Planung (im Browser: `(await import('/tools/simulate.js')).runAll()`) |
+| `tools/serve.py` | Lokaler Testserver ohne Cache |

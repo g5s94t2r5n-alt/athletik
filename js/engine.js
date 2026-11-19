@@ -59,8 +59,8 @@ export const TEMPLATES = {
     name: 'Ganzkörper A', focus: 'full', cond: 'short',
     slots: [
       { slot: 'power_lower', sets: 3, prio: 1, prefer: ['box_jump', 'cmj', 'db_jump_squat'] },
-      { slot: 'squat', sets: 3, main: true, prio: 1, prefer: ['back_squat', 'hack_squat', 'leg_press', 'goblet_squat', 'kb_goblet_squat', 'tempo_squat_bw'] },
-      { slot: 'hpush', sets: 3, main: true, prio: 1, prefer: ['bench_press', 'db_bench', 'chest_press', 'dips', 'pushup'] },
+      { slot: 'squat', sets: 4, main: true, prio: 1, prefer: ['back_squat', 'hack_squat', 'leg_press', 'goblet_squat', 'kb_goblet_squat', 'tempo_squat_bw'] },
+      { slot: 'hpush', sets: 4, main: true, prio: 1, prefer: ['bench_press', 'db_bench', 'chest_press', 'dips', 'pushup'] },
       { slot: 'hpull', sets: 3, prio: 1, prefer: ['cable_row', 'cs_db_row', 'bb_row', 'one_arm_row', 'machine_row', 'inverted_row', 'band_row', 'table_row'] },
       { slot: 'knee_flexion', sets: 3, prio: 2, prefer: ['seated_leg_curl', 'nordic_curl', 'lying_leg_curl', 'slider_curl'] },
       { slot: 'side_delt', sets: 3, prio: 2, prefer: ['cable_lateral', 'lateral_raise', 'band_lateral', 'ytw_bw'] },
@@ -76,8 +76,9 @@ export const TEMPLATES = {
       { slot: 'vpull', sets: 3, main: true, prio: 1, prefer: ['pullup', 'chinup', 'lat_pulldown', 'band_pulldown', 'towel_row_door'] },
       { slot: 'vpush', sets: 3, prio: 1, prefer: ['ohp', 'db_shoulder_press', 'machine_shoulder', 'db_shoulder_press_st', 'kb_press', 'pike_pushup'] },
       { slot: 'lunge', sets: 3, prio: 2, prefer: ['bss_db', 'walking_lunge', 'reverse_lunge_bb', 'step_up', 'bss_bw'] },
+      { slot: 'chest_iso', sets: 3, prio: 2, prefer: ['cable_fly', 'pec_deck', 'db_fly'] },
       { slot: 'triceps', sets: 2, prio: 3, prefer: ['oh_cable_ext', 'db_oh_ext', 'pushdown', 'band_pushdown', 'diamond_pushup'] },
-      { slot: 'calf', sets: 3, prio: 3, prefer: ['standing_calf', 'db_calf', 'bw_calf'] },
+      { slot: 'calf', sets: 3, prio: 2, prefer: ['standing_calf', 'db_calf', 'bw_calf'] },
     ],
   },
   FB_C: {
@@ -88,6 +89,7 @@ export const TEMPLATES = {
       { slot: 'hpush', sets: 3, prio: 1, prefer: ['incline_db', 'incline_bench', 'chest_press', 'pushup'] },
       { slot: 'vpull', sets: 3, prio: 1, prefer: ['lat_pulldown', 'chinup', 'pullup', 'band_pulldown', 'towel_row_door'] },
       { slot: 'hinge', sets: 3, prio: 2, prefer: ['hip_thrust', 'db_rdl', 'kb_rdl', 'glute_bridge_sl'] },
+      { slot: 'knee_flexion', sets: 2, prio: 2, prefer: ['seated_leg_curl', 'nordic_curl', 'lying_leg_curl', 'slider_curl'] },
       { slot: 'rear_delt', sets: 3, prio: 2, prefer: ['face_pull', 'reverse_fly', 'band_face_pull', 'ytw_bw'] },
       { slot: 'triceps', sets: 2, prio: 3, prefer: ['skullcrusher', 'oh_cable_ext', 'db_oh_ext', 'diamond_pushup'] },
       { slot: 'core', sets: 2, prio: 3, prefer: ['pallof', 'copenhagen', 'band_pallof', 'dead_bug'] },
@@ -166,33 +168,39 @@ export function recommendTemplate(data, date = todayISO()) {
   const sessions = data.sessions.filter((s) => daysBetween(s.date, date) >= 0);
   const acts = recentActivities(data, 28, date);
   if (!sessions.length && !acts.length) return { id: rot[0], why: `Start deines Plans (${goal.name}).` };
+  const dtr = daysToRace(data, date);
+  if (dtr !== null && dtr <= 3) return { id: 'RUN', why: dtr === 0 ? 'Heute ist Wettkampf – viel Erfolg! Höchstens locker einlaufen.' : `Noch ${dtr} ${dtr === 1 ? 'Tag' : 'Tage'} bis zum Wettkampf – nur kurz locker laufen oder Pause.` };
   const since = (d) => (d ? daysBetween(d, date) : 99);
   const latest = (dates) => dates.filter(Boolean).sort().pop() || null;
   const lastOf = (pred) => latest(sessions.filter(pred).map((s) => s.date));
   const focusOf = (s) => TEMPLATES[s.template]?.focus;
-  const legLoad = acts.filter((a) => ACT[a.type]?.legs && a.intensity !== 'leicht').map((a) => a.date);
-  const lastLower = latest([lastOf((s) => ['lower', 'full'].includes(focusOf(s))), ...legLoad]);
-  const lastUpper = lastOf((s) => ['upper', 'full'].includes(focusOf(s)));
+  const hits = (s, region) => (s.template === 'REG' ? false : s.template === 'ATH' ? region === 'lower' : [region, 'full'].includes(focusOf(s)));
+  // Bei Lauf-Zielen zählt ein Lauf nur 24 h als Beinbelastung („harte Tage hart“), sonst 48 h
+  const runFocus = ids.includes('RUN') || ids.includes('HYX');
+  const dayBefore = (iso) => todayISO(new Date(new Date(iso + 'T12:00:00').getTime() - 86400000));
+  const legLoad = acts.filter((a) => ACT[a.type]?.legs && a.intensity !== 'leicht').map((a) => (runFocus && a.type === 'jogging' ? dayBefore(a.date) : a.date));
+  const lastLower = latest([lastOf((s) => hits(s, 'lower')), ...legLoad]);
+  const lastUpper = lastOf((s) => hits(s, 'upper'));
   const dRegion = { lower: since(lastLower), upper: since(lastUpper) };
   const runs = acts.filter((a) => a.type === 'jogging');
   const dRun = since(latest(runs.map((a) => a.date)));
   const vol = weeklyVolume(data, 7, date);
   const deficit = (region) => (goal.volumeFocus ? REGION_MUSCLES[region].filter((m) => vol[m] < 10) : []);
   const doneWeek = (id) => (id === 'RUN'
-    ? runs.filter((a) => daysBetween(a.date, date) < 7).length
+    ? runs.filter((a) => a.runType !== 'hx_runs' && daysBetween(a.date, date) < 7).length
     : sessions.filter((s) => s.template === id && daysBetween(s.date, date) < 7).length);
 
   const scored = ids.map((id) => {
     const tpl = TEMPLATES[id];
     const dTpl = since(lastOf((s) => s.template === id));
     const tgt = target(id); const done = doneWeek(id); const missing = tgt - done;
-    let d = 99; let score = missing * 12; const reasons = [];
+    let d = 99; let score = missing > 0 ? missing * 20 : -30 + missing * 10; const reasons = [];
     if (tpl.focus === 'lower' || tpl.focus === 'upper') {
       d = dRegion[tpl.focus];
       score += Math.min(d, 4) * 10 - (d < 2 ? 40 : 0);
       const def = deficit(tpl.focus);
       score += def.length * 3;
-      const lastSame = [...sessions].reverse().find((s) => focusOf(s) === tpl.focus);
+      const lastSame = [...sessions].reverse().find((s) => focusOf(s) === tpl.focus && !['ATH', 'REG'].includes(s.template));
       if (lastSame && lastSame.template === id) score -= 8;
       reasons.push(d >= 99 ? `${REGION_NAME[tpl.focus]} noch nicht trainiert.` : `${REGION_NAME[tpl.focus]} zuletzt ${dayWord(d)} – ${d >= 2 ? 'erholt' : 'noch nicht erholt'}.`);
       if (def.length && d >= 2) reasons.push(`Unter Zielvolumen: ${def.slice(0, 3).map((m) => MUSCLES[m]).join(', ')}.`);
@@ -222,15 +230,19 @@ export function recommendTemplate(data, date = todayISO()) {
       reasons.push(d >= 99 ? 'Noch keine Krafteinheit.' : `Letzte Krafteinheit ${dayWord(d)} – ${d >= 2 ? 'erholt' : 'noch nicht erholt'}.`);
       if (tgt > 1 || ['endurance', 'marathon', 'hyrox'].includes(goal.id)) reasons.push(`Kraft diese Woche: ${sessions.filter((s) => ['FB_A', 'FB_B', 'FB_C'].includes(s.template) && daysBetween(s.date, date) < 7).length}×.`);
     }
-    return { id, score, d, why: reasons.join(' ') };
+    if (goal.key === id && missing > 0) score += 6; // Schlüsseleinheit des Ziels bei Gleichstand bevorzugen
+    return { id, score, d, missing, why: reasons.join(' ') };
   }).sort((a, b) => b.score - a.score);
 
-  const heavy = scored.filter((c) => !['ATH', 'REG', 'RUN'].includes(c.id));
-  if (heavy.length && heavy.every((c) => c.d < 2) && !['RUN', 'REG'].includes(scored[0].id)) {
-    if (ids.includes('REG')) return { id: 'REG', why: 'Muskeln wurden gerade erst trainiert – heute locker regenerieren.' };
-    return { id: 'RUN', why: 'Muskeln wurden gerade erst trainiert – heute lieber ein lockerer Lauf als aktive Erholung (oder Pause).' };
-  }
-  return scored[0];
+  const isHeavy = (c) => !['ATH', 'REG', 'RUN'].includes(c.id);
+  const best = scored[0];
+  if (!(isHeavy(best) && best.d < 2)) return best;
+  // Beste Option wäre eine nicht erholte Region → erholte, noch fehlende Einheit oder locker
+  const alt = scored.find((c) => !(isHeavy(c) && c.d < 2) && c.missing > 0);
+  if (alt) return alt;
+  const pending = TEMPLATES[best.id].name.split(' – ')[0];
+  if (ids.includes('REG')) return { id: 'REG', why: `${pending} steht noch aus, aber die Muskeln sind noch nicht erholt – heute locker regenerieren.` };
+  return { id: 'RUN', why: `${pending} steht noch aus, aber die Muskeln sind noch nicht erholt – heute lieber locker laufen (oder Pause).` };
 }
 
 export function nextTemplate(data) {
@@ -471,7 +483,12 @@ export function autoRunType(data) {
   const { deload } = blockInfo(data);
   const dtr = daysToRace(data);
   if (dtr !== null && dtr <= 3) return { id: 'run_easy', why: `Noch ${dtr} Tage bis zum Wettkampf – nur kurz und locker.` };
-  if (deload) return { id: 'run_easy', why: 'Deload-Woche – nur locker.' };
+  const runsAll = runActivities(data);
+  const hadLongWeek = runsAll.some((r) => r.runType === 'run_long' && daysBetween(r.date, todayISO()) < 6);
+  if (deload) {
+    if (goal.longRun && !hadLongWeek && !(dtr !== null && dtr <= 10)) return { id: 'run_long', why: 'Deload-Woche: langer Lauf etwas kürzer (ca. 45–60 min), ganz locker.' };
+    return { id: 'run_easy', why: 'Deload-Woche – nur locker.' };
+  }
   const last2 = recentActivities(data, 2);
   const hard = last2.find((a) => ACT[a.type]?.cardio && a.intensity === 'hart');
   if (hard) return { id: 'run_easy', why: `Locker, weil ${activityName(hard)} (hart) erst vor Kurzem war.` };
@@ -481,7 +498,7 @@ export function autoRunType(data) {
     return { id: 'run_easy', why: `Locker, weil dein letzter Lauf (${EX[lastRun.runType]?.name || 'intensiv'}) fordernd war.` };
   }
   const runTarget = rotationFor(data).filter((x) => x === 'RUN').length;
-  const runsWeek = recentActivities(data, 7).filter((a) => a.type === 'jogging').length;
+  const runsWeek = recentActivities(data, 7).filter((a) => a.type === 'jogging' && a.runType !== 'hx_runs').length;
   if (runTarget && runsWeek >= runTarget) return { id: 'run_easy', why: `Wochenziel (${runTarget} ${runTarget === 1 ? 'Lauf' : 'Läufe'}) schon erreicht – heute nur locker.` };
   const taper = dtr !== null && dtr <= 10;
   const hadLong = runs.some((r) => r.runType === 'run_long' && daysBetween(r.date, todayISO()) < 6);
@@ -494,6 +511,8 @@ export function autoRunType(data) {
 
 export function buildRunSession(data, { equip, runType }) {
   const { week, deload } = blockInfo(data);
+  const dtr = daysToRace(data);
+  const taper = dtr !== null && dtr <= 14;
   const auto = autoRunType(data);
   const id = runType && runType !== 'auto' && EX[runType] ? runType : auto.id;
   const ex = EX[id];
@@ -506,7 +525,7 @@ export function buildRunSession(data, { equip, runType }) {
   const pick = (ids) => ids.map((x) => EX[x]).find((e) => e && available(e, equip));
   [['db_calf', 'bw_calf'], ['bss_db', 'bss_bw', 'sl_rdl_bw'], ['copenhagen', 'dead_bug']].forEach((ids) => {
     const e = pick(ids);
-    if (e) { const it = makeItem(data, e, deload ? 1 : 2); it.prio = 3; extra.push(it); }
+    if (e) { const it = makeItem(data, e, deload || taper ? 1 : 2); it.prio = 3; extra.push(it); }
   });
   if (extra.length && RUN_MIN[id] + 7 + 6 + extra.length * 4 <= (data.profile.duration || 75)) {
     blocks.push({ type: 'strength', title: 'Kraft für Läufer', items: extra });
@@ -515,7 +534,7 @@ export function buildRunSession(data, { equip, runType }) {
   return {
     id: uid(), date: todayISO(), template: 'RUN', title: `Laufeinheit – ${ex.name}`, week, deload,
     source: 'regel', equipment: [...equip], status: 'active', startedAt: Date.now(),
-    note: 'Draußen oder auf dem Laufband. Trag danach Dauer und Strecke ein.', blocks,
+    note: [taper ? `Tapering: noch ${dtr} Tage bis zum Wettkampf – Umfang runter, Frische zählt.` : '', 'Draußen oder auf dem Laufband. Trag danach Dauer und Strecke ein.'].filter(Boolean).join(' '), blocks,
   };
 }
 const HX_STATIONS = ['hx_skierg', 'hx_sled_push', 'hx_sled_pull', 'hx_bbj', 'hx_row', 'hx_farmers', 'hx_lunges', 'hx_wallballs'];

@@ -7,6 +7,7 @@ Läuft vom iPhone-Homescreen wie eine normale App, auch offline im Gym. Kein App
 
 - **Equipment vor jedem Training wählen** (oder Preset: Studio, Home-Gym, Hotel, Körpergewicht, Draußen) → passender Plan
 - **Planung mit Claude** (Opus 5.5) inkl. Wunsch/Befinden des Tages – oder offline mit der eingebauten Regel-Logik
+- **Richtwerte in kg** für jede Übung – aus deinen letzten Gewichten, passend zum Trainingsziel
 - **Automatische Progression** aus Gewicht × Wiederholungen (doppelte Progression, Deload alle 5 Wochen, Übungswechsel bei Stagnation)
 - **Wochen-Check mit Claude**: passt Sätze pro Muskel, Fokus und Übungsauswahl an
 - **Andere Trainings nachtragen** (HIIT, Joggen, Yoga, CrossFit, Padel, Paddeln, Radfahren …) mit Dauer, Anstrengung und optional Strecke. Sie fließen in die Planung ein (z. B. kein Ausdauer-Finisher nach hartem HIIT gestern) und in den Wochen-Check

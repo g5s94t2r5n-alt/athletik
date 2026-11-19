@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Athletik Trailer</title>
-<meta name="description" content="60-Sekunden-Trailer der Athletik-App: Trainingsplanung nach Ziel, Claude als Coach, automatische Progression.">
+<meta name="description" content="60-Sekunden-Trailer der Athletik-App: Ziel wählen, Claude plant, Richtwerte in kg, automatische Progression.">
 <meta name="theme-color" content="#0b0a10">
 <link rel="icon" href="icons/icon-192.png">
 <style>
@@ -14,6 +14,7 @@
     --ink: #1b1430;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html, body { margin: 0; height: 100%; background: #000; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
   body { display: grid; place-items: center; overflow: hidden; }
   .wrap { display: grid; justify-items: center; gap: 10px; }
@@ -26,95 +27,96 @@
       var(--bg);
     border-radius: 2.5cqw;
   }
+  .embed .controls { display: none; }
+  .embed .stage { width: 100vw; height: 100dvh; aspect-ratio: auto; border-radius: 0; }
+  .embed .cap { top: calc(env(safe-area-inset-top, 0px) + 16cqw); }
+
   .orb { position: absolute; border-radius: 50%; filter: blur(8cqw); opacity: .5; animation: drift 14s ease-in-out infinite alternate; }
   .orb.a { width: 60cqw; height: 60cqw; background: rgba(199,184,255,.35); left: -20cqw; top: 30%; }
   .orb.b { width: 50cqw; height: 50cqw; background: rgba(255,198,165,.25); right: -15cqw; top: 5%; animation-delay: -6s; }
   @keyframes drift { to { transform: translate(10cqw, -8cqw) scale(1.15); } }
 
   .grad { background: linear-gradient(90deg, var(--lav), var(--pink) 55%, var(--peach)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .scene { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8cqw; text-align: center; opacity: 0; pointer-events: none; transition: opacity .6s ease; }
-  .scene.on { opacity: 1; }
-  .scene.top { justify-content: flex-start; padding-top: 11cqw; }
 
-  /* Szene 1 – Logo */
+  /* Szenen mit weicher Unschärfe-Blende */
+  .scene { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8cqw; text-align: center; opacity: 0; transform: scale(1.04); filter: blur(1.2cqw); pointer-events: none; transition: opacity .6s ease, transform .9s ease, filter .6s ease; }
+  .scene.on { opacity: 1; transform: none; filter: none; }
+
+  /* 1 – Hook */
+  .hook { position: relative; width: 100%; height: 40cqw; }
+  .hook .w { position: absolute; inset: 0; display: grid; place-items: center; font-size: 16cqw; font-weight: 900; letter-spacing: -.04em; opacity: 0; }
+  .on .hook .w { animation: flash .85s ease forwards; }
+  @keyframes flash { 0% { opacity: 0; transform: scale(1.35); filter: blur(2cqw); } 25% { opacity: 1; transform: none; filter: none; } 75% { opacity: 1; } 100% { opacity: 0; transform: scale(.92); } }
+  .hook-final { font-size: 10cqw; font-weight: 850; letter-spacing: -.02em; line-height: 1.1; opacity: 0; transform: translateY(4cqw); margin-top: -10cqw; }
+  .on .hook-final { animation: up .7s ease 2.5s forwards; }
+
+  /* 2 – Logo */
   .logo { width: 30cqw; height: 30cqw; border-radius: 7cqw; background: #13111a; display: grid; place-items: center; box-shadow: 0 0 0 .4cqw rgba(199,184,255,.25), 0 0 14cqw rgba(199,184,255,.45); transform: scale(.4) rotate(-12deg); opacity: 0; }
-  .on .logo { animation: pop 1s cubic-bezier(.2,1.4,.4,1) .2s forwards; }
+  .on .logo { animation: pop 1s cubic-bezier(.2,1.4,.4,1) .1s forwards; }
   @keyframes pop { to { transform: none; opacity: 1; } }
   .logo svg { width: 60%; }
   .brand { font-size: 15cqw; font-weight: 900; letter-spacing: -.04em; margin: 6cqw 0 2cqw; }
   .brand span { display: inline-block; opacity: 0; transform: translateY(4cqw); background: linear-gradient(180deg, #fff 10%, var(--lav) 60%, var(--pink)); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .on .brand span { animation: up .5s ease forwards; }
   @keyframes up { to { opacity: 1; transform: none; } }
-  .tag { font-size: 5cqw; color: var(--muted); opacity: 0; }
-  .on .tag { animation: fade .8s ease 1.8s forwards; }
+  .tag { font-size: 5cqw; color: var(--muted); opacity: 0; line-height: 1.4; }
+  .on .tag { animation: fade .8s ease 1.4s forwards; }
   @keyframes fade { to { opacity: 1; } }
 
-  /* Große Zeilen */
+  /* Texte über dem Handy */
+  .cap { position: absolute; left: 6cqw; right: 6cqw; top: 9cqw; text-align: center; z-index: 6; }
+  .cap h2 { font-size: 7.6cqw; line-height: 1.15; margin: 0 0 2cqw; font-weight: 850; letter-spacing: -.02em; }
+  .cap p { font-size: 4.2cqw; color: var(--muted); margin: 0; line-height: 1.4; }
+  .typing::after { content: "▍"; color: var(--lav); animation: blink .8s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
   .big { font-size: 9.5cqw; font-weight: 850; line-height: 1.12; letter-spacing: -.02em; margin: 0; }
   .line { opacity: 0; transform: translateY(5cqw); }
   .on .line { animation: up .7s ease forwards; }
-  .strike { position: relative; display: inline-block; color: var(--muted); }
-  .strike::after { content: ""; position: absolute; left: -2%; top: 52%; height: 1.2cqw; width: 0; background: var(--pink); border-radius: 1cqw; }
-  .on .strike::after { animation: strike .5s ease 1.6s forwards; }
-  @keyframes strike { to { width: 104%; } }
-  .sub { font-size: 5.2cqw; color: var(--muted); margin-top: 5cqw; line-height: 1.4; }
 
-  /* Ziel-Chips */
-  .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 2.6cqw; margin-top: 8cqw; }
-  .chip { font-size: 4.6cqw; font-weight: 700; padding: 2.8cqw 4.4cqw; border-radius: 99cqw; background: #262232; color: #d6cfe3; opacity: 0; transform: scale(.6); transition: background .35s, color .35s, box-shadow .35s; }
-  .on .chip { animation: chip .45s cubic-bezier(.2,1.5,.4,1) forwards; }
-  @keyframes chip { to { opacity: 1; transform: none; } }
-  .chip.hi { background: var(--lav); color: var(--ink); box-shadow: 0 0 6cqw rgba(199,184,255,.55); }
-
-  /* Handy */
+  /* Handy mit echter App */
   .phone { position: absolute; left: 50%; bottom: -100%; width: 64cqw; height: 131cqw; transform: translateX(-50%); border-radius: 9cqw; padding: 2.2cqw; background: #050508; box-shadow: 0 0 0 .5cqw #2a2636, 0 6cqw 16cqw rgba(0,0,0,.6), 0 0 18cqw rgba(199,184,255,.18); transition: bottom 1s cubic-bezier(.2,.9,.2,1), transform 1s cubic-bezier(.2,.9,.2,1); z-index: 5; }
-  .phone.show { bottom: 6cqw; }
-  .phone.tilt { transform: translateX(-50%) rotate(-3deg) scale(.96); }
+  .phone.show { bottom: 6cqw; animation: bob 6s ease-in-out infinite; }
   .phone.show.low { bottom: -16cqw; }
   .phone.show.mid { bottom: -4cqw; }
+  .phone.tilt { transform: translateX(-50%) rotate(-3deg) scale(.96); }
+  @keyframes bob { 50% { translate: 0 -1.2cqw; } }
   .screen { position: relative; width: 100%; height: 100%; border-radius: 7cqw; overflow: hidden; background: #13111a; }
   .screen iframe { position: absolute; left: 0; top: 0; width: 375px; height: 812px; border: 0; transform-origin: 0 0; opacity: 0; transition: opacity .5s; }
   .screen iframe.vis { opacity: 1; }
   .notch { position: absolute; top: 1.6cqw; left: 50%; width: 18cqw; height: 4.6cqw; transform: translateX(-50%); background: #050508; border-radius: 3cqw; z-index: 3; }
 
-  .cap { position: absolute; left: 6cqw; right: 6cqw; top: 9cqw; text-align: center; z-index: 6; }
-  .cap h2 { font-size: 7.6cqw; line-height: 1.15; margin: 0 0 2cqw; font-weight: 850; letter-spacing: -.02em; }
-  .cap p { font-size: 4.4cqw; color: var(--muted); margin: 0; line-height: 1.4; }
-  .typing::after { content: "▍"; color: var(--lav); animation: blink .8s steps(1) infinite; }
-  @keyframes blink { 50% { opacity: 0; } }
+  /* Finger-Tipp */
+  .tap { position: absolute; z-index: 9; width: 11cqw; height: 11cqw; margin: -5.5cqw 0 0 -5.5cqw; border-radius: 50%; border: .6cqw solid rgba(255,255,255,.9); background: rgba(199,184,255,.35); animation: tap .75s ease-out forwards; pointer-events: none; }
+  @keyframes tap { 0% { transform: scale(.4); opacity: 1; } 100% { transform: scale(1.7); opacity: 0; } }
 
-  .badges { position: absolute; left: 0; right: 0; top: 34cqw; display: flex; justify-content: center; gap: 2cqw; flex-wrap: wrap; z-index: 7; padding: 0 5cqw; }
+  .badges { position: absolute; left: 0; right: 0; top: 36cqw; display: flex; justify-content: center; gap: 2cqw; flex-wrap: wrap; z-index: 7; padding: 0 5cqw; }
   .badge { font-size: 3.4cqw; font-weight: 750; padding: 1.8cqw 3cqw; border-radius: 99cqw; color: var(--ink); opacity: 0; transform: translateY(3cqw); }
   .on .badge { animation: up .5s ease forwards; }
 
-  .plus { position: absolute; right: 7cqw; top: 66cqw; z-index: 8; font-size: 10cqw; font-weight: 900; color: var(--ink); background: var(--mint); padding: 2cqw 4.5cqw; border-radius: 5cqw; box-shadow: 0 0 10cqw rgba(167,236,201,.6); opacity: 0; transform: scale(.3) rotate(-10deg); }
-  .on .plus { animation: pop .7s cubic-bezier(.2,1.6,.4,1) 3.4s forwards; }
+  .plus { position: absolute; right: 5cqw; top: 112cqw; z-index: 8; text-align: center; color: var(--ink); background: var(--mint); padding: 2cqw 4cqw; border-radius: 5cqw; box-shadow: 0 0 10cqw rgba(167,236,201,.6); opacity: 0; transform: scale(.3) rotate(-10deg); }
+  .plus b { display: block; font-size: 9cqw; font-weight: 900; line-height: 1; }
+  .plus small { font-size: 3cqw; font-weight: 700; }
+  .on .plus { animation: pop .7s cubic-bezier(.2,1.6,.4,1) 6.4s forwards; }
 
   /* Feature-Raster */
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3cqw; width: 100%; margin-top: 7cqw; }
   .feat { background: rgba(255,255,255,.05); border: .3cqw solid rgba(255,255,255,.07); border-radius: 5cqw; padding: 4.5cqw 3cqw; text-align: left; opacity: 0; transform: translateY(4cqw); }
   .on .feat { animation: up .5s ease forwards; }
-  .feat b { display: block; font-size: 4.6cqw; margin-bottom: 1cqw; }
-  .feat span { font-size: 3.5cqw; color: var(--muted); line-height: 1.35; }
+  .feat b { display: block; font-size: 4.4cqw; margin-bottom: 1cqw; }
+  .feat span { font-size: 3.4cqw; color: var(--muted); line-height: 1.35; }
   .dot { display: inline-block; width: 2.6cqw; height: 2.6cqw; border-radius: 50%; margin-right: 1.6cqw; vertical-align: .2cqw; }
 
-  .cta { margin-top: 8cqw; font-size: 4.8cqw; font-weight: 800; color: var(--ink); background: linear-gradient(120deg, var(--lav), var(--pink)); padding: 3.6cqw 6cqw; border-radius: 99cqw; box-shadow: 0 2cqw 10cqw rgba(199,184,255,.4); opacity: 0; }
+  .cta { margin-top: 8cqw; font: inherit; font-size: 4.8cqw; font-weight: 800; color: var(--ink); background: linear-gradient(120deg, var(--lav), var(--pink)); border: 0; padding: 3.6cqw 6cqw; border-radius: 99cqw; box-shadow: 0 2cqw 10cqw rgba(199,184,255,.4); opacity: 0; cursor: default; }
+  .embed .cta { cursor: pointer; }
   .on .cta { animation: fade .8s ease 1.2s forwards; }
   .url { margin-top: 4cqw; font-size: 3.6cqw; color: var(--muted); opacity: 0; }
   .on .url { animation: fade .8s ease 1.8s forwards; }
 
   .bar { position: absolute; left: 0; bottom: 0; height: .8cqw; width: 0; background: linear-gradient(90deg, var(--mint), var(--sky), var(--lav)); z-index: 10; }
   .start { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(11,10,16,.72); backdrop-filter: blur(1.5cqw); -webkit-backdrop-filter: blur(1.5cqw); }
-  [hidden] { display: none !important; }
-  .embed .controls { display: none; }
-  .embed .stage { width: 100vw; height: 100dvh; aspect-ratio: auto; border-radius: 0; }
-  .embed .cap { top: calc(env(safe-area-inset-top, 0px) + 16cqw); }
-  .embed .scene.top { padding-top: 18cqw; }
-  .snd { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 3cqw); left: 4cqw; z-index: 15; font: 700 3.6cqw -apple-system, sans-serif; color: var(--text); background: rgba(28,25,38,.8); border: .3cqw solid rgba(255,255,255,.12); border-radius: 99cqw; padding: 2cqw 3.6cqw; cursor: pointer; }
-  .cta { cursor: default; border: 0; font-family: inherit; }
-  .embed .cta { cursor: pointer; }
   .start button { font: inherit; font-size: 5cqw; font-weight: 800; color: var(--ink); background: linear-gradient(120deg, var(--lav), var(--pink)); border: 0; padding: 4cqw 8cqw; border-radius: 99cqw; cursor: pointer; }
   .start small { display: block; margin-top: 3cqw; font-size: 3.4cqw; color: var(--muted); text-align: center; }
+  .snd { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 3cqw); left: 4cqw; z-index: 15; font: 700 3.6cqw -apple-system, sans-serif; color: var(--text); background: rgba(28,25,38,.8); border: .3cqw solid rgba(255,255,255,.12); border-radius: 99cqw; padding: 2cqw 3.6cqw; cursor: pointer; }
   .controls { display: flex; gap: 8px; }
   .controls button { font: 600 14px -apple-system, sans-serif; color: var(--text); background: #1c1926; border: 1px solid #2c2838; border-radius: 99px; padding: 8px 14px; cursor: pointer; }
 </style>
@@ -123,50 +125,53 @@
 <div class="wrap">
   <div class="stage" id="stage">
     <div class="orb a"></div><div class="orb b"></div>
+    <svg width="0" height="0" style="position:absolute"><defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#c7b8ff"/><stop offset="1" stop-color="#ffb8d2"/></linearGradient></defs></svg>
 
-    <!-- 1 Intro -->
-    <section class="scene" data-dur="5">
-      <div class="logo"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#c7b8ff"/><stop offset="1" stop-color="#ffb8d2"/></linearGradient></defs><path d="M58 12 26 56h21l-7 32 34-46H53l9-30z" fill="url(#g)"/></svg></div>
-      <div class="brand grad" aria-label="Athletik"></div>
+    <!-- 1 Hook -->
+    <section class="scene" data-dur="4">
+      <div class="hook">
+        <div class="w grad" style="animation-delay:.1s">Kraft.</div>
+        <div class="w grad" style="animation-delay:.9s">Ausdauer.</div>
+        <div class="w grad" style="animation-delay:1.7s">Athletik.</div>
+      </div>
+      <p class="hook-final">Ein Plan,<br><span class="grad">der mitdenkt.</span></p>
+    </section>
+
+    <!-- 2 Logo -->
+    <section class="scene" data-dur="4">
+      <div class="logo"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M58 12 26 56h21l-7 32 34-46H53l9-30z" fill="url(#g)"/></svg></div>
+      <div class="brand" aria-label="Athletik"></div>
       <div class="tag">Dein Training. Wissenschaftlich. Persönlich.</div>
     </section>
 
-    <!-- 2 Problem -->
-    <section class="scene" data-dur="6">
-      <p class="big line" style="animation-delay:.2s"><span class="strike">Trainingspläne<br>von der Stange?</span></p>
-      <p class="big line grad" style="animation-delay:2.4s;margin-top:6cqw">Dein Plan passt sich dir an.</p>
-      <p class="sub line" style="animation-delay:3.4s">Jeden Tag neu – nach deinem Ziel,<br>deiner Erholung und deinen Leistungen.</p>
-    </section>
-
-    <!-- 3 Ziele -->
-    <section class="scene" data-dur="8">
-      <p class="big line">Wähle dein Ziel.</p>
-      <div class="chips" id="goalChips"></div>
+    <!-- 3 Ziel wählen (echter Einrichtungs-Assistent) -->
+    <section class="scene" data-dur="8" data-phone="setup" data-act="goal">
+      <div class="cap"><h2>Wähle dein <span class="grad">Ziel.</span></h2><p>Muskelaufbau, Kraft, Ausdauer, Marathon, HYROX oder Fitness – der Plan richtet sich danach.</p></div>
     </section>
 
     <!-- 4 Heute -->
-    <section class="scene top" data-dur="8" data-phone="today">
-      <div class="cap"><h2>Studio, Home-Gym,<br><span class="grad">Hotel oder draußen.</span></h2><p>Der Stern ★ empfiehlt dir die passende Einheit.</p></div>
+    <section class="scene" data-dur="7" data-phone="today">
+      <div class="cap"><h2>Studio, Home-Gym,<br><span class="grad">Hotel oder draußen.</span></h2><p>Der Stern ★ empfiehlt die passende Einheit – jeden Tag neu.</p></div>
     </section>
 
     <!-- 5 Claude plant -->
-    <section class="scene top" data-dur="9" data-phone="session">
+    <section class="scene" data-dur="7" data-phone="session" data-pos="low">
       <div class="cap"><h2>Claude plant<br><span class="grad">deine Einheit.</span></h2><p class="typing" id="typeTarget"></p></div>
-      <div class="badges" style="top:36cqw">
-        <span class="badge" style="background:var(--lav);animation-delay:2.6s">10–20 Sätze pro Muskel</span>
-        <span class="badge" style="background:var(--mint);animation-delay:3.1s">48 h Erholung</span>
-        <span class="badge" style="background:var(--peach);animation-delay:3.6s">1–3 Wdh. in Reserve</span>
+      <div class="badges">
+        <span class="badge" style="background:var(--lav);animation-delay:2.2s">10–20 Sätze pro Muskel</span>
+        <span class="badge" style="background:var(--mint);animation-delay:2.6s">48 h Erholung</span>
+        <span class="badge" style="background:var(--peach);animation-delay:3s">1–3 Wdh. in Reserve</span>
       </div>
     </section>
 
-    <!-- 6 Eintragen & Progression -->
-    <section class="scene top" data-dur="8" data-phone="session" data-act="log">
-      <div class="cap"><h2>Nur Gewicht &amp;<br><span class="grad">Wiederholungen.</span></h2><p>Den Rest rechnet die App: Pausen-Timer, Progression, Deload.</p></div>
-      <div class="plus">+2,5 kg</div>
+    <!-- 6 Richtwerte & Eintragen (live) -->
+    <section class="scene" data-dur="10" data-phone="session" data-pos="mid" data-act="log">
+      <div class="cap"><h2>Richtwerte in kg.<br><span class="grad">Du trägst nur ein.</span></h2><p>Aus deinen letzten Einheiten – passend zu deinem Ziel.</p></div>
+      <div class="plus"><b>+2,5 kg</b><small>nächstes Mal</small></div>
     </section>
 
     <!-- 7 Fortschritt -->
-    <section class="scene top" data-dur="7" data-phone="progress">
+    <section class="scene" data-dur="7" data-phone="progress">
       <div class="cap"><h2>Sieh, wie du<br><span class="grad">stärker wirst.</span></h2><p>Kraftkurven, Körpergewicht, Volumen pro Muskel.</p></div>
     </section>
 
@@ -186,7 +191,7 @@
     <!-- 9 Outro -->
     <section class="scene" data-dur="7">
       <div class="logo"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M58 12 26 56h21l-7 32 34-46H53l9-30z" fill="url(#g)"/></svg></div>
-      <div class="brand grad" aria-label="Athletik"></div>
+      <div class="brand" aria-label="Athletik"></div>
       <div class="tag">Muskelaufbau · Kraft · Ausdauer · Marathon · HYROX</div>
       <button class="cta" id="cta">Öffnen &amp; zum Home-Bildschirm hinzufügen</button>
       <div class="url" id="url"></div>
@@ -195,6 +200,7 @@
     <div class="phone" id="phone">
       <div class="screen" id="screen">
         <div class="notch"></div>
+        <iframe data-view="setup" title="App – Einrichtung" tabindex="-1"></iframe>
         <iframe data-view="today" title="App – Heute" tabindex="-1"></iframe>
         <iframe data-view="session" title="App – Training" tabindex="-1"></iframe>
         <iframe data-view="progress" title="App – Fortschritt" tabindex="-1"></iframe>
@@ -218,80 +224,100 @@
   const stage = document.getElementById('stage');
   const scenes = [...stage.querySelectorAll('.scene')];
   const phone = document.getElementById('phone');
+  const screen = document.getElementById('screen');
   const frames = [...document.querySelectorAll('.screen iframe')];
+  const frame = (v) => frames.find((f) => f.dataset.view === v);
   const bar = document.getElementById('bar');
   const total = scenes.reduce((s, sc) => s + Number(sc.dataset.dur), 0);
+  const timers = [];
+  const later = (ms, fn) => timers.push(setTimeout(fn, ms));
   document.getElementById('url').textContent = location.href.replace(/trailer\.html.*$/, '').replace(/^https?:\/\//, '');
 
-  // Schriftzug Buchstabe für Buchstabe
   document.querySelectorAll('.brand').forEach((b) => {
-    b.innerHTML = 'ATHLETIK'.split('').map((c, i) => `<span style="animation-delay:${0.9 + i * 0.07}s">${c}</span>`).join('');
+    b.innerHTML = 'ATHLETIK'.split('').map((c, i) => `<span style="animation-delay:${0.5 + i * 0.07}s">${c}</span>`).join('');
   });
-  // Ziel-Chips
-  const goals = ['Muskelaufbau & Athletik', 'Kraftaufbau', 'Ausdauer aufbauen', 'Marathon', 'HYROX', 'Allgemeine Fitness'];
-  const gc = document.getElementById('goalChips');
-  gc.innerHTML = goals.map((g, i) => `<span class="chip" style="animation-delay:${0.6 + i * 0.25}s">${g}</span>`).join('');
 
   // Echte App im Demo-Modus laden und auf die Handy-Breite skalieren
-  frames.forEach((f) => { f.src = `index.html?demo=1&view=${f.dataset.view}`; });
-  const fit = () => { const w = document.getElementById('screen').clientWidth; frames.forEach((f) => { const s = w / 375; f.style.transform = `scale(${s})`; f.style.height = `${document.getElementById('screen').clientHeight / s}px`; }); };
+  const loadFrames = () => frames.forEach((f) => { f.src = `index.html?demo=1&view=${f.dataset.view}&t=${Date.now()}`; });
+  loadFrames();
+  let scale = 1;
+  const fit = () => { scale = screen.clientWidth / 375; frames.forEach((f) => { f.style.transform = `scale(${scale})`; f.style.height = `${screen.clientHeight / scale}px`; }); };
   window.addEventListener('resize', fit); fit();
   const showFrame = (v) => frames.forEach((f) => f.classList.toggle('vis', f.dataset.view === v));
 
-  // Schreibmaschinen-Text
-  let typeTimer = null;
-  const type = (el, text) => { clearInterval(typeTimer); el.textContent = ''; let i = 0; typeTimer = setInterval(() => { el.textContent = text.slice(0, ++i); if (i >= text.length) clearInterval(typeTimer); }, 38); };
+  // Sichtbarer Finger-Tipp auf ein Element in der App
+  const tapAt = (view, el) => {
+    if (!el) return;
+    const r = el.getBoundingClientRect(); const s = screen.getBoundingClientRect(); const st = stage.getBoundingClientRect();
+    const dot = document.createElement('div'); dot.className = 'tap';
+    dot.style.left = `${s.left - st.left + (r.left + r.width / 2) * scale}px`;
+    dot.style.top = `${s.top - st.top + (r.top + r.height / 2) * scale}px`;
+    stage.appendChild(dot); setTimeout(() => dot.remove(), 800);
+  };
 
-  // Live-Aktion in der App: Satz eintragen und abhaken → Pausen-Timer erscheint
+  let typeTimer = null;
+  const type = (el, text) => { clearInterval(typeTimer); el.textContent = ''; let i = 0; typeTimer = setInterval(() => { el.textContent = text.slice(0, ++i); if (i >= text.length) clearInterval(typeTimer); }, 40); };
+
+  // Szene „Ziel“: Ziele im echten Assistenten antippen
+  const actGoal = () => {
+    const f = frame('setup');
+    const tapGoal = (id) => { try { const el = f.contentDocument.querySelector(`[data-action=su-goal][data-v=${id}]`); tapAt('setup', el); el && el.click(); } catch (e) { /* App nicht bereit */ } };
+    later(1300, () => tapGoal('marathon'));
+    later(3100, () => tapGoal('hyrox'));
+    later(4900, () => tapGoal('muscle'));
+  };
+
+  // Szene „Eintragen“: Richtwert zeigen, Wdh. tippen, Satz hakt sich automatisch ab
   const actLog = () => {
-    const f = frames.find((x) => x.dataset.view === 'session');
+    const f = frame('session');
     try {
       const doc = f.contentDocument; const win = f.contentWindow;
-      const block = [...doc.querySelectorAll('.block')].find((b) => b.querySelector('.t-strength'));
-      if (!block) return;
-      win.scrollTo({ top: block.offsetTop - 70, behavior: 'smooth' });
-      const row = [...block.querySelectorAll('.set-row')].find((r) => r.querySelector('[data-action=set-done]') && !r.classList.contains('done'));
-      if (!row) return;
-      const r = row.querySelector('input[data-field=r]');
-      setTimeout(() => { r.value = '8'; r.dispatchEvent(new win.Event('input', { bubbles: true })); }, 1200);
-      setTimeout(() => { row.querySelector('[data-action=set-done]').click(); }, 2000);
+      const item = [...doc.querySelectorAll('.block')].filter((b) => b.querySelector('.t-strength')).flatMap((b) => [...b.querySelectorAll('.ex')]).find((e) => e.querySelector('.set-row:not(.done) [data-field=r]'));
+      if (!item) return;
+      win.scrollTo({ top: item.offsetTop - 60, behavior: 'smooth' });
+      const rw = item.querySelector('.rw');
+      later(1500, () => { if (rw) { tapAt('session', rw); rw.style.transition = 'box-shadow .4s, background .4s'; rw.style.background = 'rgba(199,184,255,.18)'; rw.style.boxShadow = '0 0 0 4px rgba(199,184,255,.35)'; rw.style.borderRadius = '8px'; rw.style.padding = '1px 4px'; } });
+      const row = item.querySelector('.set-row:not(.head):not(.done)');
+      const r = row && row.querySelector('[data-field=r]');
+      later(3300, () => { if (!r) return; tapAt('session', r); r.focus({ preventScroll: true }); });
+      later(3800, () => { if (!r) return; r.value = '8'; r.dispatchEvent(new win.Event('input', { bubbles: true })); });
+      later(4800, () => { if (!r) return; r.dispatchEvent(new win.Event('change', { bubbles: true })); r.blur(); });
     } catch (e) { /* App nicht erreichbar */ }
   };
-  const resetSession = () => { const f = frames.find((x) => x.dataset.view === 'session'); f.src = f.src; };
 
-  let idx = -1; let t0 = 0; let raf = 0; let timer = 0;
+  const actProgress = () => {
+    const f = frame('progress');
+    try { f.contentWindow.scrollTo(0, 0); later(1500, () => f.contentWindow.scrollTo({ top: 520, behavior: 'smooth' })); later(4200, () => f.contentWindow.scrollTo({ top: 1000, behavior: 'smooth' })); } catch (e) { /* optional */ }
+  };
+
+  let idx = -1; let t0 = 0; let raf = 0;
   const show = (i) => {
     idx = i;
+    timers.splice(0).forEach(clearTimeout);
     scenes.forEach((s, k) => {
       s.classList.toggle('on', k === i);
-      if (k === i) { s.querySelectorAll('.line,.chip,.badge,.feat,.logo,.brand span,.tag,.cta,.url,.plus,.strike').forEach((el) => { el.style.animationName = 'none'; void el.offsetWidth; el.style.animationName = ''; }); }
+      if (k === i) s.querySelectorAll('.w,.hook-final,.line,.badge,.feat,.logo,.brand span,.tag,.cta,.url,.plus').forEach((el) => { el.style.animationName = 'none'; void el.offsetWidth; el.style.animationName = ''; });
     });
     const sc = scenes[i];
     const pv = sc.dataset.phone;
     phone.classList.toggle('show', !!pv);
-    phone.classList.toggle('tilt', i === 5);
-    phone.classList.toggle('low', i === 4);
-    phone.classList.toggle('mid', i === 5);
+    phone.classList.toggle('low', sc.dataset.pos === 'low');
+    phone.classList.toggle('mid', sc.dataset.pos === 'mid');
+    phone.classList.toggle('tilt', sc.dataset.act === 'log');
     if (pv) showFrame(pv);
-    if (i === 2) { // Ziele nacheinander hervorheben
-      const chips = [...gc.children]; let n = 0;
-      const cyc = setInterval(() => { if (idx !== 2) return clearInterval(cyc); chips.forEach((c, k) => c.classList.toggle('hi', k === n % chips.length)); n++; }, 700);
-    }
-    if (i === 4) type(document.getElementById('typeTarget'), 'Nach aktueller Sportwissenschaft.');
+    if (sc.dataset.act === 'goal') actGoal();
     if (sc.dataset.act === 'log') actLog();
-    if (pv === 'progress') { // langsam zu den Diagrammen scrollen
-      const f = frames.find((x) => x.dataset.view === 'progress');
-      try { f.contentWindow.scrollTo(0, 0); setTimeout(() => f.contentWindow.scrollTo({ top: 520, behavior: 'smooth' }), 1500); setTimeout(() => f.contentWindow.scrollTo({ top: 1000, behavior: 'smooth' }), 4200); } catch (e) { /* optional */ }
-    }
-    clearTimeout(timer);
-    timer = setTimeout(() => { if (i + 1 < scenes.length) show(i + 1); else end(); }, Number(sc.dataset.dur) * 1000);
+    if (pv === 'progress') actProgress();
+    if (sc.querySelector('#typeTarget')) type(document.getElementById('typeTarget'), 'Nach aktueller Sportwissenschaft.');
+    later(Number(sc.dataset.dur) * 1000, () => { if (i + 1 < scenes.length) show(i + 1); else end(); });
   };
   const tick = () => { bar.style.width = `${Math.min(100, ((performance.now() - t0) / 1000 / total) * 100)}%`; raf = requestAnimationFrame(tick); };
-  const start = () => {
+  const start = (reload) => {
     document.getElementById('start').hidden = true;
-    resetSession(); fit();
+    if (reload) loadFrames();
+    fit();
     t0 = performance.now(); cancelAnimationFrame(raf); tick();
-    show(0);
+    setTimeout(() => show(0), reload ? 400 : 0);
   };
   const finish = () => { if (EMBED && window.parent !== window) window.parent.postMessage({ type: 'trailer-end' }, location.origin); };
   const end = () => { cancelAnimationFrame(raf); bar.style.width = '100%'; stopMusic(); if (EMBED) setTimeout(finish, 2500); };
@@ -313,28 +339,27 @@
       nextT += 0.125; step++;
     }
   };
-  const label = (on) => { document.getElementById('sound').textContent = on ? '🔇 Ton aus' : '🔈 Ton an'; document.getElementById('snd').textContent = on ? '🔇 Ton aus' : '🔈 Ton an'; };
+  const label = (on) => { const t = on ? '🔇 Ton aus' : '🔈 Ton an'; document.getElementById('sound').textContent = t; document.getElementById('snd').textContent = t; };
   const startMusic = () => { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); musicOn = true; step = 0; nextT = ctx.currentTime + 0.05; clearInterval(musicTimer); musicTimer = setInterval(schedule, 50); label(true); };
   const stopMusic = () => { musicOn = false; clearInterval(musicTimer); label(false); };
 
   // Zum Prüfen: trailer.html#szene=5 springt direkt zu Szene 5
   window.trailerScene = (n) => { document.getElementById('start').hidden = true; fit(); show(n - 1); };
   const jump = /szene=(\d+)/.exec(location.hash);
-  if (jump) setTimeout(() => window.trailerScene(Number(jump[1])), 600);
+  if (jump) setTimeout(() => window.trailerScene(Number(jump[1])), 900);
 
-  document.getElementById('go').addEventListener('click', () => { startMusic(); start(); });
+  document.getElementById('go').addEventListener('click', () => { startMusic(); start(false); });
+  document.getElementById('restart').addEventListener('click', () => { if (musicOn) startMusic(); start(true); });
+  document.getElementById('sound').addEventListener('click', () => (musicOn ? stopMusic() : startMusic()));
   document.getElementById('snd').addEventListener('click', () => (musicOn ? stopMusic() : startMusic()));
   if (EMBED) {
-    // In der App: sofort starten (ohne Ton – Browser erlauben Ton erst nach Tippen), Abschluss-Knopf führt zur Einrichtung
     const cta = document.getElementById('cta');
     cta.textContent = 'Los geht’s – Profil einrichten';
     cta.addEventListener('click', finish);
     document.getElementById('url').hidden = true;
     document.getElementById('snd').hidden = false;
-    setTimeout(start, 300);
+    setTimeout(() => start(false), 500);
   }
-  document.getElementById('restart').addEventListener('click', () => { if (musicOn) startMusic(); start(); });
-  document.getElementById('sound').addEventListener('click', () => (musicOn ? stopMusic() : startMusic()));
 })();
 </script>
 </body>

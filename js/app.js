@@ -202,9 +202,9 @@ function pace(min, km) {
 }
 
 function sessionSummary(s) {
-  if (s.template !== 'RUN') return `${countSets(s)} Sätze · ${num(tonnage(s))} kg`;
+  if (s.template !== 'RUN') return `${plural(countSets(s), 'Satz', 'Sätze')} · ${num(tonnage(s))} kg`;
   const r = runStats(s);
-  return `${r.km ? num(r.km) + ' km · ' : ''}${r.min ? num(r.min) + ' min' : 'Lauf'}${pace(r.min, r.km) ? ' · ' + pace(r.min, r.km) : ''}${countSets(s) ? ` · ${countSets(s)} Sätze` : ''}`;
+  return `${r.km ? num(r.km) + ' km · ' : ''}${r.min ? num(r.min) + ' min' : 'Lauf'}${pace(r.min, r.km) ? ' · ' + pace(r.min, r.km) : ''}${countSets(s) ? ` · ${plural(countSets(s), 'Satz', 'Sätze')}` : ''}`;
 }
 
 function runStats(s) {
@@ -249,7 +249,7 @@ function renderItem(it, bi, ii, type) {
       ${!tracked ? `<button class="check ${it.done ? 'on' : ''}" data-action="item-done" data-b="${bi}" data-i="${ii}" aria-label="Erledigt"></button>` : ''}
       <div class="ex-name">
         <strong>${esc(ex.name)}</strong>
-        <div class="muted small">${tracked ? `${it.sets.length} × ${it.lo}–${it.hi} Wdh.${showW && ex.load === 'bw' ? ' · kg = Zusatzgewicht' : ''} · Pause ${it.rest < 120 ? `${it.rest} s` : `${num(it.rest / 60)} min`}` : esc(it.presc || ex.presc)}</div>
+        <div class="muted small">${tracked ? `${it.sets.length} × ${it.lo}–${it.hi} Wdh.${showW && Number(it.sets[0]?.tw) > 0 ? ` · <b class="rw">Richtwert ${ex.load === 'bw' ? '+' : ''}${fmtW(it.sets[0].tw)} kg</b>` : ''}${showW && ex.load === 'bw' ? ' · kg = Zusatzgewicht' : ''} · Pause ${it.rest < 120 ? `${it.rest} s` : `${num(it.rest / 60)} min`}` : esc(it.presc || ex.presc)}</div>
       </div>
       <button class="icon-btn" data-action="video" data-ex="${ex.id}" aria-label="Video">${ICON_PLAY}</button>
     </div>
@@ -266,7 +266,7 @@ function renderItem(it, bi, ii, type) {
       ${it.sets.map((st, si) => `
       <div class="set-row ${st.done ? 'done' : ''}">
         <span class="set-n">${si + 1}</span>
-        ${showW ? `<input inputmode="decimal" class="in" data-field="w" data-b="${bi}" data-i="${ii}" data-s="${si}" value="${esc(st.w)}" placeholder="kg">` : '<span></span>'}
+        ${showW ? `<input inputmode="decimal" class="in" data-field="w" data-b="${bi}" data-i="${ii}" data-s="${si}" value="${esc(fmtW(st.w))}" placeholder="kg">` : '<span></span>'}
         <input inputmode="numeric" class="in" data-field="r" data-b="${bi}" data-i="${ii}" data-s="${si}" value="${esc(st.r)}" placeholder="${it.lo}–${it.hi}">
         <button class="check ${st.done ? 'on' : ''}" data-action="set-done" data-b="${bi}" data-i="${ii}" data-s="${si}" aria-label="Satz erledigt"></button>
       </div>`).join('')}
@@ -283,15 +283,53 @@ function renderItem(it, bi, ii, type) {
 
 const ICON_PLAY = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 8.2v7.6l6-3.8z" fill="currentColor"/></svg>';
 
+let lastAuto = { key: '', at: 0 };
+const setFilled = (it, st) => st.r !== '' && Number(st.r) > 0 && (EX[it.exId]?.load !== 'kg' || (st.w !== '' && st.w != null));
+
+// Gewicht in Folgesätze übernehmen, wenn dort noch nichts geändert wurde
+function carryWeight(it, si, bi, ii) {
+  const st = it.sets[si];
+  it.sets.slice(si + 1).forEach((n, k) => {
+    if (n.done || !(n.w === '' || n.w == null || String(n.w) === String(n.tw))) return;
+    n.w = st.w;
+    if (bi != null) {
+      const inp = document.querySelector(`input[data-field="w"][data-b="${bi}"][data-i="${ii}"][data-s="${si + 1 + k}"]`);
+      if (inp && document.activeElement !== inp) inp.value = fmtW(st.w);
+    }
+  });
+}
+
+// Automatisch abhaken, ohne die Ansicht neu aufzubauen (Fokus bleibt im nächsten Feld)
+function autoComplete(t) {
+  const bi = +t.dataset.b; const ii = +t.dataset.i; const si = +t.dataset.s;
+  const it = data.active.blocks[bi].items[ii]; const st = it.sets[si];
+  if (st.done || !setFilled(it, st)) return;
+  st.done = true;
+  lastAuto = { key: `${bi}:${ii}:${si}`, at: Date.now() };
+  carryWeight(it, si, bi, ii);
+  startTimer(it.rest);
+  persist();
+  const row = t.closest('.set-row');
+  if (row) { row.classList.add('done'); row.querySelector('.check')?.classList.add('on'); }
+  const card = t.closest('.ex');
+  if (card && it.sets.every((x) => x.done)) card.classList.add('done');
+  const bar = document.querySelector('.progress-line > div');
+  if (bar) { const all = data.active.blocks.flatMap((b) => b.items).reduce((n, x) => n + x.sets.length, 0); bar.style.width = `${all ? (countSets(data.active) / all) * 100 : 0}%`; }
+}
+
+const fmtW = (w) => (w === '' || w == null ? '' : String(w).replace('.', ','));
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
 function finishSession() {
   const s = data.active;
+  s.blocks.forEach((b) => b.items.forEach((it) => it.sets.forEach((st) => { if (!st.done && setFilled(it, st)) st.done = true; })));
   if (!countSets(s) && !s.blocks.some((b) => b.items.some((i) => i.done))) {
     if (!confirm('Noch nichts abgehakt. Trotzdem abschließen?')) return;
   }
   s.blocks.forEach((b) => b.items.forEach((it) => { if (it.run && parseFloat(String(it.run.min).replace(',', '.')) > 0) it.done = true; }));
   s.status = 'done';
   s.finishedAt = Date.now();
-  s.blocks.forEach((b) => b.items.forEach((it) => { it.sets = it.sets.filter((x) => x.done || x.r !== ''); }));
+  s.blocks.forEach((b) => b.items.forEach((it) => { it.sets = it.sets.filter((x) => x.done); }));
   data.sessions.push(s);
   rememberSlots(data, s);
   data.active = null;
@@ -299,7 +337,7 @@ function finishSession() {
   stopTimer();
   keepAwake(false);
   persist();
-  toast(`Stark! ${countSets(s)} Sätze, ${num(tonnage(s))} kg bewegt.`);
+  toast(`Stark! ${plural(countSets(s), 'Satz', 'Sätze')}, ${num(tonnage(s))} kg bewegt.`);
   setView('history');
   openHistory = s.id;
   render();
@@ -444,14 +482,14 @@ function setupModal() {
   openModal(`
     <h2>Profil & Home-Gym</h2>
     <p class="muted small">Damit Plan und Claude zu dir passen. Alles bleibt nur auf diesem Gerät.</p>
+    <div class="label">1. Dein Trainingsziel</div>
+    <div class="chips">${GOALS.map((g) => `<button class="chip ${s.goal === g.id ? 'on' : ''}" data-action="su-goal" data-v="${g.id}">${esc(g.name)}</button>`).join('')}</div>
+    <p class="muted small">${esc(GOAL[s.goal].desc)}</p>
+    ${GOAL[s.goal].race ? `<label class="field"><span>Wettkampfdatum (optional)</span><input type="date" class="in" data-su="goalDate" min="${todayISO()}" value="${esc(s.goalDate)}"></label>` : ''}
     <div class="grid2">
       <label class="field"><span>Alter</span><input class="in" data-su="age" inputmode="numeric" value="${esc(s.age)}" placeholder="Jahre"></label>
       <label class="field"><span>Gewicht (kg)</span><input class="in" data-su="weight" inputmode="decimal" value="${esc(s.weight)}" placeholder="kg"></label>
     </div>
-    <div class="label">Trainingsziel</div>
-    <div class="chips">${GOALS.map((g) => `<button class="chip ${s.goal === g.id ? 'on' : ''}" data-action="su-goal" data-v="${g.id}">${esc(g.name)}</button>`).join('')}</div>
-    <p class="muted small">${esc(GOAL[s.goal].desc)}</p>
-    ${GOAL[s.goal].race ? `<label class="field"><span>Wettkampfdatum (optional)</span><input type="date" class="in" data-su="goalDate" min="${todayISO()}" value="${esc(s.goalDate)}"></label>` : ''}
     <div class="label">Geschlecht</div>
     <div class="chips">${chips('su-sex', ['männlich', 'weiblich', 'divers'], s.sex)}</div>
     <label class="field"><span>Niveau</span><input class="in wide" data-su="level" value="${esc(s.level)}" placeholder="z. B. Leistungssportler, fortgeschritten"></label>
@@ -825,12 +863,10 @@ document.addEventListener('click', async (e) => {
         if (inp) { inp.focus(); inp.classList.add('shake'); setTimeout(() => inp.classList.remove('shake'), 400); }
         return;
       }
+      const key = `${t.dataset.b}:${t.dataset.i}:${t.dataset.s}`;
+      if (st.done && lastAuto.key === key && Date.now() - lastAuto.at < 1500) { render(); break; } // gerade automatisch abgehakt
       st.done = !st.done;
-      // Gewicht in Folgesätze übernehmen, wenn dort noch nichts geändert wurde
-      if (st.done) {
-        it.sets.slice(+t.dataset.s + 1).forEach((n) => { if (!n.done && (n.w === '' || n.w === n.tw)) n.w = st.w; });
-        startTimer(it.rest);
-      }
+      if (st.done) { carryWeight(it, +t.dataset.s); startTimer(it.rest); }
       persist(); render(); break;
     }
     case 'item-done': { const it = itemAt(t); it.done = !it.done; persist(); render(); break; }
@@ -910,6 +946,7 @@ document.addEventListener('input', (e) => {
 
 document.addEventListener('change', async (e) => {
   const t = e.target;
+  if (t.dataset.field && data.active) autoComplete(t);
   if (t.id === 'api-key') { data.settings.apiKey = t.value.trim(); persist(); toast('API-Key gespeichert.'); }
   if (t.id === 'use-claude') { data.settings.useClaude = t.checked; persist(); }
   if (t.dataset.prof) {
@@ -944,6 +981,7 @@ if (data.active && !DEMO) keepAwake(true);
 const firstLaunch = !DEMO && !data.profile.setup && !data.sessions.length && !introSeen();
 if (['history', 'progress', 'coach', 'settings'].includes(params.get('view'))) setView(params.get('view')); else render();
 if (firstLaunch) showIntro(() => openSetup());
+if (DEMO && params.get('view') === 'setup') openSetup();
 if (DEMO && params.get('view') === 'session') {
   const b = document.querySelector('.t-power') || document.querySelector('.t-strength');
   if (b) window.scrollTo(0, b.closest('.block').offsetTop - 12);

@@ -302,14 +302,108 @@ function roundTo(w, step) {
   return Math.max(0, Math.round(w / step) * step);
 }
 
+// ---------- Richtwerte (Gewichtsempfehlungen) ----------
+// Geschätztes 1RM als Vielfaches des Körpergewichts für einen trainierten Mann (fortgeschritten).
+// Kurzhantel/Kettlebell: pro Hand bzw. Gerät. Klimmzug/Chin-up/Dips: Gesamtlast inkl. Körpergewicht.
+const STD = {
+  back_squat: 1.5, front_squat: 1.2, hack_squat: 1.9, leg_press: 3.0, goblet_squat: 0.5, kb_goblet_squat: 0.45,
+  deadlift: 1.9, rdl: 1.4, db_rdl: 0.55, hip_thrust: 2.0, kb_rdl: 0.45,
+  bss_db: 0.35, walking_lunge: 0.35, step_up: 0.35, reverse_lunge_bb: 1.0,
+  seated_leg_curl: 0.8, lying_leg_curl: 0.65, cable_leg_curl: 0.25, leg_extension: 1.0,
+  standing_calf: 1.6, db_calf: 0.4, seated_calf: 1.1,
+  bench_press: 1.2, incline_bench: 1.0, db_bench: 0.45, incline_db: 0.38, chest_press: 1.2, dips: 1.5,
+  ohp: 0.75, db_shoulder_press: 0.32, db_shoulder_press_st: 0.28, machine_shoulder: 0.85, kb_press: 0.28,
+  bb_row: 1.0, cs_db_row: 0.45, one_arm_row: 0.55, cable_row: 1.05, machine_row: 1.05,
+  pullup: 1.4, chinup: 1.45, lat_pulldown: 1.0, sa_pulldown: 0.45,
+  cable_fly: 0.3, db_fly: 0.22, pec_deck: 0.9, lateral_raise: 0.15, cable_lateral: 0.12, machine_lateral: 0.45,
+  face_pull: 0.4, reverse_fly: 0.13, reverse_pec_deck: 0.55,
+  incline_curl: 0.2, bb_curl: 0.55, cable_curl: 0.45, hammer_curl: 0.24, kb_curl: 0.22,
+  oh_cable_ext: 0.45, db_oh_ext: 0.35, pushdown: 0.55, skullcrusher: 0.5, cable_crunch: 0.8, pallof: 0.25,
+};
+// Arbeitsgewicht direkt als Vielfaches des Körpergewichts (Schnellkraft & Tragen)
+const WORK = { kb_swing: 0.27, hang_power_clean: 0.5, db_jump_squat: 0.12, db_push_press: 0.22, farmer_walk: 0.4 };
+const LOWER_M = ['quadrizeps', 'beinbeuger', 'gesaess', 'waden'];
+const regionOfEx = (ex) => (ex.prim.some((m) => LOWER_M.includes(m)) ? 'lower' : 'upper');
+const kg = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
+
+// Trainingsziel → Wdh. in Reserve: Ausdauer-Ziele etwas mehr Puffer
+export const goalRir = (data) => (goalOf(data).volume < 0.8 ? 3 : 2);
+
+let bestCache = { key: '', map: {} };
+function bestE1rms(data) {
+  const last = data.sessions[data.sessions.length - 1];
+  const key = `${data.sessions.length}:${last ? last.id : ''}:${data.bodyweight.length}`;
+  if (bestCache.key === key) return bestCache.map;
+  const map = {}; const cnt = {};
+  for (let i = data.sessions.length - 1; i >= 0; i--) {
+    const s = data.sessions[i];
+    for (const b of s.blocks) for (const it of b.items) {
+      const ex = EX[it.exId];
+      if (!ex || !STD[ex.id] || (cnt[ex.id] || 0) >= 3) continue;
+      const sets = (it.sets || []).filter((x) => x.done && Number(x.r) > 0);
+      if (!sets.length) continue;
+      cnt[ex.id] = (cnt[ex.id] || 0) + 1;
+      const e = Math.max(...sets.map((x) => e1rm(loadOf(data, ex, x.w, s.date), Number(x.r))));
+      map[ex.id] = Math.max(map[ex.id] || 0, e);
+    }
+  }
+  bestCache = { key, map };
+  return map;
+}
+
+function profileFactor(data, region) {
+  const lvl = String(data.profile.level || '').toLowerCase();
+  const level = /anf|einsteig|neu/.test(lvl) ? 0.6 : /leistung|profi|wettkampf|elite/.test(lvl) ? 1.15 : 1;
+  const sex = data.profile.sex === 'weiblich' ? (region === 'lower' ? 0.7 : 0.55) : 1;
+  return level * sex;
+}
+
+// Persönlicher Kraftfaktor aus den letzten Leistungen (Median, bevorzugt gleiche Körperregion)
+function historyFactor(data, region, bw) {
+  const map = bestE1rms(data);
+  const pick = (filter) => {
+    const arr = Object.entries(map).filter(([id]) => filter(EX[id])).map(([id, e]) => ({ id, f: e / (STD[id] * bw) })).sort((a, b) => a.f - b.f);
+    if (!arr.length) return null;
+    const m = arr[Math.floor(arr.length / 2)];
+    return { f: m.f, ref: EX[m.id].name };
+  };
+  return pick((ex) => regionOfEx(ex) === region) || pick(() => true);
+}
+
+export function estimateWeight(data, ex, lo, hi) {
+  const bw = bodyweightAt(data, todayISO());
+  const region = regionOfEx(ex);
+  const hf = historyFactor(data, region, bw);
+  const factor = hf ? hf.f : profileFactor(data, region);
+  const basis = hf ? `aus deinen bisherigen Leistungen (z. B. ${hf.ref})` : `für dein Profil (${kg(bw)} kg)`;
+  if (WORK[ex.id]) return { w: WORK[ex.id] * bw * factor, basis };
+  if (!STD[ex.id]) return null;
+  const reps = Math.round((lo + hi) / 2);
+  let w = (STD[ex.id] * bw * factor) / (1 + (reps + goalRir(data)) / 30);
+  if (ex.load === 'bw') w -= bw; // Zusatzgewicht
+  return { w, basis };
+}
+
 // Doppelte Progression -> Zielgewicht + Hinweis
 export function target(data, ex, lo, hi, deload) {
   if (ex.load === 'none') return { w: null, note: '' };
   const hist = performances(data, ex.id);
   const step = ex.inc || 0;
   if (!hist.length) {
-    if (ex.cat === 'power') return { w: ex.load === 'bw' ? 0 : null, note: 'Explosiv, jede Wdh. maximal schnell.' };
-    return { w: ex.load === 'bw' ? 0 : null, note: ex.load === 'bw' ? 'Ohne Zusatzgewicht starten.' : 'Startgewicht wählen: Satzende mit 1–3 Wdh. in Reserve.' };
+    // Noch nie gemacht → Richtwert aus anderen Übungen bzw. Profil, passend zu Wdh.-Ziel und Trainingsziel
+    const est = estimateWeight(data, ex, lo, hi);
+    const dl = deload ? 0.9 : 1;
+    if (ex.cat === 'power') {
+      if (est && ex.load === 'kg') { const w = roundTo(est.w * dl, step || 1); return { w, note: `Richtwert ${est.basis}: ${kg(w)} kg – explosiv, jede Wdh. maximal schnell.` }; }
+      return { w: ex.load === 'bw' ? 0 : null, note: 'Explosiv, jede Wdh. maximal schnell.' };
+    }
+    if (!est) return { w: ex.load === 'bw' ? 0 : null, note: ex.load === 'bw' ? 'Ohne Zusatzgewicht starten.' : `Startgewicht wählen: Satzende mit ${goalRir(data)} Wdh. in Reserve.` };
+    if (ex.load === 'bw') {
+      const add = roundTo(Math.max(0, est.w * dl), step || 2.5);
+      return { w: add, note: add > 0 ? `Richtwert ${est.basis}: +${kg(add)} kg Zusatzgewicht für ${lo}–${hi} Wdh.` : `Richtwert ${est.basis}: ohne Zusatzgewicht${est.w < -10 ? ', bei Bedarf mit Band-Unterstützung' : ''}.` };
+    }
+    const w = Math.max(step || 1, roundTo(est.w * dl, step || 1));
+    return { w, note: `Richtwert ${est.basis}: ${kg(w)} kg für ${lo}–${hi} Wdh. – erste Sätze mit ${goalRir(data)} Wdh. Reserve testen und anpassen.` };
   }
   const last = hist[0];
   const topW = Math.max(...last.sets.map((s) => s.w));
@@ -321,7 +415,7 @@ export function target(data, ex, lo, hi, deload) {
     note = 'Explosiv, jede Wdh. maximal schnell.';
   } else if (!sameRange && ex.load === 'kg') {
     const best = bestE1rm(data, ex, last);
-    w = best / (1 + (Math.round((lo + hi) / 2) + 2) / 30);
+    w = best / (1 + (Math.round((lo + hi) / 2) + goalRir(data)) / 30);
     note = `Neuer Wdh.-Bereich – Gewicht aus deiner Bestleistung (${Math.round(best)} kg 1RM) umgerechnet.`;
   } else if (top.every((s) => s.r >= hi)) {
     if (step) { w = topW + step; note = `+${String(step).replace('.', ',')} kg – letztes Mal überall ${hi}+ Wdh.`; }

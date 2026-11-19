@@ -100,6 +100,12 @@ Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:
   (Langhantel +2,5 kg, Kurzhantel/Kabel +1–2 kg). Liegst du unter dem unteren Ende,
   bleibt das Gewicht gleich; passiert das zweimal in Folge, sinkt es um ~5 %.
 - **Geschätztes 1RM** (Epley-Formel) für jede Übung, das zeigt deinen Trend im Fortschritt-Tab.
+- **Richtwerte in kg** für jede Hantelübung:
+  1. Übung schon gemacht → Fortschreibung deiner letzten Gewichte (doppelte Progression, s. o.).
+  2. Neue Übung → Hochrechnung aus deinen bisherigen Leistungen: persönlicher Kraftfaktor (Median der letzten 1RM-Schätzungen im Verhältnis zu Referenzwerten, bevorzugt gleiche Körperregion) × Referenzwert der neuen Übung.
+  3. Noch keine Daten → Referenzwert × Körpergewicht × Niveau (Anfänger 0,6 / fortgeschritten 1,0 / Leistungssportler 1,15) × Geschlecht.
+  Aus dem geschätzten 1RM wird das Arbeitsgewicht für die Mitte des Wdh.-Bereichs plus Wdh. in Reserve berechnet (Epley): Muskel-/Kraft-/Fitness-Ziele 2, Ausdauer-/Marathon-/HYROX-Ziele 3 Wdh. Reserve. Kraftaufbau nutzt 3–6 Wdh. → höhere Gewichte. Deload −10 %.
+- **Eintragen:** Ein Satz zählt, sobald Wdh. (und bei Hantelübungen das Gewicht) eingetragen sind – Abhaken ist optional.
 - **Stagnation:** Bleibt das geschätzte 1RM über 3 Einheiten derselben Übung
   gleich oder sinkt, schlägt die App eine Variante vor.
 - **Block-Periodisierung:** Woche 1–4 Belastung, das Volumen steigt von Woche zu Woche

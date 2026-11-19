@@ -6,7 +6,10 @@ export function demoData(view) {
   const d = load();
   Object.assign(d, { active: null, sessions: [], bodyweight: [], activities: [], slotMemory: {}, coach: null, videos: {} });
   d.settings = { apiKey: 'demo', useClaude: true };
-  d.profile = { ...d.profile, days: 4, duration: 75, setup: true };
+  // Festes Beispielprofil – nie die echten Daten des Geräts zeigen
+  d.profile = { age: 29, weight: 81, sex: 'männlich', level: 'fortgeschritten', days: 4, duration: 75, notes: '', setup: true, goal: 'muscle', goalDate: '' };
+  d.homeGym = ['dumbbell', 'bench', 'pullup', 'band']; d.homeGymNotes = '';
+  d.location = 'gym';
   d.location = 'gym';
   d.equipment = ['barbell', 'dumbbell', 'kettlebell', 'bench', 'cable', 'machine', 'pullup', 'dip', 'band', 'medball', 'box', 'cardio'];
   const start = new Date(); start.setDate(start.getDate() - 42);

@@ -25,6 +25,13 @@ cd "Athletic App" && python3 tools/serve.py
 
 Dann http://localhost:8765 im Browser öffnen.
 
+## Live-Version
+
+**https://g5s94t2r5n-alt.github.io/athletik/** (GitHub Pages, wird bei jedem Push auf `main` neu veröffentlicht)
+
+Updates: Änderungen committen und `git push` – nach 1–2 Minuten ist die neue Version online.
+Die App auf dem iPhone holt sie beim nächsten Öffnen mit Internet automatisch.
+
 ## Aufs iPhone bringen
 
 Das iPhone braucht die App unter einer **HTTPS-Adresse**, damit sie offline funktioniert und sich installieren lässt.

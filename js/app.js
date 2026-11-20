@@ -7,7 +7,7 @@ import {
   feedbackAdjust, sessionRecords, allRecords, PAIN_NAME, autoEffort,
 } from './engine.js';
 import { planSession, weeklyReview, CoachError, MODEL } from './coach.js';
-import { GOALS, GOAL, goalOf, rotationFor, daysToRace, weightStatus, SPORTS, SPORT, SEASONS, SEASON, WEEKDAYS, matchInfo } from './goals.js';
+import { GOALS, GOAL, goalOf, rotationFor, daysToRace, weightStatus, SPORTS, SPORT, SEASONS, SEASON, WEEKDAYS, matchInfo, LEVELS, levelOf } from './goals.js';
 import { lineChart, barChart } from './charts.js';
 
 const params = new URLSearchParams(location.search);
@@ -561,6 +561,11 @@ function setAccent(id) {
   persist();
 }
 
+// Niveau-Auswahl (Dropdown); die Stufe bestimmt die Start-Richtwerte in kg
+function levelSelect(attr, cur) {
+  return `<select class="in wide" ${attr}>${LEVELS.map((l) => `<option value="${l.id}" ${cur === l.id ? 'selected' : ''}>${esc(l.name)} (${esc(l.hint)})</option>`).join('')}</select>`;
+}
+
 // Wochentag-Auswahl für den festen Spieltag (Werte = getDay(), Anzeige Mo–So)
 function matchDaySelect(attr, cur) {
   const opts = [1, 2, 3, 4, 5, 6, 0].map((d) => `<option value="${d}" ${String(cur) === String(d) ? 'selected' : ''}>${WEEKDAYS[d]}</option>`).join('');
@@ -570,7 +575,7 @@ function matchDaySelect(attr, cur) {
 function openSetup() {
   const p = data.profile;
   setupDraft = {
-    age: p.setup ? p.age : '', weight: p.setup ? p.weight : '', sex: p.sex || '', level: p.level || '',
+    age: p.setup ? p.age : '', weight: p.setup ? p.weight : '', sex: p.sex || '', level: levelOf(p).id,
     goal: p.goal || 'muscle', goalDate: p.goalDate || '', goalWeight: p.goalWeight || '',
     sport: p.sport || 'football', season: p.season || 'saison', matchDay: p.matchDay ?? '',
     days: p.days, duration: p.duration, notes: p.notes || '',
@@ -606,7 +611,7 @@ function setupModal() {
     </div>
     <div class="label">Geschlecht</div>
     <div class="chips">${chips('su-sex', ['männlich', 'weiblich', 'divers'], s.sex)}</div>
-    <label class="field"><span>Niveau</span><input class="in wide" data-su="level" value="${esc(s.level)}" placeholder="z. B. Leistungssportler, fortgeschritten"></label>
+    <label class="field"><span>Niveau</span>${levelSelect('data-su="level"', s.level)}</label>
     <div class="label">Trainingstage pro Woche</div>
     <div class="chips">${chips('su-days', [2, 3, 4, 5, 6], s.days)}</div>
     <div class="info-box"><span class="rec-star">★</span> <strong>Der Stern</strong> markiert beim Training die empfohlene Einheit für heute. Es gibt keine feste Reihenfolge: Die App schaut, welche Körperregion erholt ist (mind. 48 h), welche Muskeln diese Woche unter Zielvolumen liegen und welche Variante zuletzt dran war. Läufe und nachgetragene Trainings zählen mit. Du kannst jederzeit eine andere Einheit wählen.</div>
@@ -628,7 +633,7 @@ function saveSetup() {
   const kg = parseFloat(String(s.weight).replace(',', '.'));
   if (!(age >= 14 && age <= 90)) { toast('Bitte ein Alter zwischen 14 und 90 eingeben.'); return; }
   if (!(kg > 35 && kg < 250)) { toast('Bitte ein gültiges Gewicht eingeben.'); return; }
-  Object.assign(data.profile, { age, weight: kg, sex: s.sex, level: s.level.trim(), days: s.days, duration: s.duration, notes: s.notes.trim(), goal: s.goal, sport: s.sport, season: s.season, matchDay: s.matchDay, goalDate: GOAL[s.goal].race ? s.goalDate : '', goalWeight: GOAL[s.goal].weightGoal && parseFloat(String(s.goalWeight).replace(',', '.')) > 0 ? parseFloat(String(s.goalWeight).replace(',', '.')) : '', setup: true });
+  Object.assign(data.profile, { age, weight: kg, sex: s.sex, level: s.level, days: s.days, duration: s.duration, notes: s.notes.trim(), goal: s.goal, sport: s.sport, season: s.season, matchDay: s.matchDay, goalDate: GOAL[s.goal].race ? s.goalDate : '', goalWeight: GOAL[s.goal].weightGoal && parseFloat(String(s.goalWeight).replace(',', '.')) > 0 ? parseFloat(String(s.goalWeight).replace(',', '.')) : '', setup: true });
   data.bodyweight = data.bodyweight.filter((x) => x.date !== todayISO());
   data.bodyweight.push({ date: todayISO(), kg });
   data.homeGym = s.homeGym.length ? [...s.homeGym] : null;
@@ -970,7 +975,7 @@ function renderSettings() {
     </div>
     ${goalOf(data).season !== 'pause' ? `<label class="field"><span>Fester Spieltag (optional)</span>${matchDaySelect('data-prof="matchDay"', p.matchDay)}</label>` : ''}` : ''}
     <label class="field"><span>Geschlecht</span><select class="in" data-prof="sex">${['', 'männlich', 'weiblich', 'divers'].map((s) => `<option value="${s}" ${p.sex === s ? 'selected' : ''}>${s || '– bitte wählen –'}</option>`).join('')}</select></label>
-    <label class="field"><span>Niveau</span><input class="in wide" data-prof="level" placeholder="z. B. Leistungssportler, fortgeschritten" value="${esc(p.level)}"></label>
+    <label class="field"><span>Niveau</span>${levelSelect('data-prof="level"', levelOf(p).id)}</label>
     <label class="field"><span>Verletzungen / Hinweise für Claude</span><textarea class="in wide" data-prof="notes" rows="2" placeholder="z. B. Knie links empfindlich bei tiefen Sprüngen">${esc(p.notes)}</textarea></label>
     <button class="btn small" data-action="setup">Einrichtungs-Assistent öffnen</button>
     <p class="muted small">Wochenplan bei ${p.days} Tagen (${esc(goalOf(data).name)}): ${rotationFor(data).map((k) => TEMPLATES[k].name.split(' – ')[0]).join(', ')}. Die Reihenfolge empfiehlt der Stern ★ jeden Tag neu.</p>

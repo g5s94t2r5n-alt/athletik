@@ -1,7 +1,7 @@
 // Plan-Generator & Progression nach REGELWERK.md – funktioniert komplett offline.
 import { EXERCISES, EX, MUSCLES, ACT, INTENSITY, available } from './exercises.js';
 import { todayISO, daysBetween, uid } from './store.js';
-import { goalOf, rotationFor, daysToRace, matchInfo } from './goals.js';
+import { goalOf, rotationFor, daysToRace, matchInfo, levelOf } from './goals.js';
 
 // ---------- Vorlagen (Split) ----------
 export const TEMPLATES = {
@@ -421,8 +421,7 @@ function bestE1rms(data) {
 }
 
 function profileFactor(data, region) {
-  const lvl = String(data.profile.level || '').toLowerCase();
-  const level = /anf|einsteig|neu/.test(lvl) ? 0.6 : /leistung|profi|wettkampf|elite/.test(lvl) ? 1.15 : 1;
+  const level = levelOf(data.profile).factor;
   const sex = data.profile.sex === 'weiblich' ? (region === 'lower' ? 0.7 : 0.55) : 1;
   return level * sex;
 }

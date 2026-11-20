@@ -3,7 +3,7 @@
 import { EXERCISES, EX, MUSCLES, LOCATIONS, available } from './exercises.js';
 import { TEMPLATES, blockInfo, aiContext, estimateMinutes, activityAdjust, activitySummary, autoRunType, feedbackAdjust } from './engine.js';
 import { todayISO } from './store.js';
-import { goalOf, daysToRace, matchInfo } from './goals.js';
+import { goalOf, daysToRace, matchInfo, levelOf } from './goals.js';
 
 const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.4.0/+esm';
 export const MODEL = 'claude-opus-5-5';
@@ -135,7 +135,7 @@ export async function planSession(data, { templateId, equip, wish, ruleSession, 
   const ruleSummary = ruleSession.blocks.map((b) => `${b.type}: ${b.items.map((i) => `${i.exId}${i.sets.length ? ` ${i.sets.length}×${i.lo}-${i.hi}` : ''}`).join(', ')}`).join('\n');
   const user = [
     `Datum: ${todayISO()}`,
-    `Athlet: ${p.sex || "Geschlecht k. A."}, ${p.age} Jahre, ${p.weight} kg, ${p.level}. ${p.notes ? 'Hinweise: ' + p.notes : ''}`,
+    `Athlet: ${p.sex || "Geschlecht k. A."}, ${p.age} Jahre, ${p.weight} kg, Niveau: ${levelOf(p).name} (${levelOf(p).hint}). ${p.notes ? 'Hinweise: ' + p.notes : ''}`,
     `Trainingstage pro Woche: ${p.days}. Geplante Dauer heute: ${p.duration} min.`,
     (() => { const g = goalOf(data); const dtr = daysToRace(data); return `Trainingsziel: ${g.name}. ${g.prompt}${dtr !== null ? ` Wettkampf in ${dtr} Tagen (${data.profile.goalDate})${dtr <= 14 ? ' – Tapering-Phase.' : '.'}` : ''}`; })(),
     `Heutiger Einheitstyp: ${tpl.name} (Fokus: ${tpl.focus}).`,
@@ -193,7 +193,7 @@ export async function weeklyReview(data) {
   const block = blockInfo(data);
   const user = [
     `Datum: ${todayISO()}`,
-    `Athlet: ${p.sex || "Geschlecht k. A."}, ${p.age} Jahre, ${p.weight} kg, ${p.level}. ${p.notes ? 'Hinweise: ' + p.notes : ''}`,
+    `Athlet: ${p.sex || "Geschlecht k. A."}, ${p.age} Jahre, ${p.weight} kg, Niveau: ${levelOf(p).name} (${levelOf(p).hint}). ${p.notes ? 'Hinweise: ' + p.notes : ''}`,
     (() => { const g = goalOf(data); const dtr = daysToRace(data); return `Trainingsziel: ${g.name}. ${g.prompt}${dtr !== null ? ` Wettkampf in ${dtr} Tagen.` : ''}`; })(),
     `Trainingstage pro Woche (geplant): ${p.days}. Block-Woche ${block.week} von 5${block.deload ? ' (Deload)' : ''}.`,
     `Einheiten in den letzten 7 Tagen: ${data.sessions.filter((s) => (new Date(todayISO()) - new Date(s.date)) / 86400000 < 7).length} Plan-Einheiten, dazu nachgetragen: ${(() => { const a = activitySummary(data, 7); return `${a.count} ${a.count === 1 ? 'Training' : 'Trainings'}, ${a.minutes} min, sRPE-Last ${a.load}`; })()}.`,

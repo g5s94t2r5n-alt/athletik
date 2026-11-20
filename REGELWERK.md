@@ -136,7 +136,7 @@ Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:
 - **Richtwerte in kg** für jede Hantelübung:
   1. Übung schon gemacht → Fortschreibung deiner letzten Gewichte (doppelte Progression, s. o.).
   2. Neue Übung → Hochrechnung aus deinen bisherigen Leistungen: persönlicher Kraftfaktor (Median der letzten 1RM-Schätzungen im Verhältnis zu Referenzwerten, bevorzugt gleiche Körperregion) × Referenzwert der neuen Übung.
-  3. Noch keine Daten → Referenzwert × Körpergewicht × Niveau (Anfänger 0,6 / fortgeschritten 1,0 / Leistungssportler 1,15) × Geschlecht.
+  3. Noch keine Daten → Referenzwert × Körpergewicht × Niveau (Einsteiger 0,6 / leicht fortgeschritten 0,8 / fortgeschritten 1,0 / sehr erfahren 1,1 / Leistungssportler 1,15 / Profi/Elite 1,25) × Geschlecht.
   Aus dem geschätzten 1RM wird das Arbeitsgewicht für die Mitte des Wdh.-Bereichs plus Wdh. in Reserve berechnet (Epley): Muskel-/Kraft-/Fitness-Ziele 2, Ausdauer-/Marathon-/HYROX-Ziele 3 Wdh. Reserve. Kraftaufbau nutzt 3–6 Wdh. → höhere Gewichte. Deload −10 %.
 - **Eintragen:** Ein Satz zählt, sobald Wdh. (und bei Hantelübungen das Gewicht) eingetragen sind – Abhaken ist optional.
 - **Stagnation:** Bleibt das geschätzte 1RM über 3 Einheiten derselben Übung

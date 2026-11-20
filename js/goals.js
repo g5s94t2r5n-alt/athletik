@@ -241,6 +241,30 @@ export function weightStatus(data, series) {
 
 export const GOAL = Object.fromEntries(GOALS.map((g) => [g.id, g]));
 
+// Trainingsniveau: steuert die Start-Richtwerte (Faktor auf die Referenz-1RM eines fortgeschrittenen
+// Trainierenden) und wird Claude mitgeteilt
+export const LEVELS = [
+  { id: 'einsteiger', name: 'Einsteiger', hint: 'unter 6 Monaten Training', factor: 0.6 },
+  { id: 'leicht', name: 'Leicht fortgeschritten', hint: 'bis 2 Jahre', factor: 0.8 },
+  { id: 'fortgeschritten', name: 'Fortgeschritten', hint: '2–5 Jahre', factor: 1 },
+  { id: 'erfahren', name: 'Sehr erfahren', hint: 'über 5 Jahre', factor: 1.1 },
+  { id: 'leistungssport', name: 'Leistungssportler', hint: 'Wettkampfsport', factor: 1.15 },
+  { id: 'elite', name: 'Profi / Elite', hint: 'Kaderniveau', factor: 1.25 },
+];
+export const LEVEL = Object.fromEntries(LEVELS.map((l) => [l.id, l]));
+
+// Niveau aus dem Profil – frühere Freitext-Angaben werden der passenden Stufe zugeordnet
+export function levelOf(profile) {
+  const v = String((profile && profile.level) || '').trim().toLowerCase();
+  if (LEVEL[v]) return LEVEL[v];
+  if (/elite|profi|kader|national/.test(v)) return LEVEL.elite;
+  if (/leistung|wettkampf|athlet/.test(v)) return LEVEL.leistungssport;
+  if (/erfahren/.test(v)) return LEVEL.erfahren;
+  if (/leicht|mittel/.test(v)) return LEVEL.leicht;
+  if (/anf|einsteig|neu|beginn/.test(v)) return LEVEL.einsteiger;
+  return LEVEL.fortgeschritten;
+}
+
 export function goalOf(data) {
   const g = GOAL[data.profile.goal] || GOAL.muscle;
   return g.id === 'sport' ? sportGoal(g, data.profile) : g;

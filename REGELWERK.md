@@ -73,9 +73,40 @@ Das Ziel legt fest, welche Einheiten in einer Woche vorkommen (bei z. B. 4 Tagen
 | Marathon-Vorbereitung | 3 × Lauf, 1 × Ganzkörper | Wöchentlicher langer Lauf (auch im Deload, dann kürzer), Tempo/Intervalle, Kraft kurz (~60 % Volumen); Tapering in den letzten 14 Tagen (−30 % Volumen, kein langer Lauf ab 10 Tagen, nur locker ab 3 Tagen) |
 | HYROX | 2 × Ganzkörper, 1 × Lauf, 1 × HYROX | HYROX-Einheit: 1-km-Läufe im Wechsel mit Stationen (Compromised Running), alle 8 Stationen rotieren, Kraft ~70 % Volumen, Tapering vor dem Wettkampf |
 | Allgemeine Fitness | 3 × Ganzkörper, 1 × Lauf | Moderates Volumen (~90 %, Ziel ≥ 6 Sätze/Muskel), Läufe abwechselnd locker und fordernd |
+| Sportartspezifisch | je nach Saisonphase (s. u.) | Sportart (Fußball, Handball, Basketball, Volleyball, Tennis/Padel), Saisonphase und optional fester Spieltag |
 | Abnehmen | 3 × Ganzkörper, 1 × Lauf | Krafttraining bleibt (Muskelerhalt im Kaloriendefizit, ~85 % Volumen), Läufe überwiegend locker + Intervalle, Finisher; optionales Zielgewicht, angestrebtes Tempo 0,5–1 % Körpergewicht pro Woche (Anzeige im Fortschritt), Hinweise zu Alltagsbewegung und Protein (1,6–2,2 g/kg) über Claude |
 
 Hinweise: Bei 5–6 Tagen ergänzen Athletik- bzw. Regenerationstage den Plan, damit die 48-h-Regel einhaltbar bleibt. Mit nur 2 Tagen sind ca. 6–9 Sätze pro Muskel und Woche realistisch (wirksam, aber unter dem Optimum).
+
+### Sportartspezifisch
+
+Teamtrainings und Spiele werden nachgetragen („Teamtraining“, „Spiel / Match“) und zählen zur Belastung (Beine, Ausdauer). Die App plant die Athletik drumherum:
+
+| Saisonphase | Woche (4 Tage) | Besonderheiten |
+|---|---|---|
+| Vorbereitung | Unterkörper Sport, Oberkörper Sport, Speed & Spielausdauer, Oberkörper Sport | Grundübungen schwer (3–6 Wdh., 2 Wdh. Reserve), ~80 % Volumen, Sprünge/Sprints/Richtungswechsel mit vollen Pausen, wiederholte Sprints als Spielausdauer |
+| Saison | Unterkörper Sport, Oberkörper Sport, Speed & Spielausdauer, Regeneration | Erhalt: 2–3 Sätze pro Übung (~60 % Volumen), schwer, 3 Wdh. Reserve, kein Muskelversagen, kein Finisher (Teamtraining deckt Ausdauer ab). Bei 2 Tagen genügen Unter- und Oberkörper – schon 1 Krafteinheit pro Woche erhält Kraft und Sprint in der Saison (Rønnestad 2011) |
+| Saisonpause | wie Muskelaufbau (Unterkörper A/B, Oberkörper A/B), ab 5 Tagen + Speed | Hypertrophie, volles Volumen, Finisher; Prävention läuft weiter |
+
+**Spieltag** (fester Wochentag und/oder nachgetragenes Spiel, nicht in der Saisonpause):
+- Spieltag (MD) und Tag danach (MD+1): Regeneration – am Spieltag nur Mobilität, danach locker + Mobilität.
+- Tag vor dem Spiel (MD-1): **Aktivierung** (~30 min): 2–3 Sätze à 2–3 explosive Sprünge/Antritte, volle Pausen, kein Ausdauerteil, kein Muskelkater.
+- Zwei Tage vorher (MD-2): keine Einheit, die die Beine ermüdet – Oberkörper oder locker.
+- Schwere Beine also an MD-3 oder früher – Kraft- und Schnelligkeitsreize so legen, dass sie bis zum Spiel verarbeitet sind.
+
+**Aufbau der Sport-Einheiten:** Sprints, Sprünge und Richtungswechsel zuerst (ausgeruht, Qualität vor Menge), dann Grundübungen, einbeinige Übungen und Prävention. Bei „Speed & Spielausdauer“ kommen die wiederholten Sprints (z. B. 2–3 × 6 × 20–30 m, 20 s Pause) direkt nach den Drills und **vor** Nordic Curls – nie mit ermüdeten Beinbeugern sprinten.
+
+**Je Sportart** (Reihenfolge der Übungsauswahl und Gewichtung):
+
+| Sportart | Schwerpunkte | Prävention |
+|---|---|---|
+| Fußball | Antritt, wiederholte Sprints, Richtungswechsel (5-0-5), Weit-/Seitsprünge, Rotationswurf | Nordic Hamstring Curls in allen Einheiten (halbiert die Rate an Beinbeugerverletzungen, van Dyk 2019; van der Horst 2015), Copenhagen Plank (−41 % Leistenprobleme, Harøy 2019), Landetechnik und Gleichgewicht (FIFA 11+, Soligard 2008) |
+| Handball | Überkopf- und Rotationswürfe, Strecksprung, seitliche Schnelligkeit | Schulter-Außenrotation (3 Sätze, hohe Priorität; −28 % Schulterprobleme, Andersson 2017), Landetechnik, Nordic Curls |
+| Basketball | Sprung mit Anlauf, Niedersprung (reaktiv), seitliche Schritte + Antritt | Landetechnik/Kniekontrolle (Kreuzband, Hewett 1999), Gleichgewicht/Sprunggelenk (McGuine & Keene 2006), Waden |
+| Volleyball | Anlauf- und Strecksprung, Überkopfwurf, Slams | Schulter-Außenrotation, Landetechnik, Sprunggelenk |
+| Tennis / Padel | Rotationswürfe, Seitsprünge, Pogo-Sprünge, Anti-Rotation | Schulter-Außenrotation |
+
+Plyometrie verbessert bei Teamsportlern Sprung, Sprint und Richtungswechsel (Slimani 2016); höhere Maximalkraft geht mit besserem Sprint und Sprung einher (Seitz 2014, Suchomel 2016). 4×4-Intervalle verbessern bei Fußballern VO₂max und Laufleistung im Spiel (Helgerud 2001).
 
 Kraft vor Ausdauer-Zielen: Krafttraining verbessert die Laufökonomie (Balsalobre-Fernández et al. 2016) und wird deshalb auch bei Lauf-Zielen beibehalten.
 
@@ -89,8 +120,9 @@ Keine feste Reihenfolge – die App empfiehlt jedes Mal neu:
 4. **Schlüsseleinheit:** Bei Gleichstand gewinnt die Kerneinheit des Ziels (HYROX-Einheit bzw. Lauf beim Marathon).
 5. **Alles noch müde?** Dann empfiehlt die App eine lockere Laufeinheit (aktive Erholung) bzw. den Regenerationstag.
 6. **Wettkampfwoche:** In den letzten 3 Tagen vor dem Wettkampf nur noch kurz locker laufen oder Pause.
+7. **Spieltag (Sportart-Ziel):** Spieltag und Tag danach Regeneration, Tag vorher Aktivierung, zwei Tage vorher keine schweren Beine (s. 3a). Die Spieltag-Regel hat Vorrang vor dem Wochenplan.
 
-Geprüft mit `tools/simulate.js`: 6 Ziele × 2–6 Trainingstage × 3 Startbedingungen über je 8 Wochen (inkl. Deload und Tapering) – alle Prüfungen bestanden.
+Geprüft mit `tools/simulate.js`: alle Ziele inkl. Sportart (3 Saisonphasen, mit und ohne Spieltag) × 2–6 Trainingstage × 3 Startbedingungen über je 8 Wochen (inkl. Deload und Tapering) – alle Prüfungen bestanden.
 
 ## 4. Anpassung (die „lernende“ Komponente)
 
@@ -125,20 +157,31 @@ Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:
 ## Quellen
 
 - Afonso J. et al. (2021). Strength Training versus Stretching for Improving Range of Motion: A Systematic Review and Meta-Analysis. *Healthcare*.
-- Behm D.G. et al. (2016). Acute effects of muscle stretching on physical performance, range of motion, and injury incidence. *Appl Physiol Nutr Metab*.
+- Andersson S.H. et al. (2017). Preventing overuse shoulder injuries among throwing athletes: a cluster-randomised controlled trial in 660 elite handball players. *Br J Sports Med*.
 - Balsalobre-Fernández C., Santos-Concejero J., Grivas G.V. (2016). Effects of Strength Training on Running Economy in Highly Trained Runners: A Systematic Review With Meta-Analysis of Controlled Trials. *J Strength Cond Res*.
+- Behm D.G. et al. (2016). Acute effects of muscle stretching on physical performance, range of motion, and injury incidence. *Appl Physiol Nutr Metab*.
 - Bell L. et al. (2023). Integrating Deloading into Strength and Physique Sports Training Programmes: An International Delphi Consensus Approach. *Sports Medicine – Open*.
+- van Dyk N., Behan F.P., Whiteley R. (2019). Including the Nordic hamstring exercise in injury prevention programmes halves the rate of hamstring injuries: a systematic review and meta-analysis of 8459 athletes. *Br J Sports Med*.
 - Foster C. et al. (2001). A New Approach to Monitoring Exercise Training. *J Strength Cond Res*.
+- Harøy J. et al. (2019). The Adductor Strengthening Programme prevents groin problems among male football players: a cluster-randomised controlled trial. *Br J Sports Med*.
+- Helgerud J. et al. (2001). Aerobic endurance training improves soccer performance. *Med Sci Sports Exerc*.
 - Helgerud J. et al. (2007). Aerobic High-Intensity Intervals Improve VO₂max More Than Moderate Training. *Med Sci Sports Exerc*.
+- Hewett T.E. et al. (1999). The effect of neuromuscular training on the incidence of knee injury in female athletes. *Am J Sports Med*.
+- van der Horst N. et al. (2015). The Preventive Effect of the Nordic Hamstring Exercise on Hamstring Injuries in Amateur Soccer Players: A Randomized Controlled Trial. *Am J Sports Med*.
 - Maeo S. et al. (2021). Greater Hamstrings Muscle Hypertrophy but Similar Damage Protection after Training at Long versus Short Muscle Lengths. *Med Sci Sports Exerc*.
+- McGuine T.A., Keene J.S. (2006). The effect of a balance training program on the risk of ankle sprains in high school athletes. *Am J Sports Med*.
 - Milanović Z., Sporiš G., Weston M. (2015). Effectiveness of High-Intensity Interval Training and Continuous Endurance Training for VO₂max Improvements. *Sports Medicine*.
 - Pelland J. et al. (2024). The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gain. *SportRxiv (Preprint)*.
 - Refalo M.C. et al. (2023). Influence of Resistance Training Proximity-to-Failure on Skeletal Muscle Hypertrophy. *Sports Medicine*.
+- Rønnestad B.R. et al. (2011). In-season strength maintenance training increases well-trained soccer players' performance. *J Strength Cond Res*.
 - Sáez de Villarreal E. et al. (2009). Determining variables of plyometric training for improving vertical jump height performance: a meta-analysis. *J Strength Cond Res*.
-- Schoenfeld B.J., Ogborn D., Krieger J.W. (2016). Effects of Resistance Training Frequency on Measures of Muscle Hypertrophy. *Sports Medicine*.
 - Schoenfeld B.J. et al. (2016). Longer interset rest periods enhance muscle strength and hypertrophy in resistance-trained men. *J Strength Cond Res*.
-- Schoenfeld B.J., Ogborn D., Krieger J.W. (2017). Dose-response relationship between weekly resistance training volume and increases in muscle mass. *J Sports Sci*.
 - Schoenfeld B.J. et al. (2021). Loading Recommendations for Muscle Strength, Hypertrophy, and Local Endurance: A Re-Examination of the Repetition Continuum. *Sports*.
+- Schoenfeld B.J., Ogborn D., Krieger J.W. (2016). Effects of Resistance Training Frequency on Measures of Muscle Hypertrophy. *Sports Medicine*.
+- Schoenfeld B.J., Ogborn D., Krieger J.W. (2017). Dose-response relationship between weekly resistance training volume and increases in muscle mass. *J Sports Sci*.
 - Schumann M. et al. (2022). Compatibility of Concurrent Aerobic and Strength Training for Skeletal Muscle Size and Function: An Updated Systematic Review and Meta-Analysis. *Sports Medicine*.
+- Seitz L.B. et al. (2014). Increases in lower-body strength transfer positively to sprint performance: a systematic review with meta-analysis. *Sports Medicine*.
 - Slimani M. et al. (2016). Effects of Plyometric Training on Physical Fitness in Team Sport Athletes: A Systematic Review. *J Hum Kinet*.
+- Soligard T. et al. (2008). Comprehensive warm-up programme to prevent injuries in young female footballers: cluster randomised controlled trial. *BMJ*.
 - Stöggl T., Sperlich B. (2014). Polarized training has greater impact on key endurance variables than threshold, high intensity, or high volume training. *Front Physiol*.
+- Suchomel T.J., Nimphius S., Stone M.H. (2016). The Importance of Muscular Strength in Athletic Performance. *Sports Medicine*.

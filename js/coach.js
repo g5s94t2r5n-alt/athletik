@@ -3,7 +3,7 @@
 import { EXERCISES, EX, MUSCLES, LOCATIONS, available } from './exercises.js';
 import { TEMPLATES, blockInfo, aiContext, estimateMinutes, activityAdjust, activitySummary, autoRunType, feedbackAdjust } from './engine.js';
 import { todayISO } from './store.js';
-import { goalOf, daysToRace } from './goals.js';
+import { goalOf, daysToRace, matchInfo } from './goals.js';
 
 const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.4.0/+esm';
 export const MODEL = 'claude-opus-5-5';
@@ -11,7 +11,7 @@ export const MODEL = 'claude-opus-5-5';
 export class CoachError extends Error {}
 
 const SYSTEM = `Du bist ein evidenzbasierter Kraft-, Ausdauer- und Athletiktrainer. Du planst Trainingseinheiten für genau einen Athleten.
-Das Trainingsziel steht in der Nachricht (z. B. Muskelaufbau & Athletik, Kraftaufbau, Ausdauer, Marathon, HYROX, allgemeine Fitness). Es bestimmt Schwerpunkte, Wdh.-Bereiche und Umfang und hat bei Widersprüchen Vorrang vor den allgemeinen Regeln unten.
+Das Trainingsziel steht in der Nachricht (z. B. Muskelaufbau & Athletik, Kraftaufbau, Ausdauer, Marathon, HYROX, Sportart wie Fußball oder Handball, allgemeine Fitness). Es bestimmt Schwerpunkte, Wdh.-Bereiche und Umfang und hat bei Widersprüchen Vorrang vor den allgemeinen Regeln unten.
 
 Regeln (aus der Sportwissenschaft, nicht verhandelbar):
 - Volumen: 10–20 harte Sätze pro Muskelgruppe und Woche, jede Muskelgruppe ca. 2×/Woche.
@@ -25,6 +25,7 @@ Regeln (aus der Sportwissenschaft, nicht verhandelbar):
 - Nachgetragene Trainings (HIIT, Joggen, CrossFit, Padel, Yoga usw.) zählen mit: Hartes Ausdauer- oder Beintraining in den letzten 48 h → keinen Ausdauer-Finisher, weniger Sprungvolumen, beinlastige Grundübungen ggf. 1 Satz weniger. Wurde diese Woche schon ≥ 2× Ausdauer gemacht, ist kein Finisher nötig. Yoga/Mobility ersetzt keinen Kraftreiz, kann aber das Cool-down verkürzen.
 - Laufeinheit (Einheitstyp „Laufeinheit“): Blöcke warmup (laufspezifisch, inkl. Lauf-ABC) → run (genau eine Übung der Kategorie run, mit konkretem Ablauf und Zielintensität in "prescription") → cooldown. KEINE Kraftübungen in der Laufeinheit (Wunsch des Athleten) – Kraft für Läufer gehört in die Ganzkörper-Einheiten. Polarisiert planen: ca. 80 % der Läufe locker, höchstens 1–2 harte Läufe pro Woche, nie hart, wenn in den letzten 48 h hart trainiert wurde. Für run-Items: sets = 0, repsLow = 0, repsHigh = 0.
 - HYROX-Einheit (Einheitstyp „HYROX“): warmup → run (hx_runs, in "prescription" z. B. „4 × 1 km zügig, jeweils vor einer Station“) → conditioning (3–5 Stationen hx_*, in "prescription" Distanz bzw. Wdh. fürs Training) → cooldown. Läufe und Stationen im Wechsel, Wettkampftempo üben.
+- Sportart-Ziel (Einheiten „Unterkörper Sport“, „Oberkörper Sport“, „Speed & Spielausdauer“, „Aktivierung“): Sprints, Sprünge und Richtungswechsel (cod, sprint_short, power_*) zuerst, ausgeruht und mit vollen Pausen (Qualität vor Menge); danach Kraft (Grundübungen schwer, wenige Sätze) und Prävention (prev_lower: Landetechnik/Gleichgewicht, prev_shoulder: Außenrotation, Nordic Curls, Copenhagen) passend zur Sportart. Bei „Speed & Spielausdauer“ kommt der conditioning-Block (wiederholte Sprints) direkt nach den Sprint-Drills und VOR Nordic Curls/Kraft. „Aktivierung“ (Tag vor dem Spiel): höchstens ca. 30 min, 2–3 Sätze à 2–3 explosive Wdh., kein conditioning, nichts bis zur Ermüdung. Zwei Tage vor dem Spiel keine schweren Beinübungen. In der Saison 2–3 Sätze pro Übung, 3 Wdh. Reserve. Teamtrainings und Spiele (nachgetragen) gehören zur Gesamtlast.
 - Rückmeldungen nach dem Training (Daten: rueckmeldungen_letzte_einheiten; die Anstrengung schätzt die App aus den Wiederholungen) ernst nehmen: „too_hard“ → weniger Volumen, kein Finisher, bei Wiederholung Deload-Charakter; „easy“ → etwas mehr Volumen bei den Hauptübungen; „nicht gefallen“ → andere Übungsvarianten; Beschwerden → die Region schonen. Nicht gemochte oder schmerzauslösende Übungen sind bereits aus dem Katalog entfernt.
 - Berücksichtige Wünsche und Beschwerden des Athleten für heute (z. B. Schmerzen → schonende Alternative, keine Belastung der Stelle).
 - Halte die geplante Dauer ein (warmup ≈ 7 min, pro Kraftsatz inkl. Pause ≈ 2,5–3,5 min, Finisher ≈ 10–15 min).
@@ -36,7 +37,7 @@ Ausgabe:
 - "note" pro Übung: höchstens ein kurzer Satz, nur wenn er hilft (sonst leer). "note" der Einheit: 1–2 Sätze zum Fokus heute.
 - Alles auf Deutsch.`;
 
-const REVIEW_SYSTEM = `Du bist ein evidenzbasierter Kraft-, Ausdauer- und Athletiktrainer und machst den wöchentlichen Check für einen Athleten. Sein Trainingsziel steht in der Nachricht und ist der Maßstab für deine Bewertung (bei Ausdauer-, Marathon- oder HYROX-Zielen zählen Laufumfang, langer Lauf, Intensitätsverteilung und Wettkampfnähe stärker als das Satzvolumen).
+const REVIEW_SYSTEM = `Du bist ein evidenzbasierter Kraft-, Ausdauer- und Athletiktrainer und machst den wöchentlichen Check für einen Athleten. Sein Trainingsziel steht in der Nachricht und ist der Maßstab für deine Bewertung (bei Ausdauer-, Marathon- oder HYROX-Zielen zählen Laufumfang, langer Lauf, Intensitätsverteilung und Wettkampfnähe stärker als das Satzvolumen; beim Sportart-Ziel zählen Saisonphase, Teamtraining/Spiele als Last, Erhalt von Kraft und Schnelligkeit und regelmäßige Prävention – in der Saison ist niedriges Satzvolumen gewollt).
 Beurteile anhand der Daten: Wochenvolumen pro Muskel (Ziel 10–20 Sätze), Leistungstrends (geschätztes 1RM), Stagnation, Körpergewicht (für Muskelaufbau ideal ca. +0,25–0,5 % pro Monat im Aufbau) und Trainingsfrequenz.
 Nachgetragene Trainings (HIIT, Joggen, CrossFit, Padel, Yoga …) mit Session-RPE-Last (Minuten × Anstrengung) gehören zur Gesamtbelastung: Sie decken Ausdauer/Athletik ab, können aber Erholung und Kraftleistung kosten. Bewerte, ob Ausdauer (Ziel ca. 2 Reize/Woche) und Mobilität ausreichend abgedeckt sind und ob die Gesamtlast plötzlich stark gestiegen ist.
 Gib konkrete Anpassungen:
@@ -138,6 +139,7 @@ export async function planSession(data, { templateId, equip, wish, ruleSession, 
     `Trainingstage pro Woche: ${p.days}. Geplante Dauer heute: ${p.duration} min.`,
     (() => { const g = goalOf(data); const dtr = daysToRace(data); return `Trainingsziel: ${g.name}. ${g.prompt}${dtr !== null ? ` Wettkampf in ${dtr} Tagen (${data.profile.goalDate})${dtr <= 14 ? ' – Tapering-Phase.' : '.'}` : ''}`; })(),
     `Heutiger Einheitstyp: ${tpl.name} (Fokus: ${tpl.focus}).`,
+    (() => { const mi = matchInfo(data); if (!mi) return ''; const parts = []; if (mi.toMatch != null) parts.push(mi.toMatch === 0 ? 'heute ist Spieltag' : `nächstes Spiel in ${mi.toMatch} Tagen (MD-${mi.toMatch})`); if (mi.sinceMatch != null && mi.sinceMatch < 7 && mi.toMatch !== 0) parts.push(`letztes Spiel vor ${mi.sinceMatch} Tagen (MD+${mi.sinceMatch})`); return `Spieltag: ${parts.join(', ')}.`; })(),
     templateId === 'RUN' ? (() => {
       const auto = autoRunType(data);
       return runType && runType !== 'auto' && EX[runType]

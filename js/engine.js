@@ -1,7 +1,7 @@
 // Plan-Generator & Progression nach REGELWERK.md – funktioniert komplett offline.
 import { EXERCISES, EX, MUSCLES, ACT, INTENSITY, available } from './exercises.js';
 import { todayISO, daysBetween, uid } from './store.js';
-import { goalOf, rotationFor, daysToRace } from './goals.js';
+import { goalOf, rotationFor, daysToRace, matchInfo } from './goals.js';
 
 // ---------- Vorlagen (Split) ----------
 export const TEMPLATES = {
@@ -111,6 +111,53 @@ export const TEMPLATES = {
   },
   RUN: { name: 'Laufeinheit', focus: 'run', cond: null, slots: [], run: true },
   HYX: { name: 'HYROX – Lauf & Stationen', focus: 'full', cond: null, slots: [], hyrox: true },
+  // Sportartspezifisch (Präferenzen je Sportart kommen aus goals.js → SPORTS)
+  SP_L: {
+    name: 'Unterkörper Sport – Sprung, Speed & Kraft', focus: 'lower', cond: null, sport: true,
+    slots: [
+      { slot: 'power_lower', sets: 3, prio: 1, prefer: ['cmj', 'box_jump', 'broad_jump', 'lateral_bound', 'depth_jump'] },
+      { slot: 'cod', sets: 3, prio: 1, prefer: ['cod_505', 'lateral_shuffle'] },
+      { slot: 'squat', sets: 3, main: true, prio: 1, prefer: ['back_squat', 'front_squat', 'hack_squat', 'leg_press', 'goblet_squat', 'kb_goblet_squat', 'tempo_squat_bw'] },
+      { slot: 'hinge', sets: 3, prio: 1, prefer: ['rdl', 'hip_thrust', 'db_rdl', 'kb_rdl', 'sl_rdl_bw', 'glute_bridge_sl'] },
+      { slot: 'lunge', sets: 2, prio: 2, prefer: ['bss_db', 'reverse_lunge_bb', 'step_up', 'walking_lunge', 'bss_bw'] },
+      { slot: 'knee_flexion', sets: 2, prio: 1, prefer: ['nordic_curl', 'lying_leg_curl', 'seated_leg_curl', 'slider_curl', 'cable_leg_curl'] },
+      { slot: 'prev_lower', sets: 2, prio: 2, prefer: ['sl_landing', 'sl_balance'] },
+      { slot: 'core', sets: 2, prio: 2, prefer: ['pallof', 'copenhagen', 'band_pallof', 'dead_bug'] },
+      { slot: 'calf', sets: 2, prio: 3, prefer: ['standing_calf', 'db_calf', 'bw_calf'] },
+    ],
+  },
+  SP_U: {
+    name: 'Oberkörper Sport – Wurf, Zug & Rumpf', focus: 'upper', cond: null, sport: true,
+    slots: [
+      { slot: 'power_upper', sets: 3, prio: 1, prefer: ['mb_rot_throw', 'mb_chest_pass', 'mb_overhead_throw', 'plyo_pushup', 'band_punch'] },
+      { slot: 'hpush', sets: 3, main: true, prio: 1, prefer: ['bench_press', 'db_bench', 'incline_db', 'dips', 'pushup', 'band_pushup'] },
+      { slot: 'vpull', sets: 3, prio: 1, prefer: ['pullup', 'chinup', 'lat_pulldown', 'band_pulldown', 'towel_row_door'] },
+      { slot: 'hpull', sets: 3, prio: 1, prefer: ['cs_db_row', 'one_arm_row', 'cable_row', 'bb_row', 'inverted_row', 'band_row', 'table_row'] },
+      { slot: 'vpush', sets: 2, prio: 2, prefer: ['db_shoulder_press_st', 'kb_press', 'db_shoulder_press', 'ohp', 'pike_pushup'] },
+      { slot: 'prev_shoulder', sets: 2, prio: 2, prefer: ['ext_rotation_cable', 'ext_rotation_band', 'ext_rotation_db'] },
+      { slot: 'core', sets: 3, prio: 2, prefer: ['pallof', 'band_pallof', 'hanging_leg_raise', 'dead_bug', 'farmer_walk'] },
+      { slot: 'rear_delt', sets: 2, prio: 3, prefer: ['face_pull', 'band_face_pull', 'reverse_fly', 'ytw_bw'] },
+    ],
+  },
+  SP_C: {
+    name: 'Speed & Spielausdauer – Sprints, Richtungswechsel', focus: 'lower', cond: 'rsa', condMain: true, sport: true,
+    slots: [
+      { slot: 'sprint_short', sets: 4, prio: 1, prefer: ['acceleration_10m', 'wall_drill'] },
+      { slot: 'cod', sets: 3, prio: 1, prefer: ['cod_505', 'lateral_shuffle'] },
+      { slot: 'power_lower', sets: 3, prio: 2, prefer: ['lateral_bound', 'broad_jump', 'ankle_hops', 'cmj'] },
+      { slot: 'knee_flexion', sets: 2, prio: 2, prefer: ['nordic_curl', 'slider_curl', 'lying_leg_curl', 'seated_leg_curl'] },
+      { slot: 'core', sets: 2, prio: 3, prefer: ['copenhagen', 'band_pallof', 'pallof', 'dead_bug'] },
+    ],
+  },
+  PRIME: {
+    name: 'Aktivierung – kurz vor dem Spiel', focus: 'lower', cond: null, light: true, sport: true,
+    slots: [
+      { slot: 'power_lower', sets: 2, prio: 1, prefer: ['cmj', 'box_jump', 'approach_jump'] },
+      { slot: 'sprint_short', sets: 3, prio: 1, prefer: ['acceleration_10m', 'wall_drill'] },
+      { slot: 'power_upper', sets: 2, prio: 2, prefer: ['mb_chest_pass', 'mb_rot_throw', 'plyo_pushup', 'band_punch'] },
+      { slot: 'core', sets: 2, prio: 2, prefer: ['dead_bug', 'band_pallof', 'pallof', 'ab_rollout_bw'] },
+    ],
+  },
 };
 
 export const ROTATIONS = {
@@ -125,6 +172,7 @@ const COND = {
   short: ['bike_sprints', 'sprints', 'shuttle_runs', 'kb_emom', 'bw_circuit'],
   long: ['interval_4x4', 'run_intervals', 'row_2k', 'kb_emom', 'bw_circuit'],
   zone2: ['zone2_cardio', 'zone2_run'],
+  rsa: ['rsa_sprints', 'shuttle_runs', 'bike_sprints', 'bw_circuit'], // wiederholte Sprints (Spielausdauer)
 };
 const WARMUP = {
   run: ['leg_swings', 'ankle_mob', 'hip_9090', 'a_skips'],
@@ -167,18 +215,26 @@ export function recommendTemplate(data, date = todayISO()) {
   const target = (id) => rot.filter((x) => x === id).length;
   const sessions = data.sessions.filter((s) => daysBetween(s.date, date) >= 0);
   const acts = recentActivities(data, 28, date);
-  if (!sessions.length && !acts.length) return { id: rot[0], why: `Start deines Plans (${goal.name}).` };
   const dtr = daysToRace(data, date);
   if (dtr !== null && dtr <= 3) return { id: 'RUN', why: dtr === 0 ? 'Heute ist Wettkampf – viel Erfolg! Höchstens locker einlaufen.' : `Noch ${dtr} ${dtr === 1 ? 'Tag' : 'Tage'} bis zum Wettkampf – nur kurz locker laufen oder Pause.` };
+  // Spieltag (Sportart-Ziel): MD und MD+1 Regeneration, MD-1 nur Aktivierung, MD-2 keine schweren Beine
+  const mi = matchInfo(data, date);
+  if (mi && (mi.toMatch === 0 || mi.sinceMatch === 0)) return { id: 'REG', why: 'Heute ist Spieltag – kein Zusatztraining. Höchstens 10 min Mobilität. Viel Erfolg!' };
+  if (mi && mi.toMatch === 1) return { id: 'PRIME', why: 'Morgen ist Spiel – nur kurze Aktivierung (ca. 30 min): wenige Sprünge und Antritte, nichts Ermüdendes.' };
+  if (mi && mi.sinceMatch === 1) return { id: 'REG', why: 'Gestern war Spiel – heute Regeneration: locker bewegen und Mobilität.' };
+  if (!sessions.length && !acts.length && !(mi && mi.toMatch === 2)) return { id: rot[0], why: `Start deines Plans (${goal.name}).` };
   const since = (d) => (d ? daysBetween(d, date) : 99);
   const latest = (dates) => dates.filter(Boolean).sort().pop() || null;
   const lastOf = (pred) => latest(sessions.filter(pred).map((s) => s.date));
   const focusOf = (s) => TEMPLATES[s.template]?.focus;
-  const hits = (s, region) => (s.template === 'REG' ? false : s.template === 'ATH' ? region === 'lower' : [region, 'full'].includes(focusOf(s)));
+  const hits = (s, region) => (['REG', 'PRIME'].includes(s.template) ? false : s.template === 'ATH' ? region === 'lower' : [region, 'full'].includes(focusOf(s)));
   // Bei Lauf-Zielen zählt ein Lauf nur 24 h als Beinbelastung („harte Tage hart“), sonst 48 h
   const runFocus = ids.includes('RUN') || ids.includes('HYX');
   const dayBefore = (iso) => todayISO(new Date(new Date(iso + 'T12:00:00').getTime() - 86400000));
-  const legLoad = acts.filter((a) => ACT[a.type]?.legs && a.intensity !== 'leicht').map((a) => (runFocus && a.type === 'jogging' ? dayBefore(a.date) : a.date));
+  // Sportart-Ziel: Teamtraining belastet die Beine nur 24 h (sonst bliebe zwischen Teamtrainings und Spiel
+  // kein Tag für Beinkraft); ein Spiel zählt voll
+  const shortLoad = (a) => (runFocus && a.type === 'jogging') || (goal.id === 'sport' && a.type === 'teamsport');
+  const legLoad = acts.filter((a) => ACT[a.type]?.legs && a.intensity !== 'leicht').map((a) => (shortLoad(a) ? dayBefore(a.date) : a.date));
   const lastLower = latest([lastOf((s) => hits(s, 'lower')), ...legLoad]);
   const lastUpper = lastOf((s) => hits(s, 'upper'));
   const dRegion = { lower: since(lastLower), upper: since(lastUpper) };
@@ -200,7 +256,7 @@ export function recommendTemplate(data, date = todayISO()) {
       score += Math.min(d, 4) * 10 - (d < 2 ? 40 : 0);
       const def = deficit(tpl.focus);
       score += def.length * 3;
-      const lastSame = [...sessions].reverse().find((s) => focusOf(s) === tpl.focus && !['ATH', 'REG'].includes(s.template));
+      const lastSame = [...sessions].reverse().find((s) => focusOf(s) === tpl.focus && !['ATH', 'REG', 'PRIME'].includes(s.template));
       if (lastSame && lastSame.template === id) score -= 8;
       reasons.push(d >= 99 ? `${REGION_NAME[tpl.focus]} noch nicht trainiert.` : `${REGION_NAME[tpl.focus]} zuletzt ${dayWord(d)} – ${d >= 2 ? 'erholt' : 'noch nicht erholt'}.`);
       if (def.length && d >= 2) reasons.push(`Unter Zielvolumen: ${def.slice(0, 3).map((m) => MUSCLES[m]).join(', ')}.`);
@@ -231,17 +287,29 @@ export function recommendTemplate(data, date = todayISO()) {
       if (tgt > 1 || ['endurance', 'marathon', 'hyrox'].includes(goal.id)) reasons.push(`Kraft diese Woche: ${sessions.filter((s) => ['FB_A', 'FB_B', 'FB_C'].includes(s.template) && daysBetween(s.date, date) < 7).length}×.`);
     }
     if (goal.key === id && missing > 0) score += 6; // Schlüsseleinheit des Ziels bei Gleichstand bevorzugen
+    // 3–4 Tage vor dem Spiel ist das letzte Fenster für schwere Beine (MD-2/MD-1 gesperrt) → fällige
+    // Beineinheit vorziehen, wenn sie länger her ist als die letzte Oberkörper-Einheit
+    if (mi && (mi.toMatch === 3 || mi.toMatch === 4) && tpl.focus === 'lower' && missing > 0 && d >= 2 && dTpl >= dRegion.upper) {
+      score += 25; reasons.push(`Letztes gutes Fenster für Beinkraft vor dem Spiel (in ${mi.toMatch} Tagen).`);
+    }
     return { id, score, d, missing, why: reasons.join(' ') };
   }).sort((a, b) => b.score - a.score);
 
-  const isHeavy = (c) => !['ATH', 'REG', 'RUN'].includes(c.id);
+  const isHeavy = (c) => !['ATH', 'REG', 'RUN', 'PRIME'].includes(c.id);
+  if (mi && mi.toMatch === 2) {
+    // Zwei Tage vor dem Spiel: nichts, was die Beine ermüdet – Oberkörper oder locker
+    const legs = (id) => !['REG', 'PRIME', 'RUN'].includes(id) && ['lower', 'full'].includes(TEMPLATES[id].focus);
+    const ok = scored.find((c) => !legs(c.id) && c.missing > 0 && !(isHeavy(c) && c.d < 2));
+    if (ok) return { ...ok, why: `In 2 Tagen ist Spiel – heute keine schweren Beine. ${ok.why}` };
+    return { id: 'REG', why: 'In 2 Tagen ist Spiel – heute keine schweren Beine. Locker regenerieren oder Pause.' };
+  }
   const best = scored[0];
   if (!(isHeavy(best) && best.d < 2)) return best;
   // Beste Option wäre eine nicht erholte Region → erholte, noch fehlende Einheit oder locker
   const alt = scored.find((c) => !(isHeavy(c) && c.d < 2) && c.missing > 0);
   if (alt) return alt;
   const pending = TEMPLATES[best.id].name.split(' – ')[0];
-  if (ids.includes('REG')) return { id: 'REG', why: `${pending} steht noch aus, aber die Muskeln sind noch nicht erholt – heute locker regenerieren.` };
+  if (ids.includes('REG') || goal.id === 'sport') return { id: 'REG', why: `${pending} steht noch aus, aber die Muskeln sind noch nicht erholt – heute locker regenerieren.` };
   return { id: 'RUN', why: `${pending} steht noch aus, aber die Muskeln sind noch nicht erholt – heute lieber locker laufen (oder Pause).` };
 }
 
@@ -319,6 +387,7 @@ const STD = {
   face_pull: 0.4, reverse_fly: 0.13, reverse_pec_deck: 0.55,
   incline_curl: 0.2, bb_curl: 0.55, cable_curl: 0.45, hammer_curl: 0.24, kb_curl: 0.22,
   oh_cable_ext: 0.45, db_oh_ext: 0.35, pushdown: 0.55, skullcrusher: 0.5, cable_crunch: 0.8, pallof: 0.25,
+  ext_rotation_cable: 0.12, ext_rotation_db: 0.1,
 };
 // Arbeitsgewicht direkt als Vielfaches des Körpergewichts (Schnellkraft & Tragen)
 const WORK = { kb_swing: 0.27, hang_power_clean: 0.5, db_jump_squat: 0.12, db_push_press: 0.22, farmer_walk: 0.4 };
@@ -461,13 +530,15 @@ function pick(data, key, slotDef, equip, used, opts = {}) {
   let pool = candidates(slotDef.slot, equip, [...used, ...coachAvoid, ...pain, ...(opts.avoid || [])]);
   if (!pool.length) pool = candidates(slotDef.slot, equip, [...used, ...coachAvoid, ...pain]);
   if (!pool.length) return null;
-  const remembered = data.slotMemory[key];
-  if (remembered && !opts.vary && pool.some((e) => e.id === remembered) && !isStagnating(data, remembered)) return EX[remembered];
   const order = slotDef.prefer || [];
   const sorted = [...pool].sort((a, b) => {
     const ia = order.indexOf(a.id); const ib = order.indexOf(b.id);
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
   });
+  // Präventionsübungen der Sportart (z. B. Nordic Curls, Copenhagen) bleiben – Fortschritt über Wdh./Variante
+  if (slotDef.keep) return sorted[0];
+  const remembered = data.slotMemory[key];
+  if (remembered && !opts.vary && pool.some((e) => e.id === remembered) && !isStagnating(data, remembered)) return EX[remembered];
   // Bei Stagnation oder Wunsch nach Abwechslung die nächste Variante nehmen
   if (remembered && (opts.vary || isStagnating(data, remembered))) {
     const alt = sorted.find((e) => e.id !== remembered);
@@ -530,8 +601,8 @@ function mobilityBlock(type, focus, equip, long) {
   return ids.slice(0, n);
 }
 
-const ISOLATION = ['knee_flexion', 'quad_iso', 'calf', 'chest_iso', 'side_delt', 'rear_delt', 'biceps', 'triceps', 'core'];
-const COND_MIN = { short: 12, long: 25, zone2: 30 };
+const ISOLATION = ['knee_flexion', 'quad_iso', 'calf', 'chest_iso', 'side_delt', 'rear_delt', 'biceps', 'triceps', 'core', 'prev_lower', 'prev_shoulder'];
+const COND_MIN = { short: 12, long: 25, zone2: 30, rsa: 20 };
 const condKind = (exId) => Object.keys(COND).find((k) => COND[k].includes(exId)) || 'short';
 
 // Minuten inkl. Pausen. Isolation mit ~1,75 min/Satz (Supersätze möglich).
@@ -555,11 +626,11 @@ export function estimateMinutes(session) {
 export const PAIN_NAME = { knie: 'Knie', schulter: 'Schulter', ruecken: 'Rücken', ellbogen: 'Ellbogen', huefte: 'Hüfte' };
 // Übungen, die die jeweilige Region stark belasten → 7 Tage lang ersetzen
 const PAIN_AVOID = {
-  knie: ['box_jump', 'cmj', 'broad_jump', 'lateral_bound', 'db_jump_squat', 'sissy_squat', 'bss_db', 'bss_bw', 'walking_lunge', 'reverse_lunge_bb', 'step_up', 'leg_extension', 'front_squat', 'hack_squat', 'tempo_squat_bw', 'hx_bbj', 'hx_lunges', 'hx_wallballs'],
-  schulter: ['ohp', 'db_shoulder_press', 'db_shoulder_press_st', 'machine_shoulder', 'kb_press', 'dips', 'plyo_pushup', 'db_push_press', 'pike_pushup', 'skullcrusher', 'incline_bench', 'mb_slam', 'hx_wallballs', 'hx_skierg'],
+  knie: ['box_jump', 'cmj', 'broad_jump', 'lateral_bound', 'db_jump_squat', 'sissy_squat', 'bss_db', 'bss_bw', 'walking_lunge', 'reverse_lunge_bb', 'step_up', 'leg_extension', 'front_squat', 'hack_squat', 'tempo_squat_bw', 'hx_bbj', 'hx_lunges', 'hx_wallballs', 'depth_jump', 'approach_jump', 'cod_505', 'lateral_shuffle', 'sl_landing', 'ankle_hops'],
+  schulter: ['ohp', 'db_shoulder_press', 'db_shoulder_press_st', 'machine_shoulder', 'kb_press', 'dips', 'plyo_pushup', 'db_push_press', 'pike_pushup', 'skullcrusher', 'incline_bench', 'mb_slam', 'hx_wallballs', 'hx_skierg', 'mb_overhead_throw'],
   ruecken: ['deadlift', 'back_squat', 'bb_row', 'rdl', 'kb_swing', 'hang_power_clean', 'reverse_lunge_bb', 'farmer_walk', 'hx_sled_pull', 'hx_farmers'],
   ellbogen: ['skullcrusher', 'oh_cable_ext', 'db_oh_ext', 'chinup', 'bb_curl', 'dips', 'diamond_pushup', 'pushdown'],
-  huefte: ['deadlift', 'hip_thrust', 'bss_db', 'bss_bw', 'walking_lunge', 'lateral_bound', 'broad_jump', 'copenhagen', 'hx_lunges'],
+  huefte: ['deadlift', 'hip_thrust', 'bss_db', 'bss_bw', 'walking_lunge', 'lateral_bound', 'broad_jump', 'copenhagen', 'hx_lunges', 'cod_505'],
 };
 
 // Anstrengung automatisch aus den Wiederholungen: viele Sätze unter dem Ziel = zu schwer,
@@ -808,6 +879,22 @@ export function activityAdjust(data, focus) {
   return { dropCond, reducePower, notes };
 }
 
+// Sportart-Ziel: Übungsvorlieben, Prioritäten und Sätze der Sportart auf den Slot anwenden.
+// prefer gilt in den Sport-Vorlagen, always (z. B. Nordic Curls beim Fußball) in allen Vorlagen.
+function sportSlot(goal, tpl, sd) {
+  const sp = goal.sportProfile;
+  if (!sp) return { sd, tag: '' };
+  const pre = (tpl.sport && sp.prefer && sp.prefer[sd.slot]) || (sp.always && sp.always[sd.slot]);
+  const prio = tpl.sport && !tpl.light && sp.prio && sp.prio[sd.slot];
+  const sets = tpl.sport && !tpl.light && sp.sets && sp.sets[sd.slot];
+  if (!pre && !prio && !sets) return { sd, tag: '' };
+  const keep = !!pre && ['knee_flexion', 'core', 'prev_lower', 'prev_shoulder'].includes(sd.slot);
+  return {
+    sd: { ...sd, ...(pre ? { prefer: [...new Set([...pre, ...(sd.prefer || [])])] } : {}), ...(prio ? { prio } : {}), ...(sets ? { sets } : {}), ...(keep ? { keep } : {}) },
+    tag: pre ? `:${sp.id}` : '', // eigene Übungs-Erinnerung je Sportart
+  };
+}
+
 export function buildSession(data, { templateId, equip, runType }) {
   if (templateId === 'RUN') return buildRunSession(data, { equip, runType });
   if (templateId === 'HYX') return buildHyroxSession(data, { equip });
@@ -815,6 +902,7 @@ export function buildSession(data, { templateId, equip, runType }) {
   const { week, deload } = blockInfo(data);
   const goal = goalOf(data);
   const dtr = daysToRace(data);
+  const mi = matchInfo(data);
   const taper = dtr !== null && dtr <= 14;
   const vf = goal.volume * (taper ? 0.7 : 1);
   const actAdj = activityAdjust(data, tpl.focus);
@@ -823,20 +911,26 @@ export function buildSession(data, { templateId, equip, runType }) {
   const adjUsed = new Set();
   const used = [];
   const power = []; const strength = [];
-  tpl.slots.forEach((sd, idx) => {
-    const key = `${templateId}:${idx}`;
+  tpl.slots.forEach((sd0, idx) => {
+    const { sd, tag } = sportSlot(goal, tpl, sd0);
+    const key = `${templateId}:${idx}${tag}`;
     const ex = pick(data, key, sd, equip, used, { avoid: fb.avoid, pain: fb.pain, vary: fb.vary });
     if (!ex) return;
     used.push(ex.id);
     let a = 0;
     const m = ex.prim[0];
     if (m && adj[m] && !adjUsed.has(m) && ex.cat === 'strength') { a = adj[m]; adjUsed.add(m); }
-    let n = setsFor(sd, week, deload, a);
-    if (ex.cat === 'strength' && vf !== 1) n = Math.max(2, Math.round(n * vf));
-    if (actAdj.reducePower && ex.slot === 'power_lower') n = Math.max(2, n - 1);
-    if (ex.cat === 'strength') n = Math.min(6, Math.max(sd.main ? 2 : 1, n + fb.setDelta + (sd.main ? fb.mainDelta : 0)));
-    const heavy = goal.reps === 'strength' && ex.cat === 'strength' && ex.load === 'kg' && !ISOLATION.includes(ex.slot);
-    const item = makeItem(data, ex, n, { main: sd.main, deload: deload || fb.deload, ...(heavy ? { lo: sd.main ? 3 : 5, hi: sd.main ? 6 : 8, rest: sd.main ? 210 : 150 } : {}) });
+    let n = tpl.light ? sd.sets : setsFor(sd, week, deload, a);
+    if (!tpl.light) {
+      // Präventionsübungen (Landung, Außenrotation) bleiben auch bei reduziertem Volumen vollständig
+      if (ex.cat === 'strength' && vf !== 1 && !['prev_lower', 'prev_shoulder'].includes(ex.slot)) n = Math.max(2, Math.round(n * vf));
+      if (actAdj.reducePower && ex.slot === 'power_lower') n = Math.max(2, n - 1);
+      if (ex.cat === 'strength') n = Math.min(6, Math.max(sd.main ? 2 : 1, n + fb.setDelta + (sd.main ? fb.mainDelta : 0)));
+    }
+    const heavy = !tpl.light && goal.reps === 'strength' && ex.cat === 'strength' && ex.load === 'kg' && !ISOLATION.includes(ex.slot);
+    // Aktivierung vor dem Spiel: wenige Wdh., volle Pausen, keine Ermüdung
+    const primeReps = tpl.light && ex.cat === 'power' && ex.reps[1] <= 6 ? { lo: 2, hi: 3, rest: 90 } : {};
+    const item = makeItem(data, ex, n, { main: sd.main, deload: deload || fb.deload, ...(heavy ? { lo: sd.main ? 3 : 5, hi: sd.main ? 6 : 8, rest: sd.main ? 210 : 150 } : {}), ...primeReps });
     item.prio = sd.prio;
     item.slotKey = key;
     (ex.cat === 'power' ? power : strength).push(item);
@@ -844,34 +938,45 @@ export function buildSession(data, { templateId, equip, runType }) {
 
   const blocks = [];
   blocks.push({ type: 'warmup', title: 'Aufwärmen & Mobilität', items: mobilityBlock('warmup', tpl.focus, equip).map((id) => makeItem(data, EX[id], 0)) });
-  if (power.length) blocks.push({ type: 'power', title: 'Schnellkraft', items: power });
-  if (strength.length) blocks.push({ type: 'strength', title: 'Kraft & Muskelaufbau', items: strength });
-  if (tpl.cond && !((actAdj.dropCond || fb.dropCond) && tpl.cond !== 'zone2') && (goal.finisher || tpl.cond === 'zone2')) {
+  if (power.length) blocks.push({ type: 'power', title: tpl.light ? 'Aktivierung – Sprünge & Antritte' : tpl.sport ? 'Speed, Sprung & Richtungswechsel' : 'Schnellkraft', items: power });
+  const strengthBlock = strength.length ? { type: 'strength', title: tpl.sport ? 'Kraft & Prävention' : 'Kraft & Muskelaufbau', items: strength } : null;
+  // Spielausdauer (condMain) ist Hauptinhalt und kommt vor den Kraft-/Präventionsübungen:
+  // Sprints nie mit ermüdeten Beinbeugern (z. B. nach Nordic Curls)
+  if (strengthBlock && !tpl.condMain) blocks.push(strengthBlock);
+  const matchDay = mi && (mi.toMatch === 0 || mi.sinceMatch === 0);
+  if (tpl.cond && !((actAdj.dropCond || fb.dropCond) && tpl.cond !== 'zone2') && (goal.finisher || tpl.cond === 'zone2' || tpl.condMain) && !(matchDay && templateId === 'REG')) {
     const c = COND[tpl.cond].map((id) => EX[id]).find((e) => available(e, equip));
-    if (c) blocks.push({ type: 'conditioning', title: tpl.cond === 'zone2' ? 'Ausdauer – locker' : 'Ausdauer-Finisher', items: [makeItem(data, c, 0)] });
+    if (c) blocks.push({ type: 'conditioning', title: tpl.cond === 'zone2' ? 'Ausdauer – locker' : tpl.condMain ? 'Spielausdauer – wiederholte Sprints' : 'Ausdauer-Finisher', items: [makeItem(data, c, 0)] });
   }
+  if (strengthBlock && tpl.condMain) blocks.push(strengthBlock);
   blocks.push({ type: 'cooldown', title: 'Cool-down & Beweglichkeit', items: mobilityBlock('cooldown', tpl.focus, equip, tpl.longCooldown).map((id) => makeItem(data, EX[id], 0)) });
 
+  // Regenerationstag (keine Kraftübungen): Hinweise zu Finisher/Sprüngen und Saisonphase passen nicht
+  const plain = !tpl.slots.length;
+  const actNotes = plain ? [] : tpl.condMain ? actAdj.notes.map((n) => n.replace('Kein Ausdauer-Finisher', 'Ohne Sprint-Ausdauer-Block')) : actAdj.notes;
   const session = {
     id: uid(), date: todayISO(), template: templateId, title: tpl.name, week, deload,
     source: 'regel', equipment: [...equip], status: 'active', startedAt: Date.now(),
     note: [
       taper ? `Tapering: noch ${dtr} Tage bis zum Wettkampf – weniger Volumen, Frische zählt.` : '',
-      deload ? 'Deload-Woche: weniger Sätze, −10 % Gewicht. Erholung ist Teil des Fortschritts.' : '',
-      goal.reps === 'strength' ? 'Kraftaufbau: Grundübungen schwer, lange Pausen, saubere Technik.' : '',
-      ...actAdj.notes,
+      matchDay && templateId === 'REG' ? 'Spieltag: nur Mobilität, kein Ausdauerteil – die Energie gehört dem Spiel.' : '',
+      tpl.light ? 'Aktivierung: kurz und explosiv mit vollen Pausen – du sollst dich danach frischer fühlen als vorher. Kein Muskelkater, nichts bis zur Ermüdung.' : '',
+      deload && !tpl.light && !plain ? 'Deload-Woche: weniger Sätze, −10 % Gewicht. Erholung ist Teil des Fortschritts.' : '',
+      tpl.light || plain ? '' : goal.sessionNote != null ? goal.sessionNote : goal.reps === 'strength' ? 'Kraftaufbau: Grundübungen schwer, lange Pausen, saubere Technik.' : '',
+      mi && mi.toMatch != null && mi.toMatch >= 2 && !matchDay ? `Nächstes Spiel in ${mi.toMatch} Tagen.` : '',
+      ...actNotes,
       ...fb.notes,
     ].filter(Boolean).join(' '),
     blocks,
   };
-  fitDuration(session, data.profile.duration, equip);
+  fitDuration(session, data.profile.duration, equip, !!tpl.condMain);
   const iso = strength.filter((it) => ISOLATION.includes(EX[it.exId].slot)).length;
   if (iso >= 3) session.note = [session.note, `Tipp: Isolationsübungen paarweise als Supersatz (z. B. ${tpl.focus === 'lower' ? 'Beinbeuger + Waden' : 'Bizeps + Trizeps'}) – spart Zeit ohne Nachteil für den Muskelaufbau.`].filter(Boolean).join(' ');
   return session;
 }
 
 // Kürzt nach Priorität, bis die Einheit in die gewünschte Zeit passt.
-function fitDuration(session, minutes, equip) {
+function fitDuration(session, minutes, equip, keepCond = false) {
   const strength = session.blocks.find((b) => b.type === 'strength');
   const power = session.blocks.find((b) => b.type === 'power');
   const items = () => [...(strength ? strength.items : []), ...(power ? power.items : [])].reverse();
@@ -879,7 +984,7 @@ function fitDuration(session, minutes, equip) {
   const over = () => estimateMinutes(session) > minutes;
   const cond = session.blocks.find((b) => b.type === 'conditioning');
   // 1. Lange Intervalle -> kurze Intervalle
-  if (cond && over() && condKind(cond.items[0].exId) !== 'short') {
+  if (cond && !keepCond && over() && condKind(cond.items[0].exId) !== 'short') {
     const c = COND.short.map((id) => EX[id]).find((e) => available(e, equip));
     if (c) cond.items = [makeItem({ sessions: [], bodyweight: [], profile: {} }, c, 0)];
   }
@@ -890,7 +995,7 @@ function fitDuration(session, minutes, equip) {
     const big2 = items().find((it) => it.prio === 2 && it.sets.length > 2);
     if (big2) { big2.sets.pop(); continue; }
     const c = session.blocks.find((b) => b.type === 'conditioning');
-    if (c && minutes < 60) { session.blocks.splice(session.blocks.indexOf(c), 1); continue; }
+    if (c && minutes < 60 && !keepCond) { session.blocks.splice(session.blocks.indexOf(c), 1); continue; }
     const big1 = items().find((it) => it.prio === 1 && !it.main && it.sets.length > 2);
     if (big1) { big1.sets.pop(); continue; }
     const p2 = items().find((it) => it.prio === 2);

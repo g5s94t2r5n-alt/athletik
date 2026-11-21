@@ -50,7 +50,7 @@ export function simulate({ goal, days = 4, weeks = 8, raceInDays = null, duratio
           run: runIt ? runIt.exId : null, min: eng.estimateMinutes(s),
           blocks: s.blocks.map((b) => b.type),
           stations: s.blocks.filter((b) => b.type === 'conditioning').flatMap((b) => b.items.map((i) => i.exId)).filter((x) => x.startsWith('hx_')),
-          strength: s.blocks.filter((b) => b.type === 'strength').flatMap((b) => b.items.map((i) => ({ ex: i.exId, sets: i.sets.length, lo: i.lo, hi: i.hi, main: i.main }))),
+          strength: s.blocks.filter((b) => b.type === 'strength').flatMap((b) => b.items.map((i) => ({ ex: i.exId, sets: i.sets.length, lo: i.lo, hi: i.hi, main: i.main, ss: i.ss || '', tempo: i.tempo || '' }))),
         });
       }
       // Teamtraining und Spiel am Abend (nach einer evtl. App-Einheit)
@@ -95,7 +95,8 @@ export function evaluate(res) {
 
   // 3. Ausdauer-Finisher passend zum Ziel
   const withFin = res.log.filter((l) => l.blocks.includes('conditioning') && !['HYX', 'REG'].includes(l.tpl) && !eng.TEMPLATES[l.tpl].condMain).length; // Zone 2 am Regenerationstag ist Hauptinhalt, kein Finisher
-  check(g.finisher ? withFin > 0 : withFin === 0, `Ausdauer-Finisher ${g.finisher ? 'vorhanden' : 'nicht vorhanden'} (Einheiten mit Finisher: ${withFin})`);
+  // Unter 60 min entfällt der Finisher bewusst zugunsten der Kraftübungen
+  if ((res.duration || 75) >= 60 || !g.finisher) check(g.finisher ? withFin > 0 : withFin === 0, `Ausdauer-Finisher ${g.finisher ? 'vorhanden' : 'nicht vorhanden'} (Einheiten mit Finisher: ${withFin})`);
 
   // 4. Läufe: polarisiert, max. 2 harte pro Woche
   const runs = res.log.filter((l) => l.run);
@@ -131,7 +132,7 @@ export function evaluate(res) {
   else if (mains.length) check(mains.every((s) => s.hi >= 8 || s.lo >= 4), `Hauptübungen im Hypertrophie-Bereich (${[...new Set(mains.map((s) => `${s.lo}-${s.hi}`))].join(', ')})`);
 
   // 8. Volumen (nur Ziele mit Volumen-Fokus, ohne Deload-Wochen)
-  if (g.volumeFocus) {
+  if (g.volumeFocus && (res.duration || 75) >= 75) {
     // Bei 2 Tagen sind 10+ Sätze pro Muskel nicht erreichbar → untere wirksame Grenze 6 (Hinweis in der App)
     const minSets = res.days <= 2 ? Math.min(g.minSets || 10, 6) : (g.minSets || 10);
     const low = [];
@@ -140,7 +141,7 @@ export function evaluate(res) {
       BIG.forEach((m) => { if (v[m] < minSets - 0.5) low.push(`W${w} ${MUSCLES[m]} ${v[m]}`); });
     });
     check(low.length <= 2, `Wochenvolumen große Muskeln ≥ ${minSets} Sätze (unter Ziel: ${low.length ? low.slice(0, 6).join(', ') : 'keine'})`);
-  } else {
+  } else if (!g.volumeFocus) {
     // Gesäß wird über alle Bein-Grundübungen mitgezählt und bleibt hier außen vor
     const maxStrength = Math.max(...res.vol.map((v) => Math.max(...BIG.filter((m) => m !== 'gesaess').map((m) => v[m]))));
     check(maxStrength <= (g.maxSets || 13), `Kraftvolumen moderat (max. ${maxStrength} Sätze/Muskel/Woche)`);
@@ -181,8 +182,37 @@ export function evaluate(res) {
     if (res.g.season === 'pause' && sp === 'football') { const L = res.log.filter((l) => l.ex.some((x) => EX[x].slot === 'knee_flexion')); check(L.every((l) => l.ex.includes('nordic_curl')), `Fußball-Pause: Nordic Curls auch in den Aufbau-Einheiten (${L.length})`); }
   }
 
+  // 9c. Supersätze: nur Oberkörper-Gegenspieler, direkt hintereinander, nie bei schweren Kraftsätzen
+  const SS_OK = { hpush: 'hpull', vpush: 'vpull', biceps: 'triceps' };
+  const ssBad = [];
+  res.log.forEach((l) => {
+    const st = l.strength;
+    st.forEach((x, i) => {
+      if (!x.ss || !x.ss.endsWith('1')) return;
+      const y = st[i + 1];
+      const a = EX[x.ex].slot; const b = y && EX[y.ex].slot;
+      if (!y || y.ss !== x.ss[0] + '2' || SS_OK[a] !== b) ssBad.push(`T${l.day} ${x.ex}+${y ? y.ex : '–'}`);
+    });
+    if (g.reps === 'strength' && st.some((x) => x.ss)) ssBad.push(`T${l.day} Supersatz bei Kraftziel`);
+  });
+  check(ssBad.length === 0, `Supersätze nur als Oberkörper-Gegenspieler (${res.log.reduce((n, l) => n + l.strength.filter((x) => x.ss).length, 0) / 2} Paare) – Verstöße: ${ssBad.slice(0, 4).join(', ') || 'keine'}`);
+
+  // 9d. Tempo: jede Kraftübung (außer Rumpf/Landung) hat ein Tempo; schwere Sätze explosiv zurück; Saison ohne 3-s-Exzentrik; Deload ruhig
+  const tBad = [];
+  res.log.forEach((l) => l.strength.forEach((x) => {
+    const sl = EX[x.ex].slot;
+    if (['core', 'prev_lower'].includes(sl)) return;
+    if (!x.tempo) tBad.push(`T${l.day} ${x.ex} ohne Tempo`);
+    else if (x.hi <= 6 && !l.deload && !x.tempo.endsWith('X')) tBad.push(`T${l.day} ${x.ex} ${x.tempo} (schwer, nicht explosiv)`);
+    else if (res.g.season === 'saison' && res.g.id === 'sport' && x.tempo.startsWith('3')) tBad.push(`T${l.day} ${x.ex} ${x.tempo} in der Saison`);
+    else if (l.deload && !['calf', 'prev_shoulder'].includes(sl) && x.ex !== 'nordic_curl' && x.tempo !== '2-0-1') tBad.push(`T${l.day} ${x.ex} ${x.tempo} im Deload`);
+  }));
+  const wk = (w) => [...new Set(res.log.filter((l) => l.week === w && !l.deload).flatMap((l) => l.strength.filter((x) => x.main).map((x) => x.tempo)))].join('/');
+  check(tBad.length === 0, `Tempo passend zu Wdh., Blockwoche und Saison (W1: ${wk(1) || '–'}, W3: ${wk(3) || '–'}) – Verstöße: ${tBad.slice(0, 4).join(', ') || 'keine'}`);
+
   // 10. Dauer
-  const tooLong = res.log.filter((l) => l.min > (res.duration || 75) + 15);
+  // Lauf- und HYROX-Einheiten richten sich nach Strecke/Stationen, nicht nach der Zeitvorgabe für Kraft
+  const tooLong = res.log.filter((l) => l.min > (res.duration || 75) + 15 && !((res.duration || 75) < 75 && ['RUN', 'HYX'].includes(l.tpl)));
   check(tooLong.length === 0, `Einheiten passen in die Zeit (zu lang: ${tooLong.map((l) => `${l.tpl} ${l.min} min`).join(', ') || 'keine'})`);
   return out;
 }
@@ -203,13 +233,18 @@ export const SPORT_CONFIGS = [
   { goal: 'sport', sport: 'racket', season: 'vorbereitung', days: 3, team: [2] },
   { goal: 'sport', sport: 'racket', season: 'saison', days: 6 },
 ];
+// Wenig Zeit: Supersätze statt gestrichener Übungen
+export const SHORT_CONFIGS = [
+  { goal: 'muscle', days: 4, duration: 60 }, { goal: 'muscle', days: 4, duration: 45 }, { goal: 'muscle', days: 2, duration: 60 },
+  { goal: 'fitness', days: 5, duration: 45 }, { goal: 'strength', days: 4, duration: 45 }, { goal: 'lose', days: 3, duration: 45 },
+];
 
 export function runAll(configs) {
   const list = configs || [
     { goal: 'muscle', days: 4 }, { goal: 'strength', days: 4 }, { goal: 'endurance', days: 4 },
     { goal: 'marathon', days: 4, raceInDays: 52 }, { goal: 'hyrox', days: 4, raceInDays: 52 }, { goal: 'fitness', days: 4 },
     { goal: 'muscle', days: 3, duration: 90 }, { goal: 'marathon', days: 5, raceInDays: 52 }, { goal: 'endurance', days: 3 }, { goal: 'hyrox', days: 3 },
-    ...SPORT_CONFIGS,
+    ...SPORT_CONFIGS, ...SHORT_CONFIGS,
   ];
   return list.map((c) => {
     const res = simulate(c);

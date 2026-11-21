@@ -73,6 +73,7 @@ const E = (id, name, en, slot, equip, prim, sec, cues, o = {}) => ({
   inc: o.inc ?? 2.5,
   reps: o.reps || [8, 12],
   presc: o.presc || '',
+  iv: o.iv || null, // Intervall-Uhr: warm/cool (s), work/rest (s), rounds, sets, setRest (s)
 });
 
 const P = { cat: 'power', inc: 0 };
@@ -326,23 +327,23 @@ export const EXERCISES = [
 
   // ---------- Ausdauer ----------
   E('bike_sprints', 'Rad/Ruder-Intervalle kurz', 'assault bike sprint intervals', 'conditioning', ['cardio'], [], [],
-    ['6–10 × 30 s hart / 90 s locker', 'Hart = ~90 % Maximalanstrengung', 'Nach dem Krafttraining'], { ...C, presc: '6–10 × 30 s hart / 90 s locker' }),
+    ['6–10 × 30 s hart / 90 s locker', 'Hart = ~90 % Maximalanstrengung', 'Nach dem Krafttraining'], { ...C, presc: '6–10 × 30 s hart / 90 s locker', iv: { work: 30, rest: 90, rounds: 8 } }),
   E('interval_4x4', '4×4-Intervalle (Cardio-Gerät)', '4x4 interval training', 'conditioning', ['cardio'], [], [],
-    ['4 × 4 min bei ~90 % HFmax, 3 min locker dazwischen', 'Sprechen nur noch in einzelnen Worten', 'Bester Reiz für die VO₂max'], { ...C, presc: '4 × 4 min hart / 3 min locker' }),
+    ['4 × 4 min bei ~90 % HFmax, 3 min locker dazwischen', 'Sprechen nur noch in einzelnen Worten', 'Bester Reiz für die VO₂max'], { ...C, presc: '4 × 4 min hart / 3 min locker', iv: { work: 240, rest: 180, rounds: 4 } }),
   E('zone2_cardio', 'Lockeres Ausdauertraining (Zone 2)', 'zone 2 cardio', 'conditioning', ['cardio'], [], [],
     ['20–40 min in lockerem Tempo', 'Unterhaltung in ganzen Sätzen möglich', 'Am besten an trainingsfreien Tagen oder separat'], { ...C, presc: '20–40 min locker' }),
   E('sprints', 'Sprints', 'sprint training', 'conditioning', ['space'], [], [],
-    ['Gut aufwärmen, 2 Steigerungsläufe vorher', '6–8 × 40–60 m, volle Pause (Gehen zurück)', 'Maximal schnell, aber locker im Gesicht'], { ...C, presc: '6–8 × 40–60 m, Gehpause' }),
+    ['Gut aufwärmen, 2 Steigerungsläufe vorher', '6–8 × 40–60 m, volle Pause (Gehen zurück)', 'Maximal schnell, aber locker im Gesicht'], { ...C, presc: '6–8 × 40–60 m, Gehpause', iv: { work: 8, rest: 120, rounds: 7, workLabel: 'Sprint' } }),
   E('shuttle_runs', 'Pendelläufe 5-10-5', 'pro agility shuttle 5-10-5', 'conditioning', ['space'], [], [],
-    ['5 m – 10 m – 5 m mit Richtungswechsel', 'Tief in die Wende, Boden anfassen', '6–8 Läufe, 60 s Pause'], { ...C, presc: '6–8 Läufe, 60 s Pause' }),
+    ['5 m – 10 m – 5 m mit Richtungswechsel', 'Tief in die Wende, Boden anfassen', '6–8 Läufe, 60 s Pause'], { ...C, presc: '6–8 Läufe, 60 s Pause', iv: { work: 6, rest: 60, rounds: 7, workLabel: 'Pendellauf' } }),
   E('run_intervals', 'Lauf-Intervalle 4×4', 'running interval training', 'conditioning', ['space'], [], [],
-    ['4 × 4 min zügig (~90 % HFmax)', '3 min Traben dazwischen', 'Alternative: 10 × 1 min hart / 1 min locker'], { ...C, presc: '4 × 4 min / 3 min Trab' }),
+    ['4 × 4 min zügig (~90 % HFmax)', '3 min Traben dazwischen', 'Alternative: 10 × 1 min hart / 1 min locker'], { ...C, presc: '4 × 4 min / 3 min Trab', iv: { work: 240, rest: 180, rounds: 4 } }),
   E('kb_emom', 'Kettlebell-Swing EMOM', 'kettlebell swing emom', 'conditioning', ['kettlebell'], [], [],
-    ['Jede Minute 15 Swings, Rest der Minute Pause', '8–12 Minuten', 'Saubere Hüftstreckung trotz Ermüdung'], { ...C, presc: '8–12 min: 15 Swings jede Minute' }),
+    ['Jede Minute 15 Swings, Rest der Minute Pause', '8–12 Minuten', 'Saubere Hüftstreckung trotz Ermüdung'], { ...C, presc: '8–12 min: 15 Swings jede Minute', iv: { work: 60, rest: 0, rounds: 10, workLabel: '15 Swings, Rest der Minute Pause' } }),
   E('zone2_run', 'Lockerer Dauerlauf (Zone 2)', 'zone 2 running', 'conditioning', [], [], [],
     ['20–40 min locker laufen oder zügig gehen', 'Unterhaltung in ganzen Sätzen möglich', 'An trainingsfreien Tagen oder separat'], { ...C, presc: '20–40 min locker' }),
   E('bw_circuit','Körpergewicht-Intervalle', 'bodyweight hiit circuit', 'conditioning', [], [], [],
-    ['40 s Arbeit / 20 s Pause, 8–12 Runden', 'Wechsel: Burpees, Mountain Climbers, Hampelmann, Squat Jumps', 'Hohe Herzfrequenz halten'], { ...C, presc: '8–12 × 40 s / 20 s' }),
+    ['40 s Arbeit / 20 s Pause, 8–12 Runden', 'Wechsel: Burpees, Mountain Climbers, Hampelmann, Squat Jumps', 'Hohe Herzfrequenz halten'], { ...C, presc: '8–12 × 40 s / 20 s', iv: { work: 40, rest: 20, rounds: 10 } }),
   E('row_2k', 'Ruder-Pyramide', 'rowing machine intervals', 'conditioning', ['cardio'], [], [],
     ['250 – 500 – 750 – 500 – 250 m', 'Pause = halbe Arbeitszeit', 'Kraftvoller Beinstoß'], { ...C, presc: '250-500-750-500-250 m' }),
 
@@ -350,15 +351,15 @@ export const EXERCISES = [
   E('run_easy', 'Lockerer Dauerlauf (Zone 2)', 'easy run zone 2', 'run', [], [], [],
     ['Tempo so, dass du in ganzen Sätzen reden kannst', 'Kurze, lockere Schritte, aufrecht laufen', 'Basis für Ausdauer und Erholung (ca. 80 % deiner Läufe)'], { cat: 'run', load: 'none', inc: 0, presc: '30–45 min locker' }),
   E('run_4x4', 'Intervalle 4 × 4 min', 'running 4x4 intervals', 'run', [], [], [],
-    ['10 min einlaufen, 2–3 Steigerungen', '4 × 4 min bei ~90 % HFmax, 3 min Trab dazwischen', '10 min auslaufen – stärkster Reiz für die VO₂max'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 4 × 4 min hart / 3 min Trab · 10 min aus' }),
+    ['10 min einlaufen, 2–3 Steigerungen', '4 × 4 min bei ~90 % HFmax, 3 min Trab dazwischen', '10 min auslaufen – stärkster Reiz für die VO₂max'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 4 × 4 min hart / 3 min Trab · 10 min aus', iv: { warm: 600, work: 240, rest: 180, rounds: 4, cool: 600 } }),
   E('run_3030', 'Kurze Intervalle 30/30', 'running 30 30 intervals', 'run', [], [], [],
-    ['10 min einlaufen', '2 × 8 × 30 s schnell / 30 s Trab, 3 min Pause zwischen den Serien', 'Schnell, aber kontrolliert – nicht maximal sprinten'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 2 × 8 × 30 s schnell / 30 s Trab · 10 min aus' }),
+    ['10 min einlaufen', '2 × 8 × 30 s schnell / 30 s Trab, 3 min Pause zwischen den Serien', 'Schnell, aber kontrolliert – nicht maximal sprinten'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 2 × 8 × 30 s schnell / 30 s Trab · 10 min aus', iv: { warm: 600, work: 30, rest: 30, rounds: 8, sets: 2, setRest: 180, cool: 600 } }),
   E('run_tempo', 'Tempolauf (Schwelle)', 'threshold tempo run', 'run', [], [], [],
-    ['10 min einlaufen', '2 × 10 min „angenehm schwer“ (kurze Sätze möglich), 3 min Trab', '10 min auslaufen'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 2 × 10 min zügig / 3 min Trab · 10 min aus' }),
+    ['10 min einlaufen', '2 × 10 min „angenehm schwer“ (kurze Sätze möglich), 3 min Trab', '10 min auslaufen'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 2 × 10 min zügig / 3 min Trab · 10 min aus', iv: { warm: 600, work: 600, rest: 180, rounds: 2, cool: 600, workLabel: 'Tempo' } }),
   E('run_fartlek', 'Fahrtspiel', 'fartlek run', 'run', [], [], [],
     ['Locker laufen und 8–10 × nach Gefühl beschleunigen', 'Tempowechsel 30–90 s, danach wieder locker', 'Spielerisch – gut, wenn du keine Lust auf Uhr hast'], { cat: 'run', load: 'none', inc: 0, presc: '35–45 min mit 8–10 Tempowechseln' }),
   E('run_sprints', 'Sprints & Steigerungen', 'sprint session', 'run', [], [], [],
-    ['10 min einlaufen, Lauf-ABC, 4 Steigerungen', '6–8 × 40–60 m maximal schnell, zurückgehen als Pause', 'Volle Erholung – Qualität vor Menge, 5 min auslaufen'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 6–8 × 40–60 m Sprint · 5 min aus' }),
+    ['10 min einlaufen, Lauf-ABC, 4 Steigerungen', '6–8 × 40–60 m maximal schnell, zurückgehen als Pause', 'Volle Erholung – Qualität vor Menge, 5 min auslaufen'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 6–8 × 40–60 m Sprint · 5 min aus', iv: { warm: 600, work: 8, rest: 90, rounds: 7, cool: 300, workLabel: 'Sprint' } }),
   E('run_long', 'Langer Lauf', 'long run', 'run', [], [], [],
     ['Locker, gleichmäßiges Tempo', 'Unterwegs trinken, wenn über 60 min', 'Höchstens etwa 1 × pro Woche'], { cat: 'run', load: 'none', inc: 0, presc: '50–75 min locker' }),
 
@@ -392,7 +393,7 @@ export const EXERCISES = [
   E('ext_rotation_db', 'Außenrotation seitlich liegend (Kurzhantel)', 'side lying dumbbell external rotation', 'prev_shoulder', ['dumbbell'], [], ['schultern'],
     ['Seitlich liegen, Ellbogen auf der Hüfte, 90° gebeugt', 'Hantel langsam nach oben drehen', 'Leichtes Gewicht, 2 s ablassen'], { reps: [12, 15], inc: 1 }),
   E('rsa_sprints', 'Wiederholte Sprints (RSA)', 'repeated sprint ability training', 'conditioning', ['space'], [], [],
-    ['6 × 20–30 m maximal, 20 s Pause (zurücktraben)', '2–3 Serien, 4 min Pause dazwischen', 'Simuliert Spielbelastung – Sprints wiederholt schnell abrufen'], { ...C, presc: '2–3 × 6 × 20–30 m, 20 s Pause' }),
+    ['6 × 20–30 m maximal, 20 s Pause (zurücktraben)', '2–3 Serien, 4 min Pause dazwischen', 'Simuliert Spielbelastung – Sprints wiederholt schnell abrufen'], { ...C, presc: '2–3 × 6 × 20–30 m, 20 s Pause', iv: { work: 5, rest: 20, rounds: 6, sets: 3, setRest: 240, workLabel: 'Sprint' } }),
 
   // ---------- HYROX ----------
   E('hx_runs', 'HYROX-Läufe (Compromised Running)', 'hyrox compromised running', 'run', [], [], [],

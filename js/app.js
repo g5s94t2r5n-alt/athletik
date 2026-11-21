@@ -5,6 +5,7 @@ import {
   makeItem, estimateMinutes, bodyweightSeries, exerciseSeries, trackedExercises, weeklyVolume, isStagnating,
   activityAdjust, activitySummary, activityLoad, activityName, autoRunType,
   feedbackAdjust, sessionRecords, allRecords, PAIN_NAME, autoEffort,
+  tempoText, intervalPhases, bodyComp, bodyCompSeries, compAdjust,
 } from './engine.js';
 import { planSession, weeklyReview, CoachError, MODEL } from './coach.js';
 import { GOALS, GOAL, goalOf, rotationFor, daysToRace, weightStatus, SPORTS, SPORT, SEASONS, SEASON, WEEKDAYS, matchInfo, LEVELS, levelOf } from './goals.js';
@@ -126,7 +127,7 @@ function renderToday() {
     <div class="chips">${[45, 60, 75, 90, 105].map((m) => `<button class="chip ${data.profile.duration === m ? 'on' : ''}" data-action="dur" data-min="${m}">${m} min</button>`).join('')}</div>
   </section>
 
-  ${(() => { const n = [...(todayTpl === 'REG' ? [] : activityAdjust(data, TEMPLATES[todayTpl].focus).notes), ...(todayTpl === 'RUN' ? [] : feedbackAdjust(data, todayTpl).notes)]; return n.length ? `<div class="card soft"><div class="label">Berücksichtigt</div><p>${n.map(esc).join('<br>')}</p></div>` : ''; })()}
+  ${(() => { const n = [...(todayTpl === 'REG' ? [] : activityAdjust(data, TEMPLATES[todayTpl].focus).notes), ...(todayTpl === 'RUN' ? [] : feedbackAdjust(data, todayTpl).notes), ...(TEMPLATES[todayTpl].slots.length ? compAdjust(data).notes : [])]; return n.length ? `<div class="card soft"><div class="label">Berücksichtigt</div><p>${n.map(esc).join('<br>')}</p></div>` : ''; })()}
 
   ${hasKey ? `<section class="card">
     <div class="label">Wunsch oder Befinden (optional)</div>
@@ -238,7 +239,7 @@ function renderSession() {
   <header class="page-head">
     <div>
       <h1 class="h-session">${esc(s.title)}</h1>
-      <div class="muted small">${s.deload ? 'Deload · ' : `Woche ${s.week} · `}${s.source === 'claude' ? 'geplant von Claude' : 'Regel-Logik'} · ca. ${s.estMin || estimateMinutes(s)} min</div>
+      <div class="muted small">${s.deload ? 'Deload · ' : `Woche ${s.week} · `}${s.source === 'claude' ? 'geplant von Claude' : s.source === 'repeat' ? 'Wiederholung' : 'Regel-Logik'} · ca. ${s.estMin || estimateMinutes(s)} min</div>
     </div>
   </header>
   ${s.note ? `<div class="card soft"><p>${esc(s.note)}</p></div>` : ''}
@@ -260,17 +261,21 @@ function renderItem(it, bi, ii, type) {
   const tracked = it.sets.length > 0;
   const showW = ex.load === 'kg' || (ex.load === 'bw' && ex.cat === 'strength');
   const allDone = tracked ? it.sets.every((x) => x.done) : it.done;
+  const partner = it.ss ? data.active.blocks[bi].items.find((x) => x !== it && x.ss && x.ss[0] === it.ss[0]) : null;
   return `
   <article class="ex ${allDone ? 'done' : ''}" id="it-${it.uid}">
     <div class="ex-head">
       ${!tracked ? `<button class="check ${it.done ? 'on' : ''}" data-action="item-done" data-b="${bi}" data-i="${ii}" aria-label="Erledigt"></button>` : ''}
       <div class="ex-name">
-        <strong>${esc(ex.name)}</strong>
-        <div class="muted small">${tracked ? `${it.sets.length} × ${it.lo}–${it.hi} Wdh.${showW && Number(it.sets[0]?.tw) > 0 ? ` · <b class="rw">Richtwert ${ex.load === 'bw' ? '+' : ''}${fmtW(it.sets[0].tw)} kg</b>` : ''}${showW && ex.load === 'bw' ? ' · kg = Zusatzgewicht' : ''} · Pause ${it.rest < 120 ? `${it.rest} s` : `${num(it.rest / 60)} min`}` : esc(it.presc || ex.presc)}</div>
+        <strong>${esc(ex.name)}</strong>${it.ss ? ` <span class="ss-tag">Supersatz ${esc(it.ss)}</span>` : ''}
+        <div class="muted small">${tracked ? `${it.sets.length} × ${it.lo}–${it.hi} Wdh.${showW && Number(it.sets[0]?.tw) > 0 ? ` · <b class="rw">Richtwert ${ex.load === 'bw' ? '+' : ''}${fmtW(it.sets[0].tw)} kg</b>` : ''}${showW && ex.load === 'bw' ? ' · kg = Zusatzgewicht' : ''} · Pause&nbsp;${it.rest < 120 ? `${it.rest}&nbsp;s` : `${num(it.rest / 60)}&nbsp;min`}` : esc(it.presc || ex.presc)}</div>
       </div>
       <button class="icon-btn" data-action="video" data-ex="${ex.id}" aria-label="Video">${ICON_PLAY}</button>
     </div>
+    ${it.tempo ? `<p class="tempo"><b>Tempo ${esc(it.tempo)}</b> · ${esc(tempoText(it.tempo))}</p>` : ''}
+    ${partner ? `<p class="ex-note ss-note">Im Wechsel mit <b>${esc(EX[partner.exId]?.name || '')}</b> (${esc(partner.ss)}): je 1 Satz, dann ${it.rest} s Pause.</p>` : ''}
     ${it.note ? `<p class="ex-note">${esc(it.note)}</p>` : ''}
+    ${ex.iv ? `<button class="btn small iv-btn" data-action="iv-open" data-b="${bi}" data-i="${ii}">${ICON_CLOCK} Intervall-Uhr</button>` : ''}
     ${it.run ? `
     <div class="run-log">
       <label class="field"><span>Dauer (min)</span><input class="in" inputmode="decimal" data-run="min" data-b="${bi}" data-i="${ii}" value="${esc(it.run.min)}" placeholder="min"></label>
@@ -283,7 +288,7 @@ function renderItem(it, bi, ii, type) {
       ${it.sets.map((st, si) => `
       <div class="set-row ${st.done ? 'done' : ''}">
         <span class="set-n">${si + 1}</span>
-        ${showW ? `<input inputmode="decimal" class="in" data-field="w" data-b="${bi}" data-i="${ii}" data-s="${si}" value="${esc(fmtW(st.w))}" placeholder="kg">` : '<span></span>'}
+        ${showW ? `<input inputmode="decimal" class="in" data-field="w" data-b="${bi}" data-i="${ii}" data-s="${si}" value="${esc(fmtW(st.w))}" placeholder="${st.tw != null && st.tw !== '' ? esc(fmtW(st.tw)) : 'kg'}">` : '<span></span>'}
         <input inputmode="numeric" class="in" data-field="r" data-b="${bi}" data-i="${ii}" data-s="${si}" value="${esc(st.r)}" placeholder="${it.lo}–${it.hi}">
         <button class="check ${st.done ? 'on' : ''}" data-action="set-done" data-b="${bi}" data-i="${ii}" data-s="${si}" aria-label="Satz erledigt"></button>
       </div>`).join('')}
@@ -298,6 +303,7 @@ function renderItem(it, bi, ii, type) {
   </article>`;
 }
 
+const ICON_CLOCK = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 9v4.2l2.6 1.6M9.5 2.8h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
 const ICON_PLAY = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 8.2v7.6l6-3.8z" fill="currentColor"/></svg>';
 
 let lastAuto = { key: '', at: 0 };
@@ -346,7 +352,7 @@ function finishSession() {
   s.blocks.forEach((b) => b.items.forEach((it) => { if (it.run && parseFloat(String(it.run.min).replace(',', '.')) > 0) it.done = true; }));
   s.status = 'done';
   s.finishedAt = Date.now();
-  s.blocks.forEach((b) => b.items.forEach((it) => { it.sets = it.sets.filter((x) => x.done); }));
+  s.blocks.forEach((b) => b.items.forEach((it) => { if (it.sets.length) it.planned = it.sets.length; it.sets = it.sets.filter((x) => x.done); }));
   data.sessions.push(s);
   rememberSlots(data, s);
   data.active = null;
@@ -360,6 +366,40 @@ function finishSession() {
   openHistory = s.id;
   render();
   openFeedback(s);
+}
+
+// Einheit aus dem Verlauf wiederholen: gleiche Übungen, Sätze und Wdh.-Bereiche, Gewichte nach aktuellem Stand
+function repeatSession(id) {
+  const old = data.sessions.find((x) => x.id === id);
+  if (!old) return;
+  if (data.active) { toast('Schließe zuerst die laufende Einheit ab oder verwirf sie.'); return; }
+  const { week, deload } = blockInfo(data);
+  const blocks = old.blocks.map((b) => ({
+    type: b.type, title: b.title,
+    items: b.items.map((it) => {
+      const ex = EX[it.exId];
+      if (!ex) return null;
+      const tracked = ex.cat === 'strength' || ex.cat === 'power';
+      const n = tracked ? Math.max(1, it.planned || 0, it.sets.length || (it.main ? 3 : 2)) : 0; // geplante Satzzahl
+      const ni = makeItem(data, ex, n, { lo: it.lo, hi: it.hi, main: it.main, rest: it.rest, deload });
+      if (it.presc) ni.presc = it.presc;
+      ['slotKey', 'prio', 'ss'].forEach((k) => { if (it[k] != null) ni[k] = it[k]; });
+      return ni;
+    }).filter(Boolean),
+  })).filter((b) => b.items.length);
+  const s = {
+    id: uid(), date: todayISO(), template: old.template, title: old.title, week, deload,
+    source: 'repeat', repeatOf: old.id, equipment: [...(old.equipment || [])], status: 'active', startedAt: Date.now(),
+    note: `Wiederholung der Einheit vom ${fmtDate(old.date)} – Gewichte nach deinem aktuellen Stand${deload ? ' (Deload: weniger Gewicht)' : ''}.`,
+    blocks,
+  };
+  s.estMin = estimateMinutes(s);
+  data.active = s;
+  todayTpl = null;
+  persist();
+  keepAwake(true);
+  setView('today');
+  toast('Einheit übernommen – viel Erfolg!');
 }
 
 // ---------- Rekorde & Umfrage nach dem Training ----------
@@ -452,6 +492,128 @@ function beep() {
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
   } catch (e) { /* kein Audio */ }
 }
+function audioUnlock() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch (e) { /* kein Audio */ }
+}
+function tone(freq, dur = 0.15, delay = 0, vol = 0.25) {
+  try {
+    audioUnlock();
+    const t0 = audioCtx.currentTime + delay;
+    const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+    o.frequency.value = freq; o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    o.start(t0); o.stop(t0 + dur);
+  } catch (e) { /* kein Audio */ }
+}
+
+// ---------- Intervall-Uhr ----------
+// Zeigt Belastungs- und Pausenzeiten groß an, piept 3-2-1 vor jedem Wechsel und hakt die Übung am Ende ab.
+let ivc = null;
+const mmss = (sec) => { const v = Math.max(0, Math.ceil(sec)); return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`; };
+function ivEl() {
+  let el = document.getElementById('ivclock');
+  if (!el) { el = document.createElement('div'); el.id = 'ivclock'; el.className = 'ivclock'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Intervall-Uhr'); document.body.appendChild(el); }
+  return el;
+}
+function ivOpen(bi, ii) {
+  const it = data.active.blocks[bi].items[ii]; const ex = EX[it.exId];
+  if (!ex || !ex.iv) return;
+  stopTimer();
+  ivc = { bi, ii, uid: it.uid, ex, iv: ex.iv, rounds: ex.iv.rounds, sets: ex.iv.sets || 1, phases: null, idx: 0, end: 0, paused: null, beeped: -1, done: false };
+  ivRender();
+}
+const ivTotalSec = (c, from = 0) => (c.phases || intervalPhases(c.iv, c.rounds, c.sets)).slice(from).reduce((a, p) => a + p.sec, 0);
+function ivStart() {
+  audioUnlock();
+  ivc.phases = intervalPhases(ivc.iv, ivc.rounds, ivc.sets);
+  ivc.idx = 0; ivc.end = Date.now() + ivc.phases[0].sec * 1000; ivc.startedAt = Date.now();
+  ivSignal(ivc.phases[0].kind);
+  clearInterval(ivOpen._iv); ivOpen._iv = setInterval(ivTick, 200);
+  ivRender();
+}
+function ivSignal(kind) {
+  if (kind === 'work') { tone(1046, 0.18); tone(1318, 0.3, 0.2); } else tone(523, 0.45);
+  if (navigator.vibrate) navigator.vibrate(kind === 'work' ? [150, 80, 150] : 300);
+}
+function ivTick() {
+  if (!ivc || !ivc.phases || ivc.paused != null || ivc.done) return;
+  const left = (ivc.end - Date.now()) / 1000;
+  const s3 = Math.ceil(left);
+  if (s3 >= 1 && s3 <= 3 && ivc.beeped !== s3 && ivc.phases[ivc.idx].sec > 5) { ivc.beeped = s3; tone(784, 0.1); }
+  if (left <= 0) ivNext(); else ivRenderTime();
+}
+function ivNext() {
+  ivc.idx++; ivc.beeped = -1;
+  if (ivc.idx >= ivc.phases.length) { ivDone(); return; }
+  const p = ivc.phases[ivc.idx];
+  ivc.end = Date.now() + p.sec * 1000;
+  ivSignal(p.kind);
+  ivRender();
+}
+function ivDone() {
+  clearInterval(ivOpen._iv);
+  ivc.done = true;
+  const it = data.active && data.active.blocks[ivc.bi]?.items[ivc.ii];
+  if (it && it.uid === ivc.uid) {
+    it.done = true;
+    if (it.run && !(parseFloat(String(it.run.min).replace(',', '.')) > 0)) it.run.min = String(Math.round((Date.now() - ivc.startedAt) / 60000));
+    persist();
+  }
+  tone(784, 0.15); tone(988, 0.15, 0.18); tone(1318, 0.4, 0.36);
+  ivRender();
+}
+function ivClose() { clearInterval(ivOpen._iv); ivc = null; const el = document.getElementById('ivclock'); if (el) el.remove(); render(); }
+function ivRenderTime() {
+  const p = ivc.phases[ivc.idx];
+  const left = ivc.paused != null ? ivc.paused / 1000 : (ivc.end - Date.now()) / 1000;
+  const t = document.getElementById('ivc-time'); if (t) t.textContent = mmss(left);
+  const b = document.getElementById('ivc-bar'); if (b) b.style.width = `${Math.max(0, Math.min(100, (left / p.sec) * 100))}%`;
+  const tot = document.getElementById('ivc-total'); if (tot) tot.textContent = `Gesamt noch ${mmss(left + ivTotalSec(ivc, ivc.idx + 1))}`;
+}
+function ivRender() {
+  const el = ivEl();
+  const c = ivc; const iv = c.iv;
+  if (c.done) {
+    el.className = 'ivclock ivc-done';
+    el.innerHTML = `<div class="ivc-inner"><div class="ivc-label">Geschafft!</div><p class="ivc-sub">${esc(c.ex.name)} ist abgehakt${c.ex.cat === 'run' ? ' – trag noch die Strecke ein' : ''}.</p><button class="btn primary" data-action="iv-close">Schließen</button></div>`;
+    return;
+  }
+  if (!c.phases) {
+    const parts = [iv.warm ? `${mmss(iv.warm)} Einlaufen` : '', `${c.sets > 1 ? `${c.sets} × ` : ''}${c.rounds} × ${mmss(iv.work)} ${iv.workLabel && iv.work <= 60 && iv.rest === 0 ? '(EMOM)' : 'Belastung'}`, iv.rest ? `${mmss(iv.rest)} Pause` : '', c.sets > 1 ? `${mmss(iv.setRest || iv.rest)} Serienpause` : '', iv.cool ? `${mmss(iv.cool)} Auslaufen` : ''].filter(Boolean);
+    el.className = 'ivclock ivc-setup';
+    el.innerHTML = `<div class="ivc-inner">
+      <div class="ivc-title">${esc(c.ex.name)}</div>
+      <p class="ivc-sub">${esc(parts.join(' · '))}</p>
+      <div class="ivc-cfg"><span>Runden</span><button class="chip" data-action="iv-rounds" data-d="-1" aria-label="Weniger Runden">−</button><strong>${c.rounds}</strong><button class="chip" data-action="iv-rounds" data-d="1" aria-label="Mehr Runden">+</button></div>
+      ${iv.sets ? `<div class="ivc-cfg"><span>Serien</span><button class="chip" data-action="iv-sets" data-d="-1" aria-label="Weniger Serien">−</button><strong>${c.sets}</strong><button class="chip" data-action="iv-sets" data-d="1" aria-label="Mehr Serien">+</button></div>` : ''}
+      <p class="ivc-sub">Dauer ca. ${Math.round(ivTotalSec(c) / 60)} min · Signalton 3-2-1 vor jedem Wechsel</p>
+      <button class="btn primary" data-action="iv-start">Start</button>
+      <button class="btn ghost" data-action="iv-close">Abbrechen</button>
+    </div>`;
+    return;
+  }
+  const p = c.phases[c.idx]; const nx = c.phases[c.idx + 1];
+  el.className = `ivclock ivc-${p.kind}`;
+  el.innerHTML = `<div class="ivc-inner">
+    <div class="ivc-title">${esc(c.ex.name)}</div>
+    <div class="ivc-label">${esc(p.label)}</div>
+    <div class="ivc-time" id="ivc-time">${mmss(p.sec)}</div>
+    ${p.round ? `<div class="ivc-round">Runde ${p.round}/${p.rounds}${p.sets > 1 ? ` · Serie ${p.set}/${p.sets}` : ''}</div>` : '<div class="ivc-round">&nbsp;</div>'}
+    <div class="ivc-bar"><div id="ivc-bar"></div></div>
+    <div class="ivc-next">${nx ? `Danach: ${esc(nx.label)} ${mmss(nx.sec)}` : 'Letzte Phase'}</div>
+    <div class="ivc-btns">
+      <button class="btn" data-action="iv-pause">${c.paused != null ? 'Weiter' : 'Pause'}</button>
+      <button class="btn" data-action="iv-skip">Nächste ›</button>
+    </div>
+    <button class="btn ghost" data-action="iv-stop">Beenden</button>
+    <div class="ivc-total" id="ivc-total"></div>
+  </div>`;
+  ivRenderTime();
+}
+
 let wakeLock = null;
 async function keepAwake(on) {
   try {
@@ -634,8 +796,7 @@ function saveSetup() {
   if (!(age >= 14 && age <= 90)) { toast('Bitte ein Alter zwischen 14 und 90 eingeben.'); return; }
   if (!(kg > 35 && kg < 250)) { toast('Bitte ein gültiges Gewicht eingeben.'); return; }
   Object.assign(data.profile, { age, weight: kg, sex: s.sex, level: s.level, days: s.days, duration: s.duration, notes: s.notes.trim(), goal: s.goal, sport: s.sport, season: s.season, matchDay: s.matchDay, goalDate: GOAL[s.goal].race ? s.goalDate : '', goalWeight: GOAL[s.goal].weightGoal && parseFloat(String(s.goalWeight).replace(',', '.')) > 0 ? parseFloat(String(s.goalWeight).replace(',', '.')) : '', setup: true });
-  data.bodyweight = data.bodyweight.filter((x) => x.date !== todayISO());
-  data.bodyweight.push({ date: todayISO(), kg });
+  setBodyweight({ kg });
   data.homeGym = s.homeGym.length ? [...s.homeGym] : null;
   if (data.location === 'home' && !data.homeGym) data.location = 'gym';
   data.homeGymNotes = s.homeGymNotes.trim();
@@ -645,6 +806,18 @@ function saveSetup() {
   setupDraft = null;
   toast('Profil gespeichert.');
   render();
+}
+
+// Messung von heute speichern; leere optionale Werte behalten die heutige Messung (z. B. Waage morgens, Gewicht später)
+function setBodyweight({ kg, muscle = null, fat = null }) {
+  const prev = data.bodyweight.find((x) => x.date === todayISO()) || {};
+  const e = { date: todayISO(), kg };
+  const m = muscle ?? prev.muscle; const f = fat ?? prev.fat;
+  if (m) e.muscle = m;
+  if (f) e.fat = f;
+  data.bodyweight = data.bodyweight.filter((x) => x.date !== todayISO());
+  data.bodyweight.push(e);
+  data.profile.weight = kg;
 }
 
 // ---------- Training nachtragen ----------
@@ -778,7 +951,10 @@ function renderSessionCard(s) {
         ${(s.records || []).length ? `<div class="pr-box small">${s.records.map((r) => { const t = recordText(r); return `<div class="pr-row"><b>${esc(t.name)}</b><span>${esc(t.text)}</span></div>`; }).join('')}</div>` : ''}
         ${s.autoEffort ? `<p class="muted small mt-s">Belastung laut Wdh.: ${({ easy: 'eher zu leicht', right: 'passend', too_hard: 'eher zu schwer' })[s.autoEffort]}</p>` : ''}
         ${s.feedback ? `<p class="muted small mt-s">Rückmeldung: ${esc([s.feedback.liked ? ({ yes: 'gefallen', meh: 'geht so', no: 'nicht gefallen' })[s.feedback.liked] : '', ...(s.feedback.pain || []).map((p) => PAIN_NAME[p])].filter(Boolean).join(' · ') || '–')}${s.feedback.note ? ` – „${esc(s.feedback.note)}“` : ''}</p>` : `<button class="link mt" data-action="fb-later" data-id="${s.id}">Rückmeldung geben</button>`}
-        <button class="link danger mt" data-action="del-session" data-id="${s.id}">Einheit löschen</button>
+        <div class="hist-actions">
+          ${s.blocks.some((b) => b.items.length) ? `<button class="btn small" data-action="repeat" data-id="${s.id}">Nochmal machen</button>` : ''}
+          <button class="link danger" data-action="del-session" data-id="${s.id}">Einheit löschen</button>
+        </div>
       </div>` : ''}
     </article>`;
 }
@@ -794,6 +970,8 @@ function renderProgress() {
   const actWeek = (data.activities || []).filter((a) => { const d = daysBetween(a.date, todayISO()); return d >= 0 && d < 7; }).length;
   const thisWeek = planWeek + actWeek;
   const todayBw = data.bodyweight.find((e) => e.date === todayISO());
+  const bc = bodyComp(data);
+  const sgn = (v, unit) => `${v >= 0 ? '+' : '−'}${num(Math.abs(v))} ${unit}`;
   return `
   <header class="page-head"><h1>Fortschritt</h1></header>
   <div class="tiles">
@@ -809,6 +987,8 @@ function renderProgress() {
       const verdict = pct < 0.25 ? 'langsam – Defizit prüfen' : pct <= 1 ? 'im Zielbereich 0,5–1 %' : 'schnell – Muskeln schützen';
       return `<div class="tile"><div class="tile-label">Abnehm-Tempo</div><div class="tile-val">${ws.perWeek <= 0 ? '−' : '+'}${num(Math.abs(ws.perWeek))}<span class="muted small"> kg/Woche</span></div><div class="tile-delta">${num(Math.abs(ws.pctWeek))} % · ${verdict}</div></div>`;
     })() : ''}
+    ${bc ? `<div class="tile"><div class="tile-label">Körperzusammensetzung</div><div class="tile-val">${bc.cur.fat ? num(bc.cur.fat) : '–'}<span class="muted small"> % Fett</span></div>
+      <div class="tile-delta">${bc.cur.muscle ? `${num(bc.cur.muscle)} kg Muskel` : ''}${bc.old ? `${bc.cur.muscle ? ' · ' : ''}${[bc.dFat != null ? sgn(bc.dFat, '%-P.') : '', bc.dMuscle != null ? sgn(bc.dMuscle, 'kg Muskel') : ''].filter(Boolean).join(', ')} in ${bc.weeks} Wo.` : ''}</div></div>` : ''}
     ${(() => { const a = activitySummary(data, 7); const prev = activitySummary(data, 14).load - a.load; return `
     <div class="tile"><div class="tile-label">Ausdauer & Sport (7 Tage)</div><div class="tile-val">${a.minutes}<span class="muted small"> min</span></div>
       <div class="tile-delta">${a.count} ${a.count === 1 ? 'Einheit' : 'Einheiten'}${a.km ? ` · ${num(a.km)} km gelaufen` : ''}</div></div>
@@ -818,13 +998,17 @@ function renderProgress() {
 
   <section class="card">
     <div class="label">Körpergewicht heute eintragen</div>
-    <div class="row">
-      <input id="bw-in" class="in wide" inputmode="decimal" placeholder="kg" value="${todayBw ? esc(todayBw.kg) : ''}">
-      <button class="btn small primary" data-action="save-bw">Speichern</button>
+    <div class="grid3">
+      <label class="field"><span>Gewicht kg</span><input id="bw-in" class="in" inputmode="decimal" placeholder="kg" value="${todayBw ? esc(fmtW(todayBw.kg)) : ''}"></label>
+      <label class="field"><span>Muskel kg</span><input id="bw-muscle" class="in" inputmode="decimal" placeholder="optional" value="${todayBw && todayBw.muscle ? esc(fmtW(todayBw.muscle)) : ''}"></label>
+      <label class="field"><span>Fett %</span><input id="bw-fat" class="in" inputmode="decimal" placeholder="optional" value="${todayBw && todayBw.fat ? esc(fmtW(todayBw.fat)) : ''}"></label>
     </div>
-    <p class="muted small">Am besten morgens nüchtern, gleiche Bedingungen.</p>
+    <button class="btn small primary" data-action="save-bw">Speichern</button>
+    <p class="muted small">Am besten morgens nüchtern, gleiche Bedingungen. Muskelmasse und Körperfett (z. B. von einer Körperanalyse-Waage) sind optional – der Plan reagiert nur auf Trends über mehrere Wochen.</p>
   </section>
   <div id="chart-bw"></div>
+  <div id="chart-muscle"></div>
+  <div id="chart-fat"></div>
 
   ${(() => {
     const rec = allRecords(data);
@@ -861,6 +1045,18 @@ function drawCharts() {
     tableHeaders: ['Datum', 'kg', 'Ø 7 Tage'],
     tableRow: (r) => [r.date, num(r.kg), num(r.avg)],
     empty: 'Trag dein Gewicht ein, um den Verlauf zu sehen.',
+  });
+  const comp = bodyCompSeries(data);
+  const box = (id) => { const b = $(id); if (b) b.innerHTML = ''; return b; };
+  if (comp.some((r) => r.muscle) && box('#chart-muscle')) lineChart($('#chart-muscle'), {
+    title: 'Muskelmasse', sub: 'Laut Waage – Trend über Wochen zählt', rows: comp.filter((r) => r.muscle),
+    series: [{ name: 'Muskelmasse', key: 'muscle', style: 'line', color: cssVar('--mint') || blue }],
+    tableHeaders: ['Datum', 'Muskel kg'], tableRow: (r) => [r.date, num(r.muscle)],
+  });
+  if (comp.some((r) => r.fat) && box('#chart-fat')) lineChart($('#chart-fat'), {
+    title: 'Körperfett', sub: 'Laut Waage – Trend über Wochen zählt', unit: '%', rows: comp.filter((r) => r.fat),
+    series: [{ name: 'Körperfett', key: 'fat', style: 'line', color: cssVar('--pink') || blue }],
+    tableHeaders: ['Datum', 'Fett %', 'Fett kg'], tableRow: (r) => [r.date, num(r.fat), num(r.fatKg)],
   });
   if (progressEx) {
     const ex = EX[progressEx];
@@ -1087,6 +1283,7 @@ document.addEventListener('click', async (e) => {
       const old = itemAt(t); const ex = EX[t.dataset.ex];
       const n = makeItem(data, ex, Math.max(1, old.sets.length), { main: old.main, deload: data.active.deload });
       n.slotKey = old.slotKey; n.prio = old.prio;
+      if (old.ss) { n.ss = old.ss; n.rest = old.rest; }
       data.active.blocks[+t.dataset.b].items[+t.dataset.i] = n;
       persist(); closeModal(); render(); break;
     }
@@ -1110,15 +1307,30 @@ document.addEventListener('click', async (e) => {
       if (next <= todayISO().slice(0, 7)) { histMonth = next; render(); }
       break;
     }
+    case 'repeat': repeatSession(t.dataset.id); break;
+    case 'iv-open': ivOpen(+t.dataset.b, +t.dataset.i); break;
+    case 'iv-start': ivStart(); break;
+    case 'iv-rounds': if (ivc && !ivc.phases) { ivc.rounds = Math.min(30, Math.max(1, ivc.rounds + Number(t.dataset.d))); ivRender(); } break;
+    case 'iv-sets': if (ivc && !ivc.phases) { ivc.sets = Math.min(6, Math.max(1, ivc.sets + Number(t.dataset.d))); ivRender(); } break;
+    case 'iv-pause':
+      if (ivc && ivc.phases) {
+        if (ivc.paused != null) { ivc.end = Date.now() + ivc.paused; ivc.paused = null; } else ivc.paused = Math.max(0, ivc.end - Date.now());
+        ivRender();
+      }
+      break;
+    case 'iv-skip': if (ivc && ivc.phases) { if (ivc.paused != null) ivc.paused = null; ivNext(); } break;
+    case 'iv-stop': if (ivc && confirm('Intervall-Uhr beenden?')) ivClose(); break;
+    case 'iv-close': ivClose(); break;
     case 'hist': openHistory = openHistory === t.dataset.id ? null : t.dataset.id; render(); break;
     case 'del-session': if (confirm('Diese Einheit endgültig löschen?')) { data.sessions = data.sessions.filter((s) => s.id !== t.dataset.id); persist(); render(); } break;
     case 'save-bw': {
-      const kg = parseFloat(($('#bw-in').value || '').replace(',', '.'));
+      const val = (id) => { const v = ($(id)?.value || '').trim(); return v === '' ? null : parseFloat(v.replace(',', '.')); };
+      const kg = val('#bw-in'); const muscle = val('#bw-muscle'); const fat = val('#bw-fat');
       if (!(kg > 30 && kg < 300)) { toast('Bitte ein gültiges Gewicht eingeben.'); return; }
-      data.bodyweight = data.bodyweight.filter((x) => x.date !== todayISO());
-      data.bodyweight.push({ date: todayISO(), kg });
-      data.profile.weight = kg;
-      persist(); render(); toast('Gewicht gespeichert.'); break;
+      if (muscle != null && !(muscle >= 10 && muscle < kg)) { toast('Muskelmasse in kg bitte prüfen (kleiner als das Körpergewicht).'); return; }
+      if (fat != null && !(fat >= 3 && fat <= 60)) { toast('Körperfett bitte in % eingeben (3–60).'); return; }
+      setBodyweight({ kg, muscle, fat });
+      persist(); render(); toast(muscle || fat ? 'Gewicht und Körperwerte gespeichert.' : 'Gewicht gespeichert.'); break;
     }
     case 'review': runReview(); break;
     case 'reset-coach': if (confirm('Anpassungen aus dem Wochen-Check zurücksetzen?')) { data.coach = null; persist(); render(); } break;
@@ -1177,6 +1389,27 @@ document.addEventListener('change', async (e) => {
     try { data = await importJSON(t.files[0], data); persist(); toast('Backup importiert.'); render(); }
     catch (err) { toast(err.message || 'Import fehlgeschlagen.'); }
   }
+});
+
+// Vorgeschlagenes Gewicht beim Antippen leeren (wie bei den Wdh.) – bleibt als grauer Platzhalter sichtbar;
+// ohne Eingabe wird es beim Verlassen wiederhergestellt
+document.addEventListener('focusin', (e) => {
+  const t = e.target;
+  if (!t.dataset || t.dataset.field !== 'w' || !data.active) return;
+  const st = itemAt(t).sets[+t.dataset.s];
+  if (st.done || t.value === '') return;
+  t.dataset.prev = t.value; t.placeholder = t.value; t.value = '';
+});
+document.addEventListener('focusout', (e) => {
+  const t = e.target;
+  if (!t.dataset || t.dataset.field !== 'w' || !data.active || t.dataset.prev == null) return;
+  if (t.value.trim() === '') {
+    t.value = t.dataset.prev;
+    const st = itemAt(t).sets[+t.dataset.s];
+    st.w = t.dataset.prev.replace(',', '.');
+    persist();
+  }
+  delete t.dataset.prev;
 });
 
 $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });

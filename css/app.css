@@ -270,3 +270,36 @@ select.in { appearance: none; -webkit-appearance: none; }
 .chart-table table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
 .chart-table th, .chart-table td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
 .chart-table th { color: var(--muted); font-weight: 600; }
+
+/* Supersätze, Tempo, Verlauf-Aktionen, Körperwerte */
+.ss-tag { display: inline-block; font-size: 11px; font-weight: 750; letter-spacing: 0.04em; padding: 2px 7px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); vertical-align: 2px; }
+.tempo { font-size: 13px; color: var(--text-2); margin: 6px 0 0; }
+.tempo b { color: var(--text); font-variant-numeric: tabular-nums; }
+.ss-note b { color: var(--text); }
+.iv-btn { margin-top: 10px; }
+.hist-actions { display: flex; align-items: center; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 8px; }
+.grid3 .in { width: 100%; min-width: 0; }
+
+/* Intervall-Uhr (Vollbild) */
+.ivclock { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: calc(var(--safe-t) + 16px) 16px calc(var(--safe-b) + 16px); background: var(--bg); color: var(--text); text-align: center; transition: background 0.3s; overflow-y: auto; }
+.ivc-inner { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 10px; }
+.ivc-title { font-weight: 750; font-size: 17px; color: var(--text-2); }
+.ivc-sub { color: var(--text-2); margin: 0; }
+.ivc-label { font-size: 30px; font-weight: 850; letter-spacing: 0.02em; text-transform: uppercase; }
+.ivc-time { font-size: min(30vw, 150px); line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+.ivc-round { font-size: 18px; font-weight: 650; color: var(--text-2); }
+.ivc-bar { height: 8px; border-radius: 99px; background: rgba(127, 127, 127, 0.25); overflow: hidden; }
+.ivc-bar > div { height: 100%; background: currentColor; transition: width 0.2s linear; }
+.ivc-next, .ivc-total { color: var(--text-2); font-size: 15px; }
+.ivc-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+.ivc-cfg { display: flex; align-items: center; justify-content: center; gap: 14px; font-weight: 650; }
+.ivc-cfg strong { font-size: 28px; min-width: 44px; font-variant-numeric: tabular-nums; }
+.ivc-cfg .chip { min-width: 48px; font-size: 20px; }
+.ivclock.ivc-work { background: color-mix(in srgb, var(--accent-2, var(--accent)) 26%, var(--bg)); }
+.ivclock.ivc-work .ivc-label, .ivclock.ivc-work .ivc-bar { color: var(--accent-2, var(--accent)); }
+.ivclock.ivc-rest { background: color-mix(in srgb, var(--good) 22%, var(--bg)); }
+.ivclock.ivc-rest .ivc-label, .ivclock.ivc-rest .ivc-bar { color: var(--good); }
+.ivclock.ivc-warm, .ivclock.ivc-cool { background: color-mix(in srgb, var(--series-1) 18%, var(--bg)); }
+.ivclock.ivc-warm .ivc-label, .ivclock.ivc-cool .ivc-label, .ivclock.ivc-warm .ivc-bar, .ivclock.ivc-cool .ivc-bar { color: var(--series-1); }
+.ivclock.ivc-done .ivc-label { color: var(--good); }

@@ -61,6 +61,47 @@ Die Regeln sind Vereinfachungen der Studienlage (Stand Ende 2026). Sie ersetzen 
 
 Die Übungen hängen von dem Equipment ab, das du vor dem Training auswählst.
 
+### Bewegungstempo
+
+Jede Kraftübung hat ein Tempo „ablassen – Pause in der Dehnung – zurück“ in Sekunden (X = explosiv, also mit maximal schnell gewollter Bewegung). Wiederholungsdauern von etwa 0,5–8 s bauen ähnlich Muskeln auf (Schoenfeld 2015). Eine maximal schnell gewollte konzentrische Phase bringt mehr Kraft (Pareja-Blanco 2014). Das Tempo wechselt im Block:
+
+| Phase | Grundübungen | Isolation | Schwere Sätze (≤ 6 Wdh.) |
+|---|---|---|---|
+| Woche 1–2 | 3-1-1 (Technik, Spannung in der Dehnung) | 3-1-1 | 2-1-X (Pausen-Wdh., nicht beim Kreuzheben/Hip Thrust) |
+| Woche 3–4 | 2-0-X (mehr Gewicht, explosiv) | 2-1-1 | 2-0-X |
+| Deload | 2-0-1 | 2-0-1 | 2-0-1 |
+
+**Ausnahmen:**
+- **Waden:** immer 2-2-1. Die Pause unten nimmt den Federeffekt der Achillessehne heraus.
+- **Nordic Curls:** so langsam wie möglich ablassen.
+- **Schulter-Außenrotation:** 2-0-2.
+- **Rumpf- und Landeübungen:** ohne Tempo.
+- **Saison (Sportart-Ziel):** keine betonte Exzentrik (2-0-X), um Muskelkater vor Spielen zu vermeiden.
+
+### Supersätze bei wenig Zeit
+
+Passt die Einheit nicht in die gewählte Zeit und das Ziel ist kein Maximalkraft-Ziel, bildet die App **zuerst Gegenspieler-Supersätze**, bevor sie Übungen streicht:
+- Paare: Horizontal drücken + horizontal ziehen (A1/A2), vertikal drücken + vertikal ziehen (B1/B2), Bizeps + Trizeps (C1/C2).
+- Ablauf: im Wechsel je 1 Satz, dazwischen 90 s Pause bei Grundübungen bzw. 60 s bei Isolation.
+
+Gegenspieler-Supersätze erhalten die Trainingslast bei deutlich kürzerer Dauer und führen langfristig zu ähnlichen Kraft- und Muskelzuwächsen (Robbins 2010, Zhang 2025). Sie sind dafür etwas anstrengender (Puls, Laktat).
+
+**Nie als Supersatz:**
+- Beinübungen,
+- Sprünge und Sprints,
+- schwere Kraftsätze (≤ 6 Wdh., Kraftaufbau, Sportart in Vorbereitung und Saison) – hier sind volle Pausen besser.
+
+Fällt eine Supersatz-Übung später wegen Zeitmangel weg, wird der Partner wieder ein normaler Satz mit normaler Pause.
+
+### Intervall-Uhr
+
+Intervall-Übungen (z. B. 4×4, 30/30, Rad-Sprints, EMOM, wiederholte Sprints, Tempolauf) haben eine Uhr:
+- große Anzeige von Belastung, Pause, Serienpause sowie Ein- und Auslaufen,
+- Runden vorher anpassbar,
+- Signalton 3-2-1 vor jedem Wechsel.
+
+Am Ende wird die Übung abgehakt. Bei Läufen wird die Dauer eingetragen.
+
 ## 3a. Trainingsziele
 
 Das Ziel legt fest, welche Einheiten in einer Woche vorkommen (bei z. B. 4 Tagen) und wie trainiert wird:
@@ -136,7 +177,7 @@ Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:
 - **Richtwerte in kg** für jede Hantelübung:
   1. Übung schon gemacht → Fortschreibung deiner letzten Gewichte (doppelte Progression, s. o.).
   2. Neue Übung → Hochrechnung aus deinen bisherigen Leistungen: persönlicher Kraftfaktor (Median der letzten 1RM-Schätzungen im Verhältnis zu Referenzwerten, bevorzugt gleiche Körperregion) × Referenzwert der neuen Übung.
-  3. Noch keine Daten → Referenzwert × Körpergewicht × Niveau (Einsteiger 0,6 / leicht fortgeschritten 0,8 / fortgeschritten 1,0 / sehr erfahren 1,1 / Leistungssportler 1,15 / Profi/Elite 1,25) × Geschlecht.
+  3. Noch keine Daten → Referenzwert × Körpergewicht × Niveau (Einsteiger 0,6 / leicht fortgeschritten 0,8 / fortgeschritten 1,0 / sehr erfahren 1,1 / Leistungssportler 1,15 / Profi/Elite 1,25) × Geschlecht. Ist das Körperfett bekannt, zählt statt des Körpergewichts die fettfreie Masse (Referenz ≈ 15 % Körperfett, Faktor 0,8–1,1).
   Aus dem geschätzten 1RM wird das Arbeitsgewicht für die Mitte des Wdh.-Bereichs plus Wdh. in Reserve berechnet (Epley): Muskel-/Kraft-/Fitness-Ziele 2, Ausdauer-/Marathon-/HYROX-Ziele 3 Wdh. Reserve. Kraftaufbau nutzt 3–6 Wdh. → höhere Gewichte. Deload −10 %.
 - **Eintragen:** Ein Satz zählt, sobald Wdh. (und bei Hantelübungen das Gewicht) eingetragen sind – Abhaken ist optional.
 - **Stagnation:** Bleibt das geschätzte 1RM über 3 Einheiten derselben Übung
@@ -153,6 +194,21 @@ Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:
 - **Belastung automatisch:** Aus den eingetragenen Wdh. – ≥ 50 % der Kraftsätze unter dem Wdh.-Ziel = zu schwer → nächste Einheit 1 Satz weniger pro Übung, kein Finisher, nächster Lauf locker; zweimal innerhalb kurzer Zeit → Deload-Charakter (−10 % Gewicht). ≥ 80 % am oberen Ende = zu leicht → Hauptübungen +1 Satz.
 - **Kurze Umfrage:** „Hat es dir gefallen?“ (bei „nein“: nächstes Mal andere Varianten dieser Einheit, einzelne Übungen dauerhaft ausblendbar) und „Beschwerden?“ (Knie, Schulter, Rücken, Ellbogen, Hüfte → belastende Übungen 7 Tage lang ersetzt bzw. weggelassen; Hinweis auf ärztliche Abklärung bei anhaltenden Schmerzen).
 - Claude bekommt Belastung, Gefallen und Beschwerden der letzten Einheiten; ausgeblendete und schmerzauslösende Übungen sind aus seinem Übungskatalog entfernt.
+
+## 6. Körperzusammensetzung (optional)
+
+Zum Gewicht können **Muskelmasse (kg)** und **Körperfett (%)** eingetragen werden, z. B. von einer Körperanalyse-Waage. Solche Waagen schwanken von Tag zu Tag deutlich. Die App wertet deshalb nur Mittelwerte und Trends aus: die Messungen der letzten 10 Tage gegen die von vor 3–8 Wochen. Messungen, die älter als 3 Wochen sind, ändern den Plan nicht.
+
+| Befund | Anpassung |
+|---|---|
+| Muskelmasse ≥ 0,5 kg gesunken | Hauptübungen +1 Satz, kein intensiver Finisher; Hinweis: Defizit verkleinern, Protein 1,6–2,2 g/kg (Morton 2018) |
+| Körperfett ≥ 1 %-Punkt gestiegen ohne Muskelzuwachs (Aufbau-Ziele) | Ausdauer-Finisher dazu (auch beim Kraftaufbau), Kalorienüberschuss um ca. 200–300 kcal senken |
+| Körperfett steigt beim Ziel Abnehmen | Hinweis: Defizit und Alltagsbewegung prüfen |
+| Fett ↓ bei stabiler Muskelmasse | Rückmeldung „Rekomposition läuft“, keine Änderung |
+| Körperfett hoch (Männer > 25 %, Frauen > 32 %) bei Aufbau-Zielen | Finisher, Aufbau ohne Überschuss (Rekomposition) |
+| Körperfett niedrig (Männer < 10 %, Frauen < 18 %) beim Abnehmen | kein intensiver Finisher, nur noch langsam abnehmen |
+
+Claude bekommt die Werte und Trends für Planung und Wochen-Check.
 
 ## Quellen
 
@@ -171,17 +227,22 @@ Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:
 - Maeo S. et al. (2021). Greater Hamstrings Muscle Hypertrophy but Similar Damage Protection after Training at Long versus Short Muscle Lengths. *Med Sci Sports Exerc*.
 - McGuine T.A., Keene J.S. (2006). The effect of a balance training program on the risk of ankle sprains in high school athletes. *Am J Sports Med*.
 - Milanović Z., Sporiš G., Weston M. (2015). Effectiveness of High-Intensity Interval Training and Continuous Endurance Training for VO₂max Improvements. *Sports Medicine*.
+- Morton R.W. et al. (2018). A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength in healthy adults. *Br J Sports Med*.
+- Pareja-Blanco F. et al. (2014). Effect of movement velocity during resistance training on neuromuscular performance. *Int J Sports Med*.
 - Pelland J. et al. (2024). The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gain. *SportRxiv (Preprint)*.
 - Refalo M.C. et al. (2023). Influence of Resistance Training Proximity-to-Failure on Skeletal Muscle Hypertrophy. *Sports Medicine*.
+- Robbins D.W. et al. (2010). Agonist–antagonist paired set resistance training: a brief review. *J Strength Cond Res*.
 - Rønnestad B.R. et al. (2011). In-season strength maintenance training increases well-trained soccer players' performance. *J Strength Cond Res*.
 - Sáez de Villarreal E. et al. (2009). Determining variables of plyometric training for improving vertical jump height performance: a meta-analysis. *J Strength Cond Res*.
 - Schoenfeld B.J. et al. (2016). Longer interset rest periods enhance muscle strength and hypertrophy in resistance-trained men. *J Strength Cond Res*.
 - Schoenfeld B.J. et al. (2021). Loading Recommendations for Muscle Strength, Hypertrophy, and Local Endurance: A Re-Examination of the Repetition Continuum. *Sports*.
 - Schoenfeld B.J., Ogborn D., Krieger J.W. (2016). Effects of Resistance Training Frequency on Measures of Muscle Hypertrophy. *Sports Medicine*.
 - Schoenfeld B.J., Ogborn D., Krieger J.W. (2017). Dose-response relationship between weekly resistance training volume and increases in muscle mass. *J Sports Sci*.
+- Schoenfeld B.J., Ogborn D.I., Krieger J.W. (2015). Effect of repetition duration during resistance training on muscle hypertrophy: a systematic review and meta-analysis. *Sports Medicine*.
 - Schumann M. et al. (2022). Compatibility of Concurrent Aerobic and Strength Training for Skeletal Muscle Size and Function: An Updated Systematic Review and Meta-Analysis. *Sports Medicine*.
 - Seitz L.B. et al. (2014). Increases in lower-body strength transfer positively to sprint performance: a systematic review with meta-analysis. *Sports Medicine*.
 - Slimani M. et al. (2016). Effects of Plyometric Training on Physical Fitness in Team Sport Athletes: A Systematic Review. *J Hum Kinet*.
 - Soligard T. et al. (2008). Comprehensive warm-up programme to prevent injuries in young female footballers: cluster randomised controlled trial. *BMJ*.
 - Stöggl T., Sperlich B. (2014). Polarized training has greater impact on key endurance variables than threshold, high intensity, or high volume training. *Front Physiol*.
 - Suchomel T.J., Nimphius S., Stone M.H. (2016). The Importance of Muscular Strength in Athletic Performance. *Sports Medicine*.
+- Zhang X. et al. (2025). Superset Versus Traditional Resistance Training Prescriptions: A Systematic Review and Meta-analysis Exploring Acute and Chronic Effects on Mechanical, Metabolic, and Perceptual Variables. *Sports Medicine*.

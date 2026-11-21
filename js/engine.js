@@ -439,7 +439,10 @@ function historyFactor(data, region, bw) {
 }
 
 export function estimateWeight(data, ex, lo, hi) {
-  const bw = bodyweightAt(data, todayISO());
+  let bw = bodyweightAt(data, todayISO());
+  // Referenzwerte gelten für ca. 15 % Körperfett → bei bekanntem Körperfett über die fettfreie Masse skalieren
+  const bc = bodyComp(data);
+  if (bc && bc.cur.fat && !bc.stale) bw = Math.min(1.1, Math.max(0.8, (1 - bc.cur.fat / 100) / 0.85)) * bw;
   const region = regionOfEx(ex);
   const hf = historyFactor(data, region, bw);
   const factor = hf ? hf.f : profileFactor(data, region);
@@ -571,13 +574,59 @@ function muscleAdjustments(data) {
   return out;
 }
 
+// ---------- Bewegungstempo ----------
+// Code „ablassen–Pause in der Dehnung–zurück“ in Sekunden, X = explosiv (maximal schnell gewollt).
+// Wdh.-Dauern von ca. 0,5–8 s bauen ähnlich Muskeln auf (Schoenfeld 2015); maximal schnell gewollte
+// konzentrische Phase bringt mehr Kraft (Pareja-Blanco 2017). Im Block: Woche 1–2 langsam ablassen +
+// Pause (Technik, Spannung in der Dehnung), Woche 3–4 zügig/explosiv mit mehr Gewicht, Deload ruhig.
+export function tempoFor(data, ex, lo, hi, week, deload) {
+  if (!ex || ex.cat !== 'strength' || ['core', 'prev_lower'].includes(ex.slot)) return null;
+  if (ex.id === 'nordic_curl') return '4-0-X';
+  if (ex.slot === 'calf') return '2-2-1'; // Pause unten nimmt den Achillessehnen-Federeffekt raus
+  if (ex.slot === 'prev_shoulder') return '2-0-2';
+  const g = data && data.profile ? goalOf(data) : null;
+  const inSeason = !!g && g.id === 'sport' && g.season === 'saison'; // in der Saison keine betonte Exzentrik (Muskelkater)
+  const iso = ISOLATION.includes(ex.slot);
+  if (deload) return '2-0-1';
+  if (hi <= 6 || inSeason) return week <= 2 && !inSeason && !['hinge'].includes(ex.slot) ? '2-1-X' : '2-0-X';
+  if (iso) return week <= 2 ? '3-1-1' : '2-1-1';
+  return week <= 2 ? '3-1-1' : '2-0-X';
+}
+
+// ---------- Intervall-Uhr ----------
+// Phasen aus der Intervall-Definition einer Übung (Runden/Serien anpassbar)
+export function intervalPhases(iv, rounds = iv.rounds, sets = iv.sets || 1) {
+  const ph = [];
+  if (iv.warm) ph.push({ kind: 'warm', label: 'Einlaufen', sec: iv.warm });
+  for (let st = 1; st <= sets; st++) {
+    for (let r = 1; r <= rounds; r++) {
+      ph.push({ kind: 'work', label: iv.workLabel || 'Belastung', sec: iv.work, round: r, rounds, set: st, sets });
+      if (r < rounds && iv.rest) ph.push({ kind: 'rest', label: 'Pause', sec: iv.rest, round: r, rounds, set: st, sets });
+      if (r === rounds && st < sets) ph.push({ kind: 'rest', label: 'Serienpause', sec: iv.setRest || iv.rest || 120, round: r, rounds, set: st, sets });
+    }
+  }
+  if (iv.cool) ph.push({ kind: 'cool', label: 'Auslaufen', sec: iv.cool });
+  return ph;
+}
+
+export function tempoText(code) {
+  if (!code) return '';
+  if (code === '4-0-X') return 'so langsam wie möglich ablassen (3–5 s), mit den Händen abfangen, zügig zurück';
+  const [e, p, c] = code.split('-');
+  return [`${e} s ablassen`, Number(p) ? `${p} s Pause in der Dehnung` : '', c === 'X' ? 'explosiv zurück' : `${c} s zurück`].filter(Boolean).join(' · ');
+}
+
+const defaultRest = (ex, main) => (ex.cat === 'power' ? 120 : ex.slot === 'squat' || ex.slot === 'hinge' || (main && ex.cat === 'strength') ? 180 : 90);
+
 // ---------- Einheit bauen ----------
 export function makeItem(data, ex, nSets, opts = {}) {
   const [dlo, dhi] = ex.reps;
   const lo = opts.lo || dlo;
   const hi = opts.hi || dhi;
   const t = target(data, ex, lo, hi, opts.deload);
-  const rest = opts.rest || (ex.cat === 'power' ? 120 : ex.slot === 'squat' || ex.slot === 'hinge' || (opts.main && ex.cat === 'strength') ? 180 : 90);
+  let tempo = null;
+  if (ex.cat === 'strength' && data && data.block) { const bi = blockInfo(data); tempo = tempoFor(data, ex, lo, hi, opts.week || bi.week, opts.deload ?? bi.deload); }
+  const rest = opts.rest || defaultRest(ex, opts.main);
   const tracked = ex.cat === 'strength' || (ex.cat === 'power' && ex.load !== 'none');
   return {
     uid: uid(),
@@ -587,6 +636,7 @@ export function makeItem(data, ex, nSets, opts = {}) {
     note: [opts.note, t.note].filter(Boolean).join(' '),
     presc: ex.presc || '',
     done: false,
+    ...(tempo ? { tempo } : {}),
     ...(ex.cat === 'run' ? { run: { min: '', km: '' } } : {}),
     sets: tracked || ex.cat === 'power'
       ? Array.from({ length: nSets }, () => ({ tw: t.w, w: t.w ?? '', r: '', done: false }))
@@ -614,11 +664,71 @@ export function estimateMinutes(session) {
     else if (b.type === 'run') m += b.items.reduce((s, i) => s + (RUN_MIN[i.exId] || 40), 0);
     else for (const it of b.items) {
       const ex = EX[it.exId];
-      const per = b.type === 'power' ? 2 : it.main ? 3.5 : ex && ISOLATION.includes(ex.slot) ? 1.75 : 2.75;
+      const iso = ex && ISOLATION.includes(ex.slot);
+      // Supersatz: Pause des einen Muskels = Arbeit des Gegenspielers → ca. 2 min pro Satz (Isolation 1,25)
+      const per = b.type === 'power' ? 2 : it.ss ? (iso ? 1.25 : 2) : it.main ? 3.5 : iso ? 1.75 : 2.75;
       m += it.sets.length * per + (ex && ISOLATION.includes(ex.slot) ? 0.5 : 1);
     }
   }
   return Math.round(m);
+}
+
+// ---------- Körperzusammensetzung (optional: Muskelmasse kg, Körperfett %) ----------
+// Waagen mit Bioimpedanz schwanken von Tag zu Tag deutlich → nur Mittelwerte und Trends über ≥ 3 Wochen werten.
+export function bodyCompSeries(data) {
+  return [...data.bodyweight].filter((e) => e.muscle > 0 || e.fat > 0).sort((a, b) => a.date.localeCompare(b.date))
+    .map((e) => ({ date: e.date, kg: e.kg, muscle: e.muscle > 0 ? e.muscle : null, fat: e.fat > 0 ? e.fat : null, fatKg: e.fat > 0 ? Math.round(e.kg * e.fat) / 100 : null }));
+}
+
+export function bodyComp(data, date = todayISO()) {
+  const pts = bodyCompSeries(data).filter((e) => daysBetween(e.date, date) >= 0);
+  if (!pts.length) return null;
+  const last = pts[pts.length - 1];
+  const mean = (arr, k) => { const v = arr.map((e) => e[k]).filter((x) => x > 0); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  const midDate = (arr) => arr[Math.floor(arr.length / 2)].date;
+  const recent = pts.filter((e) => daysBetween(e.date, last.date) <= 10);
+  const ref = pts.filter((e) => { const d = daysBetween(e.date, last.date); return d >= 21 && d <= 56; });
+  const cur = { muscle: mean(recent, 'muscle'), fat: mean(recent, 'fat'), fatKg: mean(recent, 'fatKg') };
+  const old = ref.length ? { muscle: mean(ref, 'muscle'), fat: mean(ref, 'fat'), fatKg: mean(ref, 'fatKg') } : null;
+  const d = (k) => (old && cur[k] != null && old[k] != null ? Math.round((cur[k] - old[k]) * 10) / 10 : null);
+  const female = data.profile.sex === 'weiblich';
+  return {
+    cur, old, last: last.date,
+    weeks: old ? Math.round(daysBetween(midDate(ref), midDate(recent)) / 7) : null,
+    dMuscle: d('muscle'), dFat: d('fat'), dFatKg: d('fatKg'),
+    level: cur.fat == null ? null : cur.fat > (female ? 32 : 25) ? 'high' : cur.fat < (female ? 18 : 10) ? 'low' : 'normal',
+    stale: daysBetween(last.date, date) > 21,
+  };
+}
+
+const kgS = (v) => String(Math.abs(Math.round(v * 10) / 10)).replace('.', ',');
+// Was bedeutet die Körperzusammensetzung für die heutige Einheit?
+export function compAdjust(data, date = todayISO()) {
+  const out = { mainDelta: 0, dropCond: false, addCond: false, notes: [] };
+  const bc = bodyComp(data, date);
+  if (!bc || bc.stale) return out;
+  const goal = goalOf(data);
+  const build = ['muscle', 'strength', 'fitness'].includes(goal.id) || (goal.id === 'sport' && goal.season === 'pause');
+  if (bc.dMuscle != null && bc.dMuscle <= -0.5) {
+    out.mainDelta = 1; out.dropCond = true;
+    out.notes.push(`Muskelmasse in ${bc.weeks} Wochen um ${kgS(bc.dMuscle)} kg gesunken – heute mehr Kraftreiz (Hauptübungen +1 Satz) und kein intensiver Finisher. Kaloriendefizit ggf. verkleinern, Protein 1,6–2,2 g/kg.`);
+  } else if (bc.dFat != null && bc.dFat >= 1 && build && !(bc.dMuscle != null && bc.dMuscle >= 0.5)) {
+    out.addCond = goal.id !== 'sport';
+    out.notes.push(`Körperfett in ${bc.weeks} Wochen +${kgS(bc.dFat)} %-Punkte bei kaum mehr Muskelmasse – ${out.addCond ? 'Ausdauer-Finisher dazu, ' : ''}Kalorienüberschuss etwas verringern (ca. 200–300 kcal).`);
+  } else if (bc.dFat != null && bc.dFat >= 1 && goal.id === 'lose') {
+    out.notes.push(`Körperfett steigt trotz Ziel Abnehmen (+${kgS(bc.dFat)} %-Punkte) – Kaloriendefizit und Alltagsbewegung prüfen.`);
+  } else if (bc.dFat != null && bc.dFat <= -1 && (bc.dMuscle == null || bc.dMuscle >= -0.3)) {
+    out.notes.push(`Körperfett −${kgS(bc.dFat)} %-Punkte in ${bc.weeks} Wochen${bc.dMuscle != null ? ` bei ${bc.dMuscle >= 0 ? '+' : '−'}${kgS(bc.dMuscle)} kg Muskelmasse` : ''} – weiter so.`);
+  }
+  if (bc.level === 'high' && build && !out.dropCond && goal.id !== 'sport') {
+    if (!out.addCond) out.notes.push(`Körperfett ca. ${kgS(bc.cur.fat)} % – Muskelaufbau mit Ausdauer-Finishern und ohne Kalorienüberschuss (Rekomposition) ist sinnvoll.`);
+    out.addCond = true;
+  }
+  if (bc.level === 'low' && goal.id === 'lose') {
+    out.dropCond = true;
+    out.notes.push(`Körperfett nur noch ca. ${kgS(bc.cur.fat)} % – höchstens langsam weiter abnehmen, Muskelerhalt hat Vorrang (kein intensiver Finisher).`);
+  }
+  return out;
 }
 
 // ---------- Rückmeldungen nach dem Training ----------
@@ -906,6 +1016,7 @@ export function buildSession(data, { templateId, equip, runType }) {
   const vf = goal.volume * (taper ? 0.7 : 1);
   const actAdj = activityAdjust(data, tpl.focus);
   const fb = feedbackAdjust(data, templateId);
+  const ca = compAdjust(data);
   const adj = muscleAdjustments(data);
   const adjUsed = new Set();
   const used = [];
@@ -924,7 +1035,7 @@ export function buildSession(data, { templateId, equip, runType }) {
       // Präventionsübungen (Landung, Außenrotation) bleiben auch bei reduziertem Volumen vollständig
       if (ex.cat === 'strength' && vf !== 1 && !['prev_lower', 'prev_shoulder'].includes(ex.slot)) n = Math.max(2, Math.round(n * vf));
       if (actAdj.reducePower && ex.slot === 'power_lower') n = Math.max(2, n - 1);
-      if (ex.cat === 'strength') n = Math.min(6, Math.max(sd.main ? 2 : 1, n + fb.setDelta + (sd.main ? fb.mainDelta : 0)));
+      if (ex.cat === 'strength') n = Math.min(6, Math.max(sd.main ? 2 : 1, n + fb.setDelta + (sd.main ? fb.mainDelta + ca.mainDelta : 0)));
     }
     const heavy = !tpl.light && goal.reps === 'strength' && ex.cat === 'strength' && ex.load === 'kg' && !ISOLATION.includes(ex.slot);
     // Aktivierung vor dem Spiel: wenige Wdh., volle Pausen, keine Ermüdung
@@ -943,7 +1054,7 @@ export function buildSession(data, { templateId, equip, runType }) {
   // Sprints nie mit ermüdeten Beinbeugern (z. B. nach Nordic Curls)
   if (strengthBlock && !tpl.condMain) blocks.push(strengthBlock);
   const matchDay = mi && (mi.toMatch === 0 || mi.sinceMatch === 0);
-  if (tpl.cond && !((actAdj.dropCond || fb.dropCond) && tpl.cond !== 'zone2') && (goal.finisher || tpl.cond === 'zone2' || tpl.condMain) && !(matchDay && templateId === 'REG')) {
+  if (tpl.cond && !((actAdj.dropCond || fb.dropCond || ca.dropCond) && tpl.cond !== 'zone2') && (goal.finisher || ca.addCond || tpl.cond === 'zone2' || tpl.condMain) && !(matchDay && templateId === 'REG')) {
     const c = COND[tpl.cond].map((id) => EX[id]).find((e) => available(e, equip));
     if (c) blocks.push({ type: 'conditioning', title: tpl.cond === 'zone2' ? 'Ausdauer – locker' : tpl.condMain ? 'Spielausdauer – wiederholte Sprints' : 'Ausdauer-Finisher', items: [makeItem(data, c, 0)] });
   }
@@ -965,27 +1076,58 @@ export function buildSession(data, { templateId, equip, runType }) {
       mi && mi.toMatch != null && mi.toMatch >= 2 && !matchDay ? `Nächstes Spiel in ${mi.toMatch} Tagen.` : '',
       ...actNotes,
       ...fb.notes,
+      ...(plain ? [] : ca.notes),
     ].filter(Boolean).join(' '),
     blocks,
   };
-  fitDuration(session, data.profile.duration, equip, !!tpl.condMain);
-  const iso = strength.filter((it) => ISOLATION.includes(EX[it.exId].slot)).length;
+  fitDuration(session, data.profile.duration, equip, !!tpl.condMain, goal.reps !== 'strength' && !tpl.light);
+  const iso = strength.filter((it) => ISOLATION.includes(EX[it.exId].slot) && !it.ss).length;
   if (iso >= 3) session.note = [session.note, `Tipp: Isolationsübungen paarweise als Supersatz (z. B. ${tpl.focus === 'lower' ? 'Beinbeuger + Waden' : 'Bizeps + Trizeps'}) – spart Zeit ohne Nachteil für den Muskelaufbau.`].filter(Boolean).join(' ');
   return session;
 }
 
-// Kürzt nach Priorität, bis die Einheit in die gewünschte Zeit passt.
-function fitDuration(session, minutes, equip, keepCond = false) {
+// Gegenspieler-Supersätze (nur Oberkörper, nie Beine/Sprünge): Drücken + Ziehen im Wechsel erhält die
+// Trainingslast bei deutlich kürzerer Dauer (Robbins 2010; Zhang et al. 2025)
+const SS_PAIRS = [['hpush', 'hpull'], ['vpush', 'vpull'], ['biceps', 'triceps']];
+function makeSupersets(session, over) {
+  const sb = session.blocks.find((b) => b.type === 'strength');
+  if (!sb) return 0;
+  let n = 0;
+  for (const [a, b] of SS_PAIRS) {
+    if (!over()) break;
+    const A = sb.items.find((i) => !i.ss && EX[i.exId]?.slot === a);
+    const B = sb.items.find((i) => !i.ss && EX[i.exId]?.slot === b);
+    if (!A || !B) continue;
+    const L = 'ABC'[n++];
+    A.ss = `${L}1`; B.ss = `${L}2`;
+    A.rest = B.rest = ISOLATION.includes(a) && ISOLATION.includes(b) ? 60 : 90; // Grundübungen 90 s, Isolation 60 s
+    sb.items.splice(sb.items.indexOf(B), 1);
+    sb.items.splice(sb.items.indexOf(A) + 1, 0, B);
+  }
+  return n;
+}
+
+// Kürzt nach Priorität, bis die Einheit in die gewünschte Zeit passt. Bei Hypertrophie-Zielen zuerst
+// Supersätze statt Übungen zu streichen.
+function fitDuration(session, minutes, equip, keepCond = false, superset = false) {
   const strength = session.blocks.find((b) => b.type === 'strength');
   const power = session.blocks.find((b) => b.type === 'power');
   const items = () => [...(strength ? strength.items : []), ...(power ? power.items : [])].reverse();
-  const drop = (it) => { for (const b of [strength, power]) if (b && b.items.includes(it)) b.items.splice(b.items.indexOf(it), 1); };
+  const drop = (it) => {
+    for (const b of [strength, power]) if (b && b.items.includes(it)) b.items.splice(b.items.indexOf(it), 1);
+    // Fällt eine Supersatz-Übung weg, wird der Partner wieder ein normaler Satz mit normaler Pause
+    const p = it.ss && strength && strength.items.find((x) => x.ss && x.ss[0] === it.ss[0]);
+    if (p) { delete p.ss; p.rest = defaultRest(EX[p.exId], p.main); }
+  };
   const over = () => estimateMinutes(session) > minutes;
   const cond = session.blocks.find((b) => b.type === 'conditioning');
   // 1. Lange Intervalle -> kurze Intervalle
   if (cond && !keepCond && over() && condKind(cond.items[0].exId) !== 'short') {
     const c = COND.short.map((id) => EX[id]).find((e) => available(e, equip));
     if (c) cond.items = [makeItem({ sessions: [], bodyweight: [], profile: {} }, c, 0)];
+  }
+  if (superset && over() && makeSupersets(session, over)) {
+    session.note = [session.note, 'Zeit knapp: Drücken und Ziehen als Supersätze (z. B. A1 → A2 im Wechsel, kurze Pause dazwischen) – spart Zeit ohne Nachteil für den Muskelaufbau.'].filter(Boolean).join(' ');
   }
   let guard = 60;
   while (over() && guard-- > 0) {
@@ -1021,6 +1163,8 @@ export function sessionFromPlan(data, plan, { templateId, equip }) {
         lo, hi, main: !!it.main, deload, note: it.note, rest: Number(it.restSec) > 0 ? Math.round(it.restSec) : undefined,
       });
       if (it.prescription) item.presc = it.prescription;
+      if (/^[A-C][12]$/.test(it.superset || '') && ex.cat === 'strength') item.ss = it.superset;
+      if (/^[1-5]-[0-3]-([1-4]|X)$/.test(it.tempo || '') && item.tempo) item.tempo = it.tempo;
       items.push(item);
     }
     if (items.length) blocks.push({ type: b.type, title: b.title || '', items });
@@ -1100,6 +1244,12 @@ export function aiContext(data) {
     wochenvolumen_saetze_7_tage: weeklyVolume(data, 7),
     leistungstrends: trends,
     koerpergewicht: { aktuell_7_tage_mittel: bwNow, vor_4_wochen: bwThen, ...(goalOf(data).weightGoal && data.profile.goalWeight ? { zielgewicht: data.profile.goalWeight } : {}) },
+    ...(() => {
+      const bc = bodyComp(data);
+      if (!bc) return {};
+      const r = (v) => (v == null ? null : Math.round(v * 10) / 10);
+      return { koerperzusammensetzung: { letzte_messung: bc.last, muskelmasse_kg: r(bc.cur.muscle), koerperfett_pct: r(bc.cur.fat), ...(bc.old ? { vor_ca_wochen: bc.weeks, muskelmasse_kg_damals: r(bc.old.muscle), koerperfett_pct_damals: r(bc.old.fat) } : {}), einordnung_koerperfett: bc.level, app_anpassung: compAdjust(data).notes } };
+    })(),
     rueckmeldungen_letzte_einheiten: data.sessions.filter((x) => (x.feedback || x.autoEffort) && daysBetween(x.date, todayISO()) < 21).slice(-6).map((x) => ({
       datum: x.date, einheit: x.title, anstrengung_aus_wdh: effortOf(x) || null,
       ...(x.feedback ? { gefallen: x.feedback.liked || null, beschwerden: (x.feedback.pain || []).map((p) => PAIN_NAME[p]), ...(x.feedback.note ? { notiz: x.feedback.note } : {}) } : {}),

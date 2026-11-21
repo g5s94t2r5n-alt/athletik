@@ -29,6 +29,9 @@ Regeln (aus der Sportwissenschaft, nicht verhandelbar):
 - Rückmeldungen nach dem Training (Daten: rueckmeldungen_letzte_einheiten; die Anstrengung schätzt die App aus den Wiederholungen) ernst nehmen: „too_hard“ → weniger Volumen, kein Finisher, bei Wiederholung Deload-Charakter; „easy“ → etwas mehr Volumen bei den Hauptübungen; „nicht gefallen“ → andere Übungsvarianten; Beschwerden → die Region schonen. Nicht gemochte oder schmerzauslösende Übungen sind bereits aus dem Katalog entfernt.
 - Berücksichtige Wünsche und Beschwerden des Athleten für heute (z. B. Schmerzen → schonende Alternative, keine Belastung der Stelle).
 - Halte die geplante Dauer ein (warmup ≈ 7 min, pro Kraftsatz inkl. Pause ≈ 2,5–3,5 min, Finisher ≈ 10–15 min).
+- Supersätze: Wird die Zeit knapp, bei Hypertrophie-Zielen Gegenspieler im Oberkörper paaren (Drücken + Ziehen, z. B. Bankdrücken A1 + Rudern A2; Bizeps + Trizeps), im Wechsel mit 60–90 s Pause (restSec), "superset" = "A1"/"A2", "B1"/"B2" … – das erhält die Trainingslast bei kürzerer Dauer. Nie Beinübungen, Sprünge/Sprints oder schwere Kraftsätze (≤ 6 Wdh.) als Supersatz. Sonst "superset" = "".
+- Tempo ("tempo", Format ablassen-Pause-zurück in Sekunden, X = explosiv), nur für strength-Übungen, sonst "": Block-Woche 1–2 „3-1-1“ (Technik, Spannung in der Dehnung), Woche 3–4 Grundübungen „2-0-X“, Isolation „2-1-1“; schwere Sätze ≤ 6 Wdh. „2-1-X“ (Woche 1–2) bzw. „2-0-X“; Deload „2-0-1“; Waden „2-2-1“; in der Saison (Sportart) keine betonte Exzentrik, „2-0-X“.
+- Körperzusammensetzung (koerperzusammensetzung, falls angegeben; Waagen-Werte schwanken – nur Trends über ≥ 3 Wochen werten): Muskelmasse sinkt → mehr Kraftreiz, kein intensiver Finisher, Hinweis auf Defizit/Protein; Körperfett steigt im Aufbau ohne Muskelzuwachs → Ausdauer-Finisher, Überschuss verringern.
 
 Ausgabe:
 - Nur Übungs-IDs aus dem mitgeschickten Katalog. Gewichte rechnet die App selbst, gib keine Gewichte an.
@@ -46,6 +49,7 @@ Gib konkrete Anpassungen:
 - avoid: Übungs-IDs, die vorerst ersetzt werden sollen (z. B. bei Stagnation über mehrere Einheiten), sonst leer.
 - summary: 2–4 Sätze, ehrlich und konkret. focus: ein Satz für die nächste Woche. tips: 2–4 kurze Tipps (Training, Regeneration, Ernährung).
 Wenn kaum Daten vorliegen, sag das und gib trotzdem sinnvolle Starttipps. Alles auf Deutsch.
+Körperzusammensetzung (falls angegeben, Waagen-Messungen schwanken – nur Trends werten): Muskelmasse und Körperfett im Verhältnis zum Ziel bewerten (Aufbau: Muskel ↑, Fett höchstens leicht ↑; Abnehmen: Fett ↓, Muskel halten).
 Berücksichtige die Rückmeldungen nach den Einheiten (aus den Wiederholungen geschätzte Anstrengung, Gefallen, Beschwerden): wiederholt „too_hard“ spricht für weniger Volumen oder einen Deload, „easy“ für mehr; wiederkehrende Beschwerden kurz und vorsichtig ansprechen (bei anhaltenden Schmerzen ärztliche Abklärung empfehlen).`;
 
 let sdkPromise = null;
@@ -93,12 +97,13 @@ async function ask({ apiKey, system, user, schema, effort }) {
 function sessionSchema(ids) {
   const item = {
     type: 'object', additionalProperties: false,
-    required: ['exId', 'sets', 'repsLow', 'repsHigh', 'restSec', 'main', 'note', 'prescription'],
+    required: ['exId', 'sets', 'repsLow', 'repsHigh', 'restSec', 'main', 'note', 'prescription', 'superset', 'tempo'],
     properties: {
       exId: { type: 'string', enum: ids },
       sets: { type: 'integer' }, repsLow: { type: 'integer' }, repsHigh: { type: 'integer' },
       restSec: { type: 'integer' }, main: { type: 'boolean' },
       note: { type: 'string' }, prescription: { type: 'string' },
+      superset: { type: 'string' }, tempo: { type: 'string' },
     },
   };
   return {

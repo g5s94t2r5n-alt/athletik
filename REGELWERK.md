@@ -44,6 +44,8 @@ Die Regeln sind Vereinfachungen der Studienlage (Stand Ende 2026). Sie ersetzen 
 
 ### Laufeinheit
 
+Beim Sportart-Ziel gelten eigene Regeln: spielnahe kurze Intervalle statt polarisiert (s. 3a, „Sportartspezifisch“).
+
 | Regel in der App | Grundlage |
 |---|---|
 | Polarisiert: ca. 80 % locker (Zone 2), höchstens 1–2 harte Läufe pro Woche | Stöggl & Sperlich 2014 |
@@ -147,6 +149,25 @@ Teamtrainings und Spiele werden nachgetragen („Teamtraining“, „Spiel / Mat
 | Volleyball | Anlauf- und Strecksprung, Überkopfwurf, Slams | Schulter-Außenrotation, Landetechnik, Sprunggelenk |
 | Tennis / Padel | Rotationswürfe, Seitsprünge, Pogo-Sprünge, Anti-Rotation | Schulter-Außenrotation |
 
+**Laufeinheiten je Sportart:** Teamsport und Rückschlagsport sind intermittierend: kurze, intensive Belastungen mit vielen Antritten und Wenden. Deshalb plant die App hier **nicht polarisiert** wie im Ausdauersport, sondern spielnahe kurze Intervalle (Buchheit & Laursen 2013; wiederholte Sprints: Bishop 2011):
+- **15/15:** 2 × 12 × 15 s schnell (ca. 100–110 % des Tempos, das man 6 min durchhält) / 15 s traben.
+- **Wiederholte Sprints mit Richtungswechsel:** 3 × 6 × (15 m + Wende + 15 m), 20 s Pause.
+- **Pendelintervalle:** 2 × 10 × 20 s hin und her über 20 m, 20 s Pause.
+
+| Sportart | Vorbereitung | Saison | Saisonpause |
+|---|---|---|---|
+| Fußball | 4×4, 15/15, wiederholte Sprints, 4×4, Sprints | 15/15, wiederholte Sprints, Sprints | 4×4, Fahrtspiel, Tempolauf |
+| Handball | 15/15, wiederholte Sprints, 4×4, Pendeln | 15/15, wiederholte Sprints, Pendeln | 4×4, Fahrtspiel, 15/15 |
+| Basketball | 15/15, Pendeln, wiederholte Sprints, 4×4 | wiederholte Sprints, 15/15, Pendeln | 4×4, Fahrtspiel, 15/15 |
+| Volleyball | Sprints, wiederholte Sprints, 15/15 | Sprints, wiederholte Sprints | Fahrtspiel, 15/15, 4×4 |
+| Tennis / Padel | Pendeln, 15/15, 4×4, wiederholte Sprints | Pendeln, 15/15, Sprints | 4×4, Fahrtspiel, Pendeln |
+
+**Lockerer Lauf** nur zur Erholung:
+- am Spieltag, 1–2 Tage vor dem Spiel und am Tag danach,
+- am Tag nach hartem Teamtraining oder Spiel – zwischen zwei harten Einheiten liegt ein Ruhetag,
+- im Deload,
+- wenn das Wochenlimit harter Läufe erreicht ist: Saison 1, Vorbereitung und Pause 2. Teamtraining und Spiel liefern bereits viel intensive Belastung.
+
 Plyometrie verbessert bei Teamsportlern Sprung, Sprint und Richtungswechsel (Slimani 2016); höhere Maximalkraft geht mit besserem Sprint und Sprung einher (Seitz 2014, Suchomel 2016). 4×4-Intervalle verbessern bei Fußballern VO₂max und Laufleistung im Spiel (Helgerud 2001).
 
 Kraft vor Ausdauer-Zielen: Krafttraining verbessert die Laufökonomie (Balsalobre-Fernández et al. 2016) und wird deshalb auch bei Lauf-Zielen beibehalten.
@@ -155,7 +176,7 @@ Kraft vor Ausdauer-Zielen: Krafttraining verbessert die Laufökonomie (Balsalobr
 
 Keine feste Reihenfolge – die App empfiehlt jedes Mal neu:
 
-1. **Erholung:** Eine Körperregion (Unter-/Oberkörper) wird frühestens nach ~48 h wieder hart trainiert – auch dann nicht, wenn eine Einheit dieser Region im Wochenplan noch fehlt (dann erholte Einheit oder locker). Nachgetragene Beinbelastung (HIIT, Joggen, Padel …) zählt für den Unterkörper mit; bei Lauf-Zielen zählt ein Lauf nur 24 h („harte Tage hart, lockere Tage locker“). Athletik-Tage belasten nur die Beine, Regenerationstage gar nicht.
+1. **Erholung:** Eine Körperregion (Unter-/Oberkörper) wird frühestens nach ~48 h wieder hart trainiert – auch dann nicht, wenn eine Einheit dieser Region im Wochenplan noch fehlt (dann erholte Einheit oder locker). Nachgetragene Beinbelastung (HIIT, Joggen, Padel …) zählt für den Unterkörper mit; bei Lauf-Zielen zählt ein Lauf nur 24 h („harte Tage hart, lockere Tage locker“), beim Sportart-Ziel Teamtraining und Läufe ebenfalls 24 h (ein Spiel 48 h). Athletik-Tage belasten nur die Beine, Regenerationstage gar nicht.
 2. **Wochenplan des Ziels:** Einheiten, die diese Woche laut Ziel noch fehlen (z. B. der 3. Lauf beim Marathon), bekommen Vorrang. Bei Muskel-/Kraft-/Fitness-Zielen zählen zusätzlich Muskeln unter 10 Sätzen in den letzten 7 Tagen.
 3. **Abwechslung:** Innerhalb einer Region wechseln A- und B-Variante.
 4. **Schlüsseleinheit:** Bei Gleichstand gewinnt die Kerneinheit des Ziels (HYROX-Einheit bzw. Lauf beim Marathon).
@@ -217,6 +238,8 @@ Claude bekommt die Werte und Trends für Planung und Wochen-Check.
 - Balsalobre-Fernández C., Santos-Concejero J., Grivas G.V. (2016). Effects of Strength Training on Running Economy in Highly Trained Runners: A Systematic Review With Meta-Analysis of Controlled Trials. *J Strength Cond Res*.
 - Behm D.G. et al. (2016). Acute effects of muscle stretching on physical performance, range of motion, and injury incidence. *Appl Physiol Nutr Metab*.
 - Bell L. et al. (2023). Integrating Deloading into Strength and Physique Sports Training Programmes: An International Delphi Consensus Approach. *Sports Medicine – Open*.
+- Bishop D., Girard O., Mendez-Villanueva A. (2011). Repeated-Sprint Ability – Part II: Recommendations for Training. *Sports Medicine*.
+- Buchheit M., Laursen P.B. (2013). High-Intensity Interval Training, Solutions to the Programming Puzzle. Part I & II. *Sports Medicine*.
 - van Dyk N., Behan F.P., Whiteley R. (2019). Including the Nordic hamstring exercise in injury prevention programmes halves the rate of hamstring injuries: a systematic review and meta-analysis of 8459 athletes. *Br J Sports Med*.
 - Foster C. et al. (2001). A New Approach to Monitoring Exercise Training. *J Strength Cond Res*.
 - Harøy J. et al. (2019). The Adductor Strengthening Programme prevents groin problems among male football players: a cluster-randomised controlled trial. *Br J Sports Med*.

@@ -96,6 +96,8 @@ export const GOALS = [
 export const SPORTS = [
   {
     id: 'football', name: 'Fußball',
+    // Laufeinheiten je Saisonphase: spielnahe kurze Intervalle statt polarisiertem Ausdauertraining
+    runs: { vorbereitung: ['run_4x4', 'run_1515', 'run_rsa', 'run_4x4', 'run_sprints'], saison: ['run_1515', 'run_rsa', 'run_sprints'], pause: ['run_4x4', 'run_fartlek', 'run_tempo'] },
     desc: 'Antritt, wiederholte Sprints, Richtungswechsel, Sprung- und Schusskraft. Prävention für Beinbeuger (Nordic Curls) und Leiste (Copenhagen).',
     prefer: {
       power_lower: ['broad_jump', 'lateral_bound', 'cmj', 'box_jump'], cod: ['cod_505', 'lateral_shuffle'],
@@ -108,6 +110,8 @@ export const SPORTS = [
   },
   {
     id: 'handball', name: 'Handball',
+    // Laufeinheiten je Saisonphase: spielnahe kurze Intervalle statt polarisiertem Ausdauertraining
+    runs: { vorbereitung: ['run_1515', 'run_rsa', 'run_4x4', 'run_shuttle'], saison: ['run_1515', 'run_rsa', 'run_shuttle'], pause: ['run_4x4', 'run_fartlek', 'run_1515'] },
     desc: 'Wurfkraft, Sprungkraft, Richtungswechsel und Zweikampf. Prävention für Schulter (Außenrotation) und Knie (Landetechnik).',
     prefer: {
       power_upper: ['mb_overhead_throw', 'mb_rot_throw', 'mb_chest_pass', 'plyo_pushup'], power_lower: ['cmj', 'lateral_bound', 'box_jump', 'broad_jump'],
@@ -119,6 +123,8 @@ export const SPORTS = [
   },
   {
     id: 'basketball', name: 'Basketball',
+    // Laufeinheiten je Saisonphase: spielnahe kurze Intervalle statt polarisiertem Ausdauertraining
+    runs: { vorbereitung: ['run_1515', 'run_shuttle', 'run_rsa', 'run_4x4'], saison: ['run_rsa', 'run_1515', 'run_shuttle'], pause: ['run_4x4', 'run_fartlek', 'run_1515'] },
     desc: 'Vertikale Sprungkraft, Antritt, seitliche Schnelligkeit. Prävention für Knie (Landetechnik) und Sprunggelenk.',
     prefer: {
       power_lower: ['approach_jump', 'depth_jump', 'cmj', 'box_jump'], cod: ['lateral_shuffle', 'cod_505'],
@@ -129,6 +135,8 @@ export const SPORTS = [
   },
   {
     id: 'volleyball', name: 'Volleyball',
+    // Laufeinheiten je Saisonphase: spielnahe kurze Intervalle statt polarisiertem Ausdauertraining
+    runs: { vorbereitung: ['run_sprints', 'run_rsa', 'run_1515'], saison: ['run_sprints', 'run_rsa'], pause: ['run_fartlek', 'run_1515', 'run_4x4'] },
     desc: 'Sprungkraft mit Anlauf, Schlagarm und Rumpf. Prävention für Schulter, Knie und Sprunggelenk.',
     prefer: {
       power_lower: ['approach_jump', 'cmj', 'depth_jump', 'box_jump'], power_upper: ['mb_overhead_throw', 'mb_slam', 'mb_rot_throw'],
@@ -139,6 +147,8 @@ export const SPORTS = [
   },
   {
     id: 'racket', name: 'Tennis / Padel',
+    // Laufeinheiten je Saisonphase: spielnahe kurze Intervalle statt polarisiertem Ausdauertraining
+    runs: { vorbereitung: ['run_shuttle', 'run_1515', 'run_4x4', 'run_rsa'], saison: ['run_shuttle', 'run_1515', 'run_sprints'], pause: ['run_4x4', 'run_fartlek', 'run_shuttle'] },
     desc: 'Rotationskraft, seitliche Schnelligkeit, einbeinige Beinkraft. Prävention für Schulter und Sprunggelenk.',
     prefer: {
       power_upper: ['mb_rot_throw', 'mb_overhead_throw', 'band_punch'], power_lower: ['lateral_bound', 'cmj', 'ankle_hops'],
@@ -198,6 +208,7 @@ function sportGoal(base, p) {
     ...base, ...se.params,
     name: `${sp.name} · ${se.name}`,
     sport: sp.id, season: se.id, sportProfile: sp, rot: se.rot, sessionNote: se.note,
+    runCycle: (sp.runs && sp.runs[se.id]) || base.runCycle, hardRuns: se.id === 'saison' ? 1 : 2,
     prompt: `Ziel: Sportartspezifisches Athletiktraining (Sprint, Sprung, Richtungswechsel, Kraft, Verletzungsprävention). ${sp.prompt} ${se.prompt}${md !== null && se.id !== 'pause' ? ` Fester Spieltag: ${WEEKDAYS[md]}.` : ''} Teamtrainings und Spiele trägt der Athlet als nachgetragene Trainings ein – sie gehören zur Gesamtlast.`,
   };
 }

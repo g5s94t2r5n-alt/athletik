@@ -99,10 +99,13 @@ function renderToday() {
       // Vorschlag (★) wie bei den Einheiten: vorausgewählt, mit Begründung; andere Lauftypen frei wählbar
       const auto = autoRunType(data);
       const chosen = runType === 'auto' ? auto.id : runType;
+      // Zum Ziel passende Läufe zuerst, die übrigen unter „Weitere Läufe“
+      const main = [...new Set([auto.id, ...goal.runCycle, 'run_easy', ...(goal.longRun || goal.id === 'endurance' ? ['run_long'] : [])])].filter((id) => RUN_TYPES.includes(id));
+      const rest = RUN_TYPES.filter((id) => !main.includes(id));
+      const chip = (id) => `<button class="chip ${chosen === id ? 'on' : ''}" data-action="runtype" data-id="${id === auto.id ? 'auto' : id}">${esc(EX[id].name)}${id === auto.id ? ' ★' : ''}</button>`;
       return `<div class="label mt">Welcher Lauf?</div>
-      <div class="chips">
-        ${RUN_TYPES.map((id) => `<button class="chip ${chosen === id ? 'on' : ''}" data-action="runtype" data-id="${id === auto.id ? 'auto' : id}">${esc(EX[id].name)}${id === auto.id ? ' ★' : ''}</button>`).join('')}
-      </div>
+      <div class="chips">${main.map(chip).join('')}</div>
+      ${rest.length ? `<details class="more" ${rest.includes(chosen) ? 'open' : ''}><summary>Weitere Läufe</summary><div class="chips">${rest.map(chip).join('')}</div></details>` : ''}
       <p class="rec"><span class="rec-star">★</span> ${chosen === auto.id ? `<strong>Vorschlag: ${esc(EX[auto.id].name)}.</strong> ${esc(auto.why)}` : `Vorschlag wäre <button class="link" data-action="runtype" data-id="auto">${esc(EX[auto.id].name)}</button>: ${esc(auto.why)}`}</p>
       <p class="muted small"><b>Ablauf:</b> ${esc(EX[chosen].presc)}</p>
       <p class="muted small">Draußen oder auf dem Laufband: Aufwärmen, Laufen, Dehnen – ohne Kraftübungen.</p>`;
@@ -213,7 +216,7 @@ async function startPlan(useAI) {
 
 // ---------- Aktive Einheit ----------
 const BLOCK_ICON = { warmup: 'Aufwärmen', power: 'Schnellkraft', strength: 'Kraft', conditioning: 'Ausdauer', run: 'Laufen', cooldown: 'Mobilität' };
-const RUN_TYPES = ['run_easy', 'run_4x4', 'run_3030', 'run_tempo', 'run_fartlek', 'run_sprints', 'run_long'];
+const RUN_TYPES = ['run_easy', 'run_4x4', 'run_3030', 'run_tempo', 'run_fartlek', 'run_sprints', 'run_long', 'run_1515', 'run_rsa', 'run_shuttle'];
 
 function pace(min, km) {
   const m = parseFloat(String(min).replace(',', '.')); const k = parseFloat(String(km).replace(',', '.'));

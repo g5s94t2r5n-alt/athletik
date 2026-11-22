@@ -15,11 +15,11 @@ class FakeDate extends RealDate {
 
 const ALL = EQUIPMENT.map((e) => e.id);
 const PATTERN = { 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 5], 5: [0, 1, 2, 4, 5], 6: [0, 1, 2, 3, 4, 5] };
-const HARD = ['run_4x4', 'run_3030', 'run_tempo', 'run_sprints', 'hx_runs'];
+const HARD = ['run_4x4', 'run_3030', 'run_tempo', 'run_sprints', 'hx_runs', 'run_1515', 'run_rsa', 'run_shuttle'];
 const BIG = ['brust', 'ruecken', 'schultern', 'quadrizeps', 'beinbeuger', 'gesaess'];
 
 // Sportart: sport, season, matchRel (Spieltag als Tag 0–6 der Simulationswoche), team (Teamtrainings, Tage 0–6)
-export function simulate({ goal, days = 4, weeks = 8, raceInDays = null, duration = 75, seed = 3, sport = 'football', season = 'saison', matchRel = null, team = [] }) {
+export function simulate({ goal, days = 4, weeks = 8, raceInDays = null, duration = 75, seed = 3, sport = 'football', season = 'saison', matchRel = null, team = [], runDays = [] }) {
   let rnd = seed; const R = () => { rnd = (rnd * 9301 + 49297) % 233280; return rnd / 233280; };
   window.Date = FakeDate; offset = 0;
   try {
@@ -32,9 +32,11 @@ export function simulate({ goal, days = 4, weeks = 8, raceInDays = null, duratio
     const log = []; const vol = [];
     for (let day = 0; day < weeks * 7; day++) {
       offset = day * 86400000;
-      if (PATTERN[days].includes(day % 7)) {
+      const forced = runDays.includes(day % 7); // zusätzlich gewünschte Laufeinheit (Lauf-Chip)
+      if (PATTERN[days].includes(day % 7) || forced) {
         const mi = matchInfo(d);
-        const rec = eng.recommendTemplate(d);
+        const prevHard = d.activities.some((a) => a.intensity === 'hart' && st.daysBetween(a.date, st.todayISO()) === 1);
+        const rec = forced ? { id: 'RUN', why: 'Lauf-Wunsch' } : eng.recommendTemplate(d);
         const s = eng.buildSession(d, { templateId: rec.id, equip: rec.id === 'RUN' ? [] : ALL, runType: 'auto' });
         const runIt = s.blocks.flatMap((b) => b.items).find((it) => it.run);
         s.blocks.forEach((b) => b.items.forEach((it) => {
@@ -45,7 +47,7 @@ export function simulate({ goal, days = 4, weeks = 8, raceInDays = null, duratio
         s.status = 'done';
         d.sessions.push(s); eng.rememberSlots(d, s);
         log.push({
-          day, week: Math.floor(day / 7) + 1, tpl: rec.id, why: rec.why, deload: s.deload, note: s.note, mi,
+          day, week: Math.floor(day / 7) + 1, tpl: rec.id, why: rec.why, deload: s.deload, note: s.note, mi, forced, prevHard,
           ex: s.blocks.flatMap((b) => b.items.map((i) => i.exId)),
           run: runIt ? runIt.exId : null, min: eng.estimateMinutes(s),
           blocks: s.blocks.map((b) => b.type),
@@ -58,7 +60,7 @@ export function simulate({ goal, days = 4, weeks = 8, raceInDays = null, duratio
       if (matchRel != null && day % 7 === matchRel) evening('match', 90);
       if (day % 7 === 6) vol.push(eng.weeklyVolume(d, 7));
     }
-    return { goal, days, weeks, raceInDays, rot: rotationFor(d), g: goalOf(d), match: matchRel != null, team, log, vol };
+    return { goal, days, weeks, raceInDays, rot: rotationFor(d), g: goalOf(d), match: matchRel != null, team, forcedRuns: runDays.length > 0, log, vol };
   } finally { window.Date = RealDate; offset = 0; }
 }
 
@@ -79,7 +81,7 @@ export function evaluate(res) {
     if (!ok) mism.push(`W${w}: ${Object.entries(cnt).map(([k, v]) => `${k}×${v}`).join(' ')}`);
   });
   // Mit festem Spieltag haben die Spieltag-Regeln Vorrang vor dem Wochenplan (eigene Prüfung unten)
-  if (!res.match) check(mism.length <= 1, `Wochenplan wie Ziel (${Object.entries(target).map(([k, v]) => `${k}×${v}`).join(' ')}) – Abweichungen: ${mism.length ? mism.join('; ') : 'keine'}`);
+  if (!res.match && !res.forcedRuns) check(mism.length <= 1, `Wochenplan wie Ziel (${Object.entries(target).map(([k, v]) => `${k}×${v}`).join(' ')}) – Abweichungen: ${mism.length ? mism.join('; ') : 'keine'}`);
 
   // 2. Keine Region < 48 h erneut hart (Athletik-Tag zählt nur für Beine, Regeneration/Lauf gar nicht)
   const regionsOf = (t) => (t === 'ATH' ? ['lower'] : ['REG', 'RUN', 'PRIME'].includes(t) ? [] : ({ lower: ['lower'], upper: ['upper'], full: ['lower', 'upper'] }[eng.TEMPLATES[t]?.focus] || []));
@@ -157,13 +159,30 @@ export function evaluate(res) {
   if (res.goal === 'sport') {
     const legsTpl = (t) => !['REG', 'PRIME', 'RUN'].includes(t) && ['lower', 'full'].includes(eng.TEMPLATES[t].focus);
     if (res.match) {
-      const bad = res.log.filter((l) => l.mi && (
+      const bad = res.log.filter((l) => l.mi && !l.forced && (
         ((l.mi.toMatch === 0 || l.mi.sinceMatch === 0 || l.mi.sinceMatch === 1) && l.tpl !== 'REG')
         || (l.mi.toMatch === 1 && l.tpl !== 'PRIME')
         || (l.mi.toMatch === 2 && legsTpl(l.tpl))));
       check(bad.length === 0, `Spieltag-Regeln (MD/MD+1 Regeneration, MD-1 Aktivierung, MD-2 keine Beine) – Verstöße: ${bad.map((l) => `T${l.day} MD-${l.mi.toMatch}:${l.tpl}`).join(', ') || 'keine'}`);
       const md = res.log.filter((l) => l.mi && l.mi.toMatch === 0 && l.blocks.includes('conditioning'));
       check(md.length === 0, `Am Spieltag kein Ausdauerteil (${md.length})`);
+    }
+    // Läufe beim Sportart-Ziel: spielnah statt polarisiert, locker rund ums Spiel und nach harten Tagen
+    const sruns = res.log.filter((l) => l.run);
+    if (sruns.length) {
+      const allowed = [...res.g.runCycle, 'run_easy'];
+      const wrongType = sruns.filter((l) => !allowed.includes(l.run));
+      check(wrongType.length === 0, `Lauftypen passend zu ${res.g.name} (${[...new Set(sruns.map((l) => l.run.replace('run_', '')))].join(', ')})`);
+      const hardL = sruns.filter((l) => HARD.includes(l.run));
+      const nearMatch = hardL.filter((l) => l.mi && ((l.mi.toMatch != null && l.mi.toMatch <= 2) || l.mi.sinceMatch <= 1));
+      check(nearMatch.length === 0, `Kein harter Lauf 2 Tage vor bis 1 Tag nach dem Spiel (Verstöße: ${nearMatch.map((l) => `T${l.day}:${l.run}`).join(', ') || 'keine'})`);
+      const afterHard = hardL.filter((l) => l.prevHard);
+      check(afterHard.length === 0, `Kein harter Lauf am Tag nach hartem Teamtraining/Spiel (Verstöße: ${afterHard.map((l) => `T${l.day}`).join(', ') || 'keine'})`);
+      const tooMany = hardL.filter((l) => hardL.filter((x) => x.day < l.day && l.day - x.day < 7).length >= res.g.hardRuns);
+      check(tooMany.length === 0, `Höchstens ${res.g.hardRuns} harte(r) Lauf/Läufe pro 7 Tage (${hardL.length} harte von ${sruns.length})`);
+      const close = hardL.filter((l) => hardL.some((x) => x.day < l.day && l.day - x.day < 2));
+      check(close.length === 0, `Harte Läufe mit mind. 48 h Abstand (Verstöße: ${close.map((l) => `T${l.day}`).join(', ') || 'keine'})`);
+      if (!res.match) check(hardL.length > 0, `Spielnahe Intervalle kommen vor (${hardL.length})`);
     }
     const prime = res.log.filter((l) => l.tpl === 'PRIME');
     check(prime.every((l) => l.min <= 40 && !l.blocks.includes('conditioning')), `Aktivierung kurz und ohne Ausdauer (${prime.map((l) => l.min + ' min').join(', ') || 'keine'})`);
@@ -232,6 +251,13 @@ export const SPORT_CONFIGS = [
   { goal: 'sport', sport: 'volleyball', season: 'pause', days: 3, duration: 90 }, // 3 Tage Aufbau: 90 min (Tipp in der App)
   { goal: 'sport', sport: 'racket', season: 'vorbereitung', days: 3, team: [2] },
   { goal: 'sport', sport: 'racket', season: 'saison', days: 6 },
+  // Zusätzliche Laufeinheiten (Lauf-Chip) bei Sportarten
+  { goal: 'sport', sport: 'handball', season: 'vorbereitung', days: 2, runDays: [1, 3, 5] },
+  { goal: 'sport', sport: 'handball', season: 'saison', days: 2, matchRel: 6, team: [2], runDays: [1, 4, 5] },
+  { goal: 'sport', sport: 'football', season: 'vorbereitung', days: 3, matchRel: 6, team: [1, 3], runDays: [2, 5] },
+  { goal: 'sport', sport: 'basketball', season: 'saison', days: 2, runDays: [1, 3, 5] },
+  { goal: 'sport', sport: 'volleyball', season: 'pause', days: 3, duration: 90, runDays: [1, 5] },
+  { goal: 'sport', sport: 'racket', season: 'vorbereitung', days: 2, team: [2], runDays: [1, 4, 6] },
 ];
 // Wenig Zeit: Supersätze statt gestrichener Übungen
 export const SHORT_CONFIGS = [

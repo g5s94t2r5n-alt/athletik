@@ -231,9 +231,9 @@ export function recommendTemplate(data, date = todayISO()) {
   // Bei Lauf-Zielen zählt ein Lauf nur 24 h als Beinbelastung („harte Tage hart“), sonst 48 h
   const runFocus = ids.includes('RUN') || ids.includes('HYX');
   const dayBefore = (iso) => todayISO(new Date(new Date(iso + 'T12:00:00').getTime() - 86400000));
-  // Sportart-Ziel: Teamtraining belastet die Beine nur 24 h (sonst bliebe zwischen Teamtrainings und Spiel
+  // Sportart-Ziel: Teamtraining und Läufe belasten die Beine nur 24 h (sonst bliebe zwischen Teamtrainings und Spiel
   // kein Tag für Beinkraft); ein Spiel zählt voll
-  const shortLoad = (a) => (runFocus && a.type === 'jogging') || (goal.id === 'sport' && a.type === 'teamsport');
+  const shortLoad = (a) => (runFocus && a.type === 'jogging') || (goal.id === 'sport' && ['teamsport', 'jogging'].includes(a.type));
   const legLoad = acts.filter((a) => ACT[a.type]?.legs && a.intensity !== 'leicht').map((a) => (shortLoad(a) ? dayBefore(a.date) : a.date));
   const lastLower = latest([lastOf((s) => hits(s, 'lower')), ...legLoad]);
   const lastUpper = lastOf((s) => hits(s, 'upper'));
@@ -871,8 +871,8 @@ export function recentActivities(data, days, endDate = todayISO()) {
   return [...(data.activities || []), ...runActivities(data)].filter((a) => { const d = daysBetween(a.date, endDate); return d >= 0 && d < days; });
 }
 
-export const RUN_MIN = { hx_runs: 30, run_easy: 40, run_4x4: 45, run_3030: 40, run_tempo: 45, run_fartlek: 40, run_sprints: 35, run_long: 65 };
-const RUN_INTENSITY = { hx_runs: 'hart', run_easy: 'leicht', run_long: 'mittel', run_fartlek: 'mittel', run_4x4: 'hart', run_3030: 'hart', run_tempo: 'hart', run_sprints: 'hart' };
+export const RUN_MIN = { hx_runs: 30, run_easy: 40, run_4x4: 45, run_3030: 40, run_tempo: 45, run_fartlek: 40, run_sprints: 35, run_long: 65, run_1515: 32, run_rsa: 32, run_shuttle: 32 };
+const RUN_INTENSITY = { hx_runs: 'hart', run_easy: 'leicht', run_long: 'mittel', run_fartlek: 'mittel', run_4x4: 'hart', run_3030: 'hart', run_tempo: 'hart', run_sprints: 'hart', run_1515: 'hart', run_rsa: 'hart', run_shuttle: 'hart' };
 
 // Polarisiert: hart nur nach lockeren Tagen, sonst locker. Ziel bestimmt Schwerpunkte
 // (z. B. Marathon: wöchentlicher langer Lauf), vor dem Wettkampf Tapering.
@@ -885,6 +885,7 @@ export function autoRunType(data) {
   const hadLongWeek = runsAll.some((r) => r.runType === 'run_long' && daysBetween(r.date, todayISO()) < 6);
   const lastHard = [...data.sessions].reverse().find((x) => daysBetween(x.date, todayISO()) < 2 && effortOf(x) === 'too_hard');
   if (lastHard) return { id: 'run_easy', why: 'Locker, weil bei deiner letzten Einheit viele Sätze unter dem Wdh.-Ziel lagen.' };
+  if (goal.id === 'sport') return sportRunType(data, goal, deload);
   if (deload) {
     if (goal.longRun && !hadLongWeek && !(dtr !== null && dtr <= 10)) return { id: 'run_long', why: 'Deload-Woche: langer Lauf etwas kürzer (ca. 45–60 min), ganz locker.' };
     return { id: 'run_easy', why: 'Deload-Woche – nur locker.' };
@@ -907,6 +908,39 @@ export function autoRunType(data) {
   const nKey = runs.filter((r) => cycle.includes(r.runType)).length;
   const id = cycle[nKey % cycle.length];
   return { id, why: taper ? `Tapering (noch ${dtr} Tage): kurzer, knackiger Reiz.` : 'Intensiver Reiz – du bist ausgeruht genug.' };
+}
+
+// Sportart-Ziel: nicht polarisiert wie im Ausdauersport, sondern spielnahe kurze, intensive Formate
+// (15/15, wiederholte Sprints mit Richtungswechsel, Pendelintervalle; Buchheit & Laursen 2013, Bishop 2011).
+// Locker nur zur Erholung: rund ums Spiel, nach harten Tagen, wenn das Wochenlimit erreicht ist.
+const SPORT_RUN_WHY = {
+  run_4x4: 'Aerobe Basis – 4×4 hebt die VO₂max und die Laufleistung im Spiel (Helgerud 2001).',
+  run_1515: 'Spielnah: kurze, intensive Belastungen mit kurzen Pausen – Ausdauer für wiederholte Antritte.',
+  run_rsa: 'Spielnah: wiederholte Sprints mit Richtungswechsel – schnell bleiben, auch spät im Spiel.',
+  run_shuttle: 'Spielnah: viele Wenden und Tempowechsel wie auf dem Feld.',
+  run_sprints: 'Schnelligkeit: kurze Sprints mit voller Pause.',
+  run_fartlek: 'Lockere Grundlage mit Tempowechseln – gut in der Saisonpause.',
+  run_tempo: 'Grundlage in der Saisonpause: zügig an der Schwelle.',
+};
+function sportRunType(data, goal, deload) {
+  const today = todayISO();
+  const mi = matchInfo(data);
+  const easy = (why) => ({ id: 'run_easy', why });
+  if (mi && (mi.toMatch === 0 || mi.sinceMatch === 0)) return easy('Spieltag – höchstens 15–20 min ganz locker zum Auflockern.');
+  if (mi && mi.toMatch != null && mi.toMatch <= 2) return easy(`${mi.toMatch === 1 ? 'Morgen' : 'In 2 Tagen'} ist Spiel – nur locker (20–30 min), damit die Beine frisch sind.`);
+  if (mi && mi.sinceMatch === 1) return easy('Tag nach dem Spiel – lockerer Regenerationslauf (20–30 min).');
+  if (deload) return easy('Deload-Woche – nur locker.');
+  // Zwischen zwei harten Einheiten (Teamtraining, Spiel, harter Lauf) mindestens ein Ruhetag
+  const hard = recentActivities(data, 2).find((a) => ACT[a.type]?.cardio && a.intensity === 'hart');
+  if (hard) return easy(`Locker, weil ${activityName(hard)} (hart) ${daysBetween(hard.date, today) === 0 ? 'heute' : 'gestern'} war – zwischen zwei harten Einheiten ein Ruhetag.`);
+  const runs = runActivities(data);
+  const hardRuns = runs.filter((r) => RUN_INTENSITY[r.runType] === 'hart' && daysBetween(r.date, today) < 7);
+  if (hardRuns.length >= goal.hardRuns) return easy(`Diese Woche schon ${hardRuns.length} ${hardRuns.length === 1 ? 'harter Lauf' : 'harte Läufe'} – ${goal.season === 'saison' ? 'in der Saison reicht einer, den Rest erledigen Teamtraining und Spiel' : 'mehr bringt kaum zusätzlichen Nutzen'}. Heute locker.`);
+  const cycle = goal.runCycle;
+  const nKey = runs.filter((r) => cycle.includes(r.runType)).length;
+  const id = cycle[nKey % cycle.length];
+  const why = (SPORT_RUN_WHY[id] || 'Intensiver Reiz – du bist ausgeruht genug.').replace('Spielnah:', `Spielnah für ${goal.sportProfile.name}:`);
+  return { id, why: `${why}${goal.season === 'saison' ? ' Saison: knackig, aber nicht ausbelasten.' : ''}` };
 }
 
 export function buildRunSession(data, { equip, runType }) {

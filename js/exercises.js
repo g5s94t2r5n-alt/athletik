@@ -362,6 +362,13 @@ export const EXERCISES = [
     ['10 min einlaufen, Lauf-ABC, 4 Steigerungen', '6–8 × 40–60 m maximal schnell, zurückgehen als Pause', 'Volle Erholung – Qualität vor Menge, 5 min auslaufen'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 6–8 × 40–60 m Sprint · 5 min aus', iv: { warm: 600, work: 8, rest: 90, rounds: 7, cool: 300, workLabel: 'Sprint' } }),
   E('run_long', 'Langer Lauf', 'long run', 'run', [], [], [],
     ['Locker, gleichmäßiges Tempo', 'Unterwegs trinken, wenn über 60 min', 'Höchstens etwa 1 × pro Woche'], { cat: 'run', load: 'none', inc: 0, presc: '50–75 min locker' }),
+  // Spielnahe Intervalle für Sportarten (kurz, intensiv, mit Richtungswechsel; Buchheit & Laursen 2013)
+  E('run_1515', 'Kurze Intervalle 15/15', 'running 15 15 intervals', 'run', [], [], [],
+    ['10 min einlaufen, 2–3 Steigerungen', '15 s schnell (ca. 100–110 % des Tempos, das du 6 min durchhältst) / 15 s traben', 'Deutlich schneller als 4×4 – trainiert Ausdauer für wiederholte Antritte'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 2 × 12 × 15 s schnell / 15 s Trab (3 min Serienpause) · 5 min aus', iv: { warm: 600, work: 15, rest: 15, rounds: 12, sets: 2, setRest: 180, cool: 300, workLabel: 'Schnell' } }),
+  E('run_rsa', 'Wiederholte Sprints mit Richtungswechsel', 'repeated sprint ability change of direction', 'run', [], [], [],
+    ['10 min einlaufen, Lauf-ABC, 3 Steigerungen', '15 m sprinten, 180°-Wende, 15 m zurück – maximal schnell', '20 s Pause (gehen), nach 6 Sprints 4 min Serienpause'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 3 × 6 × (15 m + Wende + 15 m) maximal, 20 s Pause · 5 min aus', iv: { warm: 600, work: 7, rest: 20, rounds: 6, sets: 3, setRest: 240, cool: 300, workLabel: 'Sprint mit Wende' } }),
+  E('run_shuttle', 'Pendelintervalle', 'shuttle run intervals', 'run', [], [], [],
+    ['10 min einlaufen', '20 s zwischen zwei Linien (20 m) hin und her, tief abbremsen und wenden', 'Zügig (ca. 90 %), 20 s Pause – typische Spielbelastung mit vielen Wenden'], { cat: 'run', load: 'none', inc: 0, presc: '10 min ein · 2 × 10 × 20 s Pendeln (20 m) / 20 s Pause (3 min Serienpause) · 5 min aus', iv: { warm: 600, work: 20, rest: 20, rounds: 10, sets: 2, setRest: 180, cool: 300, workLabel: 'Pendeln' } }),
 
   // ---------- Sportartspezifisch: Speed, Richtungswechsel, Sprung, Wurf ----------
   E('acceleration_10m', 'Antritte 10 m', 'acceleration sprint drills 10m', 'sprint_short', ['space'], [], [],

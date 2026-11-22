@@ -96,13 +96,15 @@ function renderToday() {
     <p class="rec"><span class="rec-star">★</span> ${todayTpl === rec.id ? `<strong>Empfohlen:</strong> ${esc(rec.why)}` : `Empfohlen wäre <button class="link" data-action="tpl" data-tpl="${rec.id}">${esc(TEMPLATES[rec.id].name.split(' – ')[0])}</button>: ${esc(rec.why)}`}</p>
     <p class="muted small">${esc(TEMPLATES[todayTpl].name)}</p>
     ${todayTpl === 'RUN' ? (() => {
+      // Vorschlag (★) wie bei den Einheiten: vorausgewählt, mit Begründung; andere Lauftypen frei wählbar
       const auto = autoRunType(data);
-      return `<div class="label mt">Lauftyp</div>
+      const chosen = runType === 'auto' ? auto.id : runType;
+      return `<div class="label mt">Welcher Lauf?</div>
       <div class="chips">
-        <button class="chip ${runType === 'auto' ? 'on' : ''}" data-action="runtype" data-id="auto">Automatisch: ${esc(EX[auto.id].name)}</button>
-        ${RUN_TYPES.map((id) => `<button class="chip ${runType === id ? 'on' : ''}" data-action="runtype" data-id="${id}">${esc(EX[id].name)}</button>`).join('')}
+        ${RUN_TYPES.map((id) => `<button class="chip ${chosen === id ? 'on' : ''}" data-action="runtype" data-id="${id === auto.id ? 'auto' : id}">${esc(EX[id].name)}${id === auto.id ? ' ★' : ''}</button>`).join('')}
       </div>
-      <p class="muted small">${runType === 'auto' ? esc(auto.why) : esc(EX[runType].presc)}</p>
+      <p class="rec"><span class="rec-star">★</span> ${chosen === auto.id ? `<strong>Vorschlag: ${esc(EX[auto.id].name)}.</strong> ${esc(auto.why)}` : `Vorschlag wäre <button class="link" data-action="runtype" data-id="auto">${esc(EX[auto.id].name)}</button>: ${esc(auto.why)}`}</p>
+      <p class="muted small"><b>Ablauf:</b> ${esc(EX[chosen].presc)}</p>
       <p class="muted small">Draußen oder auf dem Laufband: Aufwärmen, Laufen, Dehnen – ohne Kraftübungen.</p>`;
     })() : ''}
     <details class="more"><summary>Andere Einheit</summary>
@@ -203,6 +205,7 @@ async function startPlan(useAI) {
   session.estMin = estimateMinutes(session);
   data.active = session;
   wish = '';
+  runType = 'auto'; // nächstes Mal wieder den aktuellen Vorschlag vorauswählen
   persist();
   keepAwake(true);
   render();

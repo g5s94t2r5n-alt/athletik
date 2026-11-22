@@ -303,3 +303,6 @@ select.in { appearance: none; -webkit-appearance: none; }
 .ivclock.ivc-warm, .ivclock.ivc-cool { background: color-mix(in srgb, var(--series-1) 18%, var(--bg)); }
 .ivclock.ivc-warm .ivc-label, .ivclock.ivc-cool .ivc-label, .ivclock.ivc-warm .ivc-bar, .ivclock.ivc-cool .ivc-bar { color: var(--series-1); }
 .ivclock.ivc-done .ivc-label { color: var(--good); }
+
+/* Hinweis bei Feldern, die nur Claude auswertet */
+.claude-hint { margin-top: -4px; }

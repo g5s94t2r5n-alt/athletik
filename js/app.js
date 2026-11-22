@@ -438,6 +438,7 @@ function feedbackModal() {
     <div class="label">Beschwerden?</div>
     <div class="chips"><button class="chip ${!f.pain.length ? 'on' : ''}" data-action="fb-pain" data-id="none">Keine</button>${Object.entries(PAIN_NAME).map(([k, l]) => `<button class="chip ${f.pain.includes(k) ? 'on' : ''}" data-action="fb-pain" data-id="${k}">${l}</button>`).join('')}</div>
     <label class="field"><span>Notiz (optional)</span><textarea class="in wide" id="fb-note" rows="2" placeholder="z. B. Kniebeuge lief super, Schulter zwickt bei Überkopf">${esc(f.note)}</textarea></label>
+    ${claudeHint('Steht im Verlauf; in die Planung fließt die Notiz nur über Claude ein (API-Key unter Mehr → Claude).')}
     <button class="btn primary" data-action="fb-save">Speichern</button>
     <button class="btn ghost" data-action="fb-skip">Überspringen</button>`);
 }
@@ -723,6 +724,12 @@ function setAccent(id) {
   persist();
 }
 
+// Freitext-Felder, die nur Claude auswertet: ohne API-Key kurzer Hinweis (Eingaben bleiben gespeichert)
+const hasClaude = () => !!(data.settings.useClaude && data.settings.apiKey);
+function claudeHint(text = 'Wird nur von Claude berücksichtigt – dafür unter Mehr → Claude einen API-Key eintragen.') {
+  return hasClaude() ? '' : `<p class="muted small claude-hint">${esc(text)}</p>`;
+}
+
 // Niveau-Auswahl (Dropdown); die Stufe bestimmt die Start-Richtwerte in kg
 function levelSelect(attr, cur) {
   return `<select class="in wide" ${attr}>${LEVELS.map((l) => `<option value="${l.id}" ${cur === l.id ? 'selected' : ''}>${esc(l.name)} (${esc(l.hint)})</option>`).join('')}</select>`;
@@ -781,10 +788,12 @@ function setupModal() {
     <div class="chips">${chips('su-dur', [45, 60, 75, 90, 105], s.duration, (v) => `${v} min`)}</div>
     ${GOAL[s.goal].volumeFocus && s.days <= 2 && s.goal !== 'fitness' ? '<p class="muted small">Hinweis: Mit 2 Tagen kommt jeder Muskel auf ca. 6–9 Sätze pro Woche – das wirkt, für optimalen Muskel- bzw. Kraftaufbau sind aber 3–4 Tage besser.</p>' : GOAL[s.goal].volumeFocus && s.duration < 90 && (s.days <= 2 || (s.days <= 3 && s.goal !== 'fitness')) ? '<p class="muted small">Tipp: Bei nur ' + s.days + ' Tagen sind für dieses Ziel 90 min sinnvoll, damit jeder Muskel auf ~10 Sätze pro Woche kommt.</p>' : ''}
     <label class="field"><span>Verletzungen / Hinweise (optional)</span><textarea class="in wide" data-su="notes" rows="2" placeholder="z. B. Knie links empfindlich bei tiefen Sprüngen">${esc(s.notes)}</textarea></label>
+    ${claudeHint()}
     <div class="label mt">Dein Home-Gym</div>
     <p class="muted small">Was hast du zu Hause? Leer lassen, wenn du nur im Studio trainierst.</p>
     <div class="chips">${EQUIPMENT.map((e) => `<button class="chip ${s.homeGym.includes(e.id) ? 'on' : ''}" data-action="su-equip" data-id="${e.id}">${esc(e.name)}</button>`).join('')}</div>
     <label class="field"><span>Details (optional)</span><textarea class="in wide" data-su="homeGymNotes" rows="2" placeholder="z. B. Kurzhanteln verstellbar 2–24 kg, Langhantel mit 100 kg Scheiben">${esc(s.homeGymNotes)}</textarea></label>
+    ${claudeHint()}
     <button class="btn primary" data-action="su-save">Speichern</button>
     <button class="btn ghost" data-action="close">Später</button>`);
 }
@@ -1143,7 +1152,8 @@ function renderSettings() {
   <section class="card">
     <div class="label">Mein Home-Gym</div>
     <div class="chips">${EQUIPMENT.map((e) => `<button class="chip ${(data.homeGym || []).includes(e.id) ? 'on' : ''}" data-action="home-equip" data-id="${e.id}">${esc(e.name)}</button>`).join('')}</div>
-    <label class="field"><span>Details (optional, für Claude)</span><textarea class="in wide" id="home-notes" rows="2" placeholder="z. B. Kurzhanteln verstellbar 2–24 kg, Langhantel mit 100 kg Scheiben, Klimmzugstange im Türrahmen">${esc(data.homeGymNotes || '')}</textarea></label>
+    <label class="field"><span>Details (optional)</span><textarea class="in wide" id="home-notes" rows="2" placeholder="z. B. Kurzhanteln verstellbar 2–24 kg, Langhantel mit 100 kg Scheiben, Klimmzugstange im Türrahmen">${esc(data.homeGymNotes || '')}</textarea></label>
+    ${claudeHint()}
     <p class="muted small">Wird mit „Home-Gym“ beim Training übernommen.</p>
   </section>
   <section class="card">
@@ -1172,7 +1182,8 @@ function renderSettings() {
     ${goalOf(data).season !== 'pause' ? `<label class="field"><span>Fester Spieltag (optional)</span>${matchDaySelect('data-prof="matchDay"', p.matchDay)}</label>` : ''}` : ''}
     <label class="field"><span>Geschlecht</span><select class="in" data-prof="sex">${['', 'männlich', 'weiblich', 'divers'].map((s) => `<option value="${s}" ${p.sex === s ? 'selected' : ''}>${s || '– bitte wählen –'}</option>`).join('')}</select></label>
     <label class="field"><span>Niveau</span>${levelSelect('data-prof="level"', levelOf(p).id)}</label>
-    <label class="field"><span>Verletzungen / Hinweise für Claude</span><textarea class="in wide" data-prof="notes" rows="2" placeholder="z. B. Knie links empfindlich bei tiefen Sprüngen">${esc(p.notes)}</textarea></label>
+    <label class="field"><span>Verletzungen / Hinweise (optional)</span><textarea class="in wide" data-prof="notes" rows="2" placeholder="z. B. Knie links empfindlich bei tiefen Sprüngen">${esc(p.notes)}</textarea></label>
+    ${claudeHint()}
     <button class="btn small" data-action="setup">Einrichtungs-Assistent öffnen</button>
     <p class="muted small">Wochenplan bei ${p.days} Tagen (${esc(goalOf(data).name)}): ${rotationFor(data).map((k) => TEMPLATES[k].name.split(' – ')[0]).join(', ')}. Die Reihenfolge empfiehlt der Stern ★ jeden Tag neu.</p>
   </section>
@@ -1370,8 +1381,8 @@ document.addEventListener('change', async (e) => {
   const t = e.target;
   if (t.dataset.field && data.active) autoComplete(t);
   if (setupDraft && t.dataset.su) setupDraft[t.dataset.su] = t.value; // Auswahlfelder (Spieltag) zuverlässig übernehmen
-  if (t.id === 'api-key') { data.settings.apiKey = t.value.trim(); persist(); toast('API-Key gespeichert.'); }
-  if (t.id === 'use-claude') { data.settings.useClaude = t.checked; persist(); }
+  if (t.id === 'api-key') { data.settings.apiKey = t.value.trim(); persist(); toast(t.value.trim() ? 'API-Key gespeichert.' : 'API-Key entfernt.'); render(); }
+  if (t.id === 'use-claude') { data.settings.useClaude = t.checked; persist(); render(); }
   if (t.dataset.prof) {
     const k = t.dataset.prof;
     const numeric = ['age', 'weight', 'days', 'duration', 'goalWeight'].includes(k);

@@ -888,7 +888,7 @@ function renderActivityCard(a) {
   return `
     <article class="card hist">
       <div class="hist-head static">
-        <div><strong>${esc(def.name)}</strong> <span class="tag t-activity">Nachgetragen</span>
+        <div><strong>${esc(def.name)}</strong>
           <div class="muted small">${fmtDate(a.date)} · ${a.minutes} min · ${esc(a.intensity)}${a.km ? ` · ${num(a.km)} km` : ''} · Last ${activityLoad(a)}</div>
           ${a.note ? `<div class="small mt-s">${esc(a.note)}</div>` : ''}
         </div>

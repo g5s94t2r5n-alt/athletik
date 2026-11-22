@@ -146,7 +146,7 @@ function renderToday() {
     const lastAct = [...(data.activities || [])].sort((x, y) => x.date.localeCompare(y.date)).pop();
     if (lastAct && (!last || lastAct.date > last.date)) {
       return `<section class="card soft"><div class="label">Letzte Einheit</div>
-      <p><strong>${esc(activityName(lastAct))}</strong> <span class="tag t-activity">Nachgetragen</span><br><span class="muted">${fmtDate(lastAct.date)} · ${lastAct.minutes} min · ${esc(lastAct.intensity)}${lastAct.km ? ` · ${num(lastAct.km)} km` : ''}</span></p></section>`;
+      <p><strong>${esc(activityName(lastAct))}</strong><br><span class="muted">${fmtDate(lastAct.date)} · ${lastAct.minutes} min · ${esc(lastAct.intensity)}${lastAct.km ? ` · ${num(lastAct.km)} km` : ''}</span></p></section>`;
     }
     return last ? `<section class="card soft"><div class="label">Letzte Einheit</div>
     <p><strong>${esc(last.title)}</strong><br><span class="muted">${fmtDate(last.date)} · ${sessionSummary(last)}${last.template === 'RUN' ? '' : ' bewegt'}</span></p></section>` : '';

@@ -3,7 +3,7 @@
 Dieses Dokument ist die wissenschaftliche Grundlage der App. Die Regeln stecken an zwei Stellen:
 
 - `js/engine.js` – lokaler Plan-Generator und Progressionslogik (funktioniert offline)
-- `js/coach.js` – Systemprompt für Claude (erstellt Einheiten und Wochen-Checks)
+- `js/coach.js` – optionaler KI-Wochen-Check mit Claude (die Planung läuft komplett ohne KI)
 
 Die Regeln sind Vereinfachungen der Studienlage (Stand Ende 2026). Sie ersetzen keine
 ärztliche Abklärung bei Beschwerden.
@@ -40,7 +40,7 @@ Die Regeln sind Vereinfachungen der Studienlage (Stand Ende 2026). Sie ersetzen 
 | Hartes Ausdauertraining (oder ≥ 45 min mittel) in den letzten 48 h → kein Ausdauer-Finisher | Interferenz Ausdauer ↔ Explosivkraft, Schumann et al. 2022 |
 | Schon ≥ 2 Ausdauer-Reize in dieser Woche → kein Finisher nötig | Ziel ~2 Reize/Woche (s. o.) |
 | Harte Beinbelastung (HIIT, Joggen, CrossFit, Padel, Teamsport) in den letzten 48 h → 1 Sprung-Satz weniger | Ermüdung mindert Sprungqualität; Plyometrie braucht Frische |
-| Claude sieht alle Trainings der letzten 14 Tage und bewertet die Gesamtlast im Wochen-Check | – |
+| Der Wochen-Check (Regel-Logik, optional Claude) bewertet die Gesamtlast der letzten 14 Tage | – |
 
 ### Laufeinheit
 
@@ -231,18 +231,35 @@ Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:
   gleich oder sinkt, schlägt die App eine Variante vor.
 - **Block-Periodisierung:** Woche 1–4 Belastung, das Volumen steigt von Woche zu Woche
   (+1 Satz bei den Hauptübungen ab Woche 3). Woche 5 ist der Deload.
-- **Wochen-Check mit Claude:** Claude wertet Volumen pro Muskel, Leistungstrends und
-  Körpergewicht aus und gibt Anpassungen (± Sätze pro Muskel, Fokus, Deload).
-  Diese fließen in jede weitere Planung ein.
+- **Befinden heute:** Vor dem Training „Fit / Normal / Müde“. Müde → 1 Satz weniger pro Übung,
+  weniger Sprünge, kein Finisher, Lauf nur locker; fit → Hauptübungen +1 Satz (nicht im Deload).
+  Das ist eine einfache Form der Autoregulation per Selbsteinschätzung.
+- **Schwerste Kurzhantel (Home-Gym):** Liegt der Richtwert darüber, nimmt die App das Hantel-Maximum
+  und hebt den Wdh.-Bereich an (z. B. 14–20). Auch hohe Wdh. nahe am Muskelversagen bauen Muskeln
+  auf (Schoenfeld 2021).
+- **Wochen-Check (Coach) ohne KI:** wertet die letzten 7–14 Tage nach festen Regeln aus:
+  - Regelmäßigkeit: Einheiten gegenüber Plan.
+  - Sätze pro Muskel im Mittel von 2 Wochen: unter dem Ziel → +2 Sätze/Woche (nur bei regelmäßigem
+    Training), über 20 → −2.
+  - Kraftentwicklung: geschätztes 1RM steigt, stagniert oder sinkt.
+  - Ermüdung: Leistung bei ≥ 2 Übungen um ≥ 5 % gesunken oder mehrfach viele Sätze unter dem
+    Wdh.-Ziel → 6 Tage Deload.
+  - Belastungssprung bei nachgetragenen Trainings: > 50 % mehr als in der Vorwoche.
+  - Läufe: Anzahl, langer Lauf, Anteil harter Läufe.
+  - Sportart: Teamtrainings, Nordic Curls.
+  - Körpergewicht/-zusammensetzung und Ausgleich bei Beschwerden.
+
+  Die Anpassungen fließen in jede weitere Planung ein. Optional gibt es zusätzlich einen
+  KI-Wochen-Check mit Claude (API-Key unter Mehr), der auch die Notizen nach dem Training liest.
 
 ## 5. Rekorde & Rückmeldung nach dem Training
 
 - **Rekorde:** Beim Abschließen vergleicht die App jede Übung mit allen früheren Einheiten – höheres geschätztes 1RM (Epley) oder schwerster Satz, beim Laufen längste Strecke und schnellste Pace (ab 3 km). Rekorde werden gefeiert, im Verlauf markiert und im Fortschritt gelistet.
 - **Belastung automatisch:** Aus den eingetragenen Wdh. – ≥ 50 % der Kraftsätze unter dem Wdh.-Ziel = zu schwer → nächste Einheit 1 Satz weniger pro Übung, kein Finisher, nächster Lauf locker; zweimal innerhalb kurzer Zeit → Deload-Charakter (−10 % Gewicht). ≥ 80 % am oberen Ende = zu leicht → Hauptübungen +1 Satz.
-- **Beschwerden:** Knie, Schulter, Rücken, Ellbogen, Hüfte, Sprunggelenk. Keine Schonung, sondern 4 Wochen lang Ausgleichsübungen für die Region (s. Abschnitt 6), bis du sie als „wieder gut“ markierst.
-- **Keine Doppelungen:** Jede Übung und jede Variante kommt höchstens einmal pro Einheit vor (z. B. nicht Liegestütze und Enge Liegestütze). Die Hauptübung wird zuerst gewählt. Auch Claude-Pläne werden so bereinigt, und Supersätze bestehen immer aus zwei verschiedenen Übungen.
-- **Kurze Umfrage:** „Hat es dir gefallen?“ (bei „nein“: nächstes Mal andere Varianten dieser Einheit, einzelne Übungen dauerhaft ausblendbar) und „Beschwerden?“ (Knie, Schulter, Rücken, Ellbogen, Hüfte → belastende Übungen 7 Tage lang ersetzt bzw. weggelassen; Hinweis auf ärztliche Abklärung bei anhaltenden Schmerzen).
-- Claude bekommt Belastung, Gefallen und Beschwerden der letzten Einheiten; ausgeblendete und schmerzauslösende Übungen sind aus seinem Übungskatalog entfernt.
+- **Beschwerden:** Knie, Schulter, Rücken, Ellbogen, Hüfte, Sprunggelenk. Keine Schonung, sondern 4 Wochen lang Ausgleichsübungen für die Region (s. Abschnitt 6), bis du sie als „wieder gut“ markierst. Dauerhafte Problemzonen lassen sich im Profil auswählen; für sie gibt es den Ausgleich in jeder Einheit.
+- **Keine Doppelungen:** Jede Übung und jede Variante kommt höchstens einmal pro Einheit vor (z. B. nicht Liegestütze und Enge Liegestütze). Die Hauptübung wird zuerst gewählt, und Supersätze bestehen immer aus zwei verschiedenen Übungen.
+- **Kurze Umfrage:** „Hat es dir gefallen?“ (bei „nein“: nächstes Mal andere Varianten dieser Einheit, einzelne Übungen dauerhaft ausblendbar), „Beschwerden?“ (→ Ausgleich, s. Abschnitt 6) und eine optionale Notiz (Tagebuch im Verlauf).
+- Der optionale KI-Wochen-Check mit Claude bekommt Belastung, Gefallen, Beschwerden und Notizen der letzten Einheiten.
 
 ## 6. Ausgleich bei Beschwerden
 
@@ -276,7 +293,7 @@ Zum Gewicht können **Muskelmasse (kg)** und **Körperfett (%)** eingetragen wer
 | Körperfett hoch (Männer > 25 %, Frauen > 32 %) bei Aufbau-Zielen | Finisher, Aufbau ohne Überschuss (Rekomposition) |
 | Körperfett niedrig (Männer < 10 %, Frauen < 18 %) beim Abnehmen | kein intensiver Finisher, nur noch langsam abnehmen |
 
-Claude bekommt die Werte und Trends für Planung und Wochen-Check.
+Der Wochen-Check (Regel-Logik und optional Claude) bewertet die Werte und Trends.
 
 ## Quellen
 

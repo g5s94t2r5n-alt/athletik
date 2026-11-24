@@ -1,7 +1,7 @@
 // Plan-Generator & Progression nach REGELWERK.md – funktioniert komplett offline.
 import { EXERCISES, EX, MUSCLES, ACT, INTENSITY, available } from './exercises.js';
 import { todayISO, daysBetween, uid } from './store.js';
-import { goalOf, rotationFor, daysToRace, matchInfo, levelOf } from './goals.js';
+import { goalOf, rotationFor, daysToRace, matchInfo, levelOf, weightStatus } from './goals.js';
 
 // ---------- Vorlagen (Split) ----------
 export const TEMPLATES = {
@@ -827,6 +827,24 @@ export function autoEffort(session) {
 }
 export const effortOf = (s) => (s.feedback && s.feedback.effort) || s.autoEffort || '';
 
+// ---------- Begrenzte Hanteln zu Hause ----------
+// Liegt der Richtwert über der schwersten Kurzhantel: Hantel-Maximum nehmen und den Wdh.-Bereich anheben.
+// Auch 15–30 Wdh. bauen nahe am Muskelversagen Muskeln auf (Schoenfeld 2021).
+function capDumbbell(data, ex, item, equip) {
+  const cap = parseFloat(String(data.profile.homeMaxDb || '').replace(',', '.'));
+  if (!(cap > 0) || data.location !== 'home' || !ex.equip.includes('dumbbell') || ex.load !== 'kg' || !equip.includes('dumbbell')) return;
+  const w = Number(item.sets[0]?.tw);
+  if (!(w > cap)) return;
+  item.sets.forEach((st) => { st.tw = cap; if (st.w === '' || Number(st.w) > cap) st.w = cap; });
+  const lo = Math.max(item.hi, Math.min(15, item.lo + 6)); const hi = Math.min(30, Math.max(lo + 5, item.hi + 8));
+  item.lo = lo; item.hi = hi;
+  item.note = `Schwerste Hantel ${String(cap).replace('.', ',')} kg – dafür ${lo}–${hi} Wdh. und langsam ablassen, bis kurz vor dem Muskelversagen.`;
+}
+
+// ---------- Befinden heute (Selbsteinschätzung) ----------
+// Autoregulation: müde → weniger Volumen und keine zusätzliche Ermüdung, fit → etwas mehr bei den Hauptübungen
+export const feelOf = (data, date = todayISO()) => (data.today && data.today.date === date ? data.today.feel : 'normal');
+
 // ---------- Ausgleich bei Beschwerden ----------
 // Statt Schonung: gezielte Stabilisation/Kräftigung (gut belegt) plus Mobilität und Dehnung für die Region.
 // Je Gruppe wird die erste verfügbare Übung genommen. Schmerz-Monitoring statt Pause (Silbernagel 2007).
@@ -850,8 +868,11 @@ export function painFocus(data, date = todayISO()) {
     s.feedback.pain.forEach((p) => { if (!last[p] || s.date > last[p]) last[p] = s.date; });
   }
   const cleared = data.painCleared || {};
-  return Object.entries(last).filter(([p, d]) => REGION_WORK[p] && !(cleared[p] && cleared[p] >= d))
+  const zones = (data.profile.zones || []).filter((z) => REGION_WORK[z]);
+  const reported = Object.entries(last).filter(([p, d]) => REGION_WORK[p] && !zones.includes(p) && !(cleared[p] && cleared[p] >= d))
     .map(([region, since]) => ({ region, since, until: todayISO(new Date(new Date(since + 'T12:00:00').getTime() + PAIN_FOCUS_DAYS * 86400000)) }));
+  // Dauerhafte Problemzonen aus dem Profil
+  return [...zones.map((region) => ({ region, permanent: true })), ...reported];
 }
 
 // Ergänzt eine Einheit um Ausgleichsübungen. full = auch Stabilisationsblock (nicht bei Lauf-/HYROX-Einheiten
@@ -1008,6 +1029,7 @@ export function autoRunType(data) {
   const hadLongWeek = runsAll.some((r) => r.runType === 'run_long' && daysBetween(r.date, todayISO()) < 6);
   const lastHard = [...data.sessions].reverse().find((x) => daysBetween(x.date, todayISO()) < 2 && effortOf(x) === 'too_hard');
   if (lastHard) return { id: 'run_easy', why: 'Locker, weil bei deiner letzten Einheit viele Sätze unter dem Wdh.-Ziel lagen.' };
+  if (feelOf(data) === 'tired') return { id: 'run_easy', why: 'Du fühlst dich heute müde – nur locker laufen (oder Pause).' };
   if (goal.id === 'sport') return sportRunType(data, goal, deload);
   if (deload) {
     if (goal.longRun && !hadLongWeek && !(dtr !== null && dtr <= 10)) return { id: 'run_long', why: 'Deload-Woche: langer Lauf etwas kürzer (ca. 45–60 min), ganz locker.' };
@@ -1173,6 +1195,9 @@ export function buildSession(data, { templateId, equip, runType }) {
   const vf = goal.volume * (taper ? 0.7 : 1);
   const actAdj = activityAdjust(data, tpl.focus);
   const fb = feedbackAdjust(data, templateId);
+  const feel = feelOf(data);
+  if (feel === 'tired') { fb.setDelta = Math.min(fb.setDelta, -1); fb.dropCond = true; fb.notes.push('Heute müde: 1 Satz weniger pro Übung, weniger Sprünge, kein Finisher – Technik sauber, nicht bis ans Limit.'); }
+  if (feel === 'fit' && !deload) { fb.mainDelta = Math.max(fb.mainDelta, 1); fb.notes.push('Heute fit: 1 Satz mehr bei den Hauptübungen.'); }
   const ca = compAdjust(data);
   const adj = muscleAdjustments(data);
   const adjUsed = new Set();
@@ -1194,7 +1219,7 @@ export function buildSession(data, { templateId, equip, runType }) {
     if (!tpl.light) {
       // Präventionsübungen (Landung, Außenrotation) bleiben auch bei reduziertem Volumen vollständig
       if (ex.cat === 'strength' && vf !== 1 && !['prev_lower', 'prev_shoulder'].includes(ex.slot)) n = Math.max(2, Math.round(n * vf));
-      if (actAdj.reducePower && ex.slot === 'power_lower') n = Math.max(2, n - 1);
+      if ((actAdj.reducePower || feel === 'tired') && ex.cat === 'power') n = Math.max(2, n - 1);
       if (ex.cat === 'strength') n = Math.min(6, Math.max(sd.main ? 2 : 1, n + fb.setDelta + (sd.main ? fb.mainDelta + ca.mainDelta : 0)));
     }
     const heavy = !tpl.light && goal.reps === 'strength' && ex.cat === 'strength' && ex.load === 'kg' && !ISOLATION.includes(ex.slot);
@@ -1204,6 +1229,7 @@ export function buildSession(data, { templateId, equip, runType }) {
     item.prio = sd.prio;
     item.slotKey = key;
     item.pos = idx;
+    capDumbbell(data, ex, item, equip);
     if (sd.keep || ['prev_lower', 'prev_shoulder'].includes(ex.slot)) item.keep = true; // Prävention bleibt auch in Kurzeinheiten
     (ex.cat === 'power' ? power : strength).push(item);
   });
@@ -1332,57 +1358,6 @@ function fitDuration(session, minutes, equip, keepCond = false, superset = false
   for (const b of [strength, power]) if (b && !b.items.length) session.blocks.splice(session.blocks.indexOf(b), 1);
 }
 
-// Plan von Claude -> Einheit (Progression/Zielgewichte kommen weiterhin aus der lokalen Logik)
-export function sessionFromPlan(data, plan, { templateId, equip }) {
-  const { week, deload } = blockInfo(data);
-  const blocks = [];
-  const seen = new Set(); // jede Übung (und Variante) nur einmal pro Einheit
-  for (const b of plan.blocks || []) {
-    if (templateId === 'RUN' && !['warmup', 'run', 'cooldown'].includes(b.type)) continue;
-    const items = [];
-    for (const it of b.items || []) {
-      const ex = EX[it.exId];
-      if (!ex || !available(ex, equip)) continue;
-      const fk = ['strength', 'power'].includes(ex.cat) ? familyOf(ex.id) : ex.id;
-      if (seen.has(fk)) continue;
-      seen.add(fk);
-      const lo = Number(it.repsLow) > 0 ? Math.round(it.repsLow) : undefined;
-      const hi = Number(it.repsHigh) >= (lo || 1) ? Math.round(it.repsHigh) : undefined;
-      const sets = Math.min(8, Math.max(1, Math.round(Number(it.sets) || 3)));
-      const item = makeItem(data, ex, ex.cat === 'strength' || ex.cat === 'power' ? sets : 0, {
-        lo, hi, main: !!it.main, deload, note: it.note, rest: Number(it.restSec) > 0 ? Math.round(it.restSec) : undefined,
-      });
-      if (it.prescription) item.presc = it.prescription;
-      if (/^[A-C][12]$/.test(it.superset || '') && ex.cat === 'strength') item.ss = it.superset;
-      if (/^[1-5]-[0-3]-([1-4]|X)$/.test(it.tempo || '') && item.tempo) item.tempo = it.tempo;
-      items.push(item);
-    }
-    if (items.length) blocks.push({ type: b.type, title: b.title || '', items });
-  }
-  fixSupersets(blocks);
-  return {
-    id: uid(), date: todayISO(), template: templateId, title: plan.title || TEMPLATES[templateId].name,
-    week, deload, source: 'claude', equipment: [...equip], status: 'active', startedAt: Date.now(),
-    note: plan.note || '', blocks,
-  };
-}
-
-// Supersätze aufräumen: nur vollständige Paare aus zwei verschiedenen Übungen, jede Übung in höchstens
-// einem Paar, Partner direkt hintereinander
-export function fixSupersets(blocks) {
-  for (const b of blocks) {
-    const groups = {};
-    b.items.forEach((it) => { if (it.ss) (groups[it.ss[0]] = groups[it.ss[0]] || []).push(it); });
-    Object.values(groups).forEach((g) => {
-      const a = g.find((x) => x.ss.endsWith('1')); const c = g.find((x) => x.ss.endsWith('2'));
-      g.forEach((x) => { if (x !== a && x !== c) delete x.ss; });
-      if (!a || !c || a.exId === c.exId) { g.forEach((x) => delete x.ss); return; }
-      b.items.splice(b.items.indexOf(c), 1);
-      b.items.splice(b.items.indexOf(a) + 1, 0, c);
-    });
-  }
-}
-
 export function rememberSlots(data, session) {
   for (const b of session.blocks) for (const it of b.items) {
     if (it.slotKey) data.slotMemory[it.slotKey] = it.exId;
@@ -1420,6 +1395,131 @@ export function trackedExercises(data) {
   const MAIN = ['squat', 'hinge', 'hpush', 'vpull', 'vpush', 'hpull', 'lunge'];
   const rank = (id) => { const i = MAIN.indexOf(EX[id].slot); return i < 0 ? 99 : i; };
   return [...seen.entries()].sort((a, b) => rank(a[0]) - rank(b[0]) || b[1] - a[1]).map(([id]) => EX[id]);
+}
+
+// ---------- Wochen-Check ohne KI ----------
+// Wertet die letzten 7–14 Tage nach festen Regeln aus und liefert dieselbe Struktur wie der Claude-Check
+// (Sätze pro Muskel ±, Deload, Fokus, Tipps) plus Befunde. Die Anpassungen gelten für alle neuen Einheiten.
+const pct = (a, b) => (b ? Math.round(((a - b) / b) * 1000) / 10 : 0);
+const fmt1 = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
+export function ruleReview(data, date = todayISO()) {
+  const goal = goalOf(data);
+  const rot = rotationFor(data);
+  const findings = []; const tips = []; const volumeAdjust = [];
+  const add = (kind, text) => findings.push({ kind, text });
+  const age = (d) => daysBetween(d, date);
+  const sess7 = data.sessions.filter((s) => age(s.date) >= 0 && age(s.date) < 7);
+  const sess14 = data.sessions.filter((s) => age(s.date) >= 0 && age(s.date) < 14);
+  const acts7 = (data.activities || []).filter((a) => age(a.date) >= 0 && age(a.date) < 7);
+  const { week, deload } = blockInfo(data, date);
+
+  // 1. Regelmäßigkeit
+  const planned = data.profile.days;
+  const regular = sess14.length >= Math.round(planned * 2 * 0.75);
+  if (sess7.length >= planned) add('good', `${sess7.length} von ${planned} geplanten Einheiten diese Woche${acts7.length ? `, dazu ${acts7.length} nachgetragen` : ''}.`);
+  else add(sess7.length >= planned - 1 ? 'info' : 'warn', `${sess7.length} von ${planned} geplanten Einheiten diese Woche${acts7.length ? `, dazu ${acts7.length} nachgetragen` : ''}.`);
+  if (!regular) tips.push(`Regelmäßigkeit vor Umfang: Versuch, die ${planned} Einheiten pro Woche einzuhalten – sonst lieber Tage reduzieren (Mehr → Profil).`);
+
+  // 2. Sätze pro Muskel (Mittel der letzten 2 Wochen), nur bei Zielen mit Volumen-Fokus und regelmäßigem Training
+  const vol = weeklyVolume(data, 14, date);
+  const lower = data.profile.days <= 2 ? 6 : goal.minSets || 10;
+  if (goal.volumeFocus && sess14.length >= 2) {
+    const low = []; const high = [];
+    ['brust', 'ruecken', 'schultern', 'quadrizeps', 'beinbeuger', 'gesaess', 'bizeps', 'trizeps'].forEach((m) => {
+      const v = vol[m] / 2;
+      const min = ['bizeps', 'trizeps'].includes(m) ? Math.min(lower, 6) : lower;
+      if (v < min - 1) low.push([m, v, min]);
+      if (v > 20) high.push([m, v]);
+    });
+    if (regular && !deload) low.slice(0, 4).forEach(([m, v, min]) => volumeAdjust.push({ muscle: m, delta: 2, reason: `Ø ${fmt1(v)} Sätze/Woche – Ziel mindestens ${min}.` }));
+    high.forEach(([m, v]) => volumeAdjust.push({ muscle: m, delta: -2, reason: `Ø ${fmt1(v)} Sätze/Woche – über 20 bringt kaum mehr und kostet Erholung.` }));
+    if (low.length) add(regular ? 'warn' : 'info', `Unter dem Zielvolumen: ${low.map(([m, v]) => `${MUSCLES[m]} ${fmt1(v)}`).join(', ')} Sätze/Woche.`);
+    else add('good', `Alle großen Muskeln im Zielbereich (≥ ${lower} Sätze/Woche).`);
+  }
+
+  // 3. Kraftentwicklung (geschätztes 1RM)
+  const up = []; const flat = []; const down = [];
+  trackedExercises(data).slice(0, 10).forEach((ex) => {
+    const ser = exerciseSeries(data, ex.id).filter((x) => age(x.date) >= 0);
+    if (ser.length < 3) return;
+    const last = Math.max(...ser.slice(-2).map((x) => x.e1rm));
+    const before = Math.max(...ser.slice(-5, -2).map((x) => x.e1rm));
+    const ch = pct(last, before);
+    if (ch >= 2) up.push(`${ex.name} +${fmt1(ch)} %`);
+    else if (ch <= -5) down.push(`${ex.name} ${fmt1(ch)} %`);
+    else if (isStagnating(data, ex.id)) flat.push(ex.name);
+  });
+  if (up.length) add('good', `Kraft steigt: ${up.slice(0, 4).join(', ')}.`);
+  if (flat.length) add('info', `Stagniert: ${flat.slice(0, 4).join(', ')} – die App wählt dafür automatisch eine Variante.`);
+  if (down.length) add('warn', `Leistung gesunken: ${down.slice(0, 4).join(', ')}.`);
+
+  // 4. Ermüdung → Deload
+  const efforts = data.sessions.filter((s) => age(s.date) >= 0 && age(s.date) < 14).slice(-4).map(effortOf);
+  const hardCount = efforts.filter((e) => e === 'too_hard').length;
+  const deloadNow = !deload && week !== 4 && (down.length >= 2 || hardCount >= 2);
+  if (deloadNow) add('warn', `Ermüdungszeichen (${down.length >= 2 ? 'Leistung bei mehreren Übungen gesunken' : 'mehrfach viele Sätze unter dem Wdh.-Ziel'}) – die nächsten 6 Tage Deload.`);
+  else if (efforts.filter((e) => e === 'easy').length >= 3) add('info', 'Zuletzt oft am oberen Wdh.-Ende – die Gewichte steigen automatisch, gern etwas mutiger einsteigen.');
+
+  // 5. Belastungssprung (nachgetragene Trainings, Session-RPE)
+  const load7 = activitySummary(data, 7).load; const load14 = activitySummary(data, 14).load - load7;
+  if (load14 > 300 && load7 > load14 * 1.5) {
+    add('warn', `Zusatz-Belastung stark gestiegen (${load14} → ${load7}, +${Math.round((load7 / load14 - 1) * 100)} %).`);
+    tips.push('Große Belastungssprünge vermeiden: Die nächste Woche nicht weiter steigern.');
+  }
+
+  // 6. Laufen / Ausdauer
+  const runTarget = rot.filter((x) => x === 'RUN').length;
+  if (runTarget) {
+    const runs = recentActivities(data, 7, date).filter((a) => a.type === 'jogging' && a.runType !== 'hx_runs');
+    add(runs.length >= runTarget ? 'good' : 'info', `${runs.length} von ${runTarget} Läufen diese Woche.`);
+    if (goal.longRun && !runs.some((r) => r.runType === 'run_long')) tips.push('Der lange Lauf hat diese Woche gefehlt – er ist die Schlüsseleinheit für den Marathon.');
+    const r14 = recentActivities(data, 14, date).filter((a) => a.type === 'jogging');
+    const hardShare = r14.length >= 4 ? r14.filter((a) => a.intensity === 'hart').length / r14.length : null;
+    if (hardShare != null && hardShare > 0.4 && ['endurance', 'marathon'].includes(goal.id)) tips.push(`Zuletzt ${Math.round(hardShare * 100)} % harte Läufe – polarisiert heißt etwa 80 % locker.`);
+  }
+
+  // 7. Sportart: Prävention und Teamtraining
+  if (goal.id === 'sport') {
+    const team = acts7.filter((a) => ['teamsport', 'match'].includes(a.type)).length;
+    add('info', `${team} Teamtraining${team === 1 ? '' : 's'}/Spiel${team === 1 ? '' : 'e'} nachgetragen.`);
+    if (goal.sport === 'football' && !sess7.some((s) => s.blocks.some((b) => b.items.some((i) => i.exId === 'nordic_curl' && (i.sets || []).length)))) tips.push('Diese Woche keine Nordic Curls – 1–2 Mal pro Woche halbieren Beinbeugerverletzungen.');
+  }
+
+  // 8. Körpergewicht und Körperzusammensetzung
+  const bw = bodyweightSeries(data);
+  if (goal.weightGoal) {
+    const ws = weightStatus(data, bw);
+    if (ws.pctWeek != null) {
+      const p = -ws.pctWeek;
+      add(p < 0.25 ? 'info' : p <= 1 ? 'good' : 'warn', `Abnehm-Tempo ${fmt1(Math.abs(ws.pctWeek))} % pro Woche (Ziel 0,5–1 %).`);
+      if (p < 0.25) tips.push('Gewicht sinkt kaum – Kaloriendefizit leicht erhöhen oder mehr Alltagsbewegung.');
+      if (p > 1) tips.push('Du nimmst sehr schnell ab – Defizit verkleinern, damit die Muskeln bleiben.');
+    }
+  } else if (bw.length >= 2) {
+    const now = bw[bw.length - 1]; const old = bw.filter((x) => daysBetween(x.date, now.date) >= 25).pop();
+    if (old) {
+      const ch = pct(now.avg, old.avg);
+      if (['muscle', 'strength'].includes(goal.id) && ch < -0.5) tips.push(`Gewicht in 4 Wochen ${fmt1(ch)} % – für Muskelaufbau etwas mehr essen (leichter Überschuss, Protein 1,6–2,2 g/kg).`);
+      if (['muscle', 'strength'].includes(goal.id) && ch > 2) tips.push(`Gewicht in 4 Wochen +${fmt1(ch)} % – Überschuss eher zu groß, langsamer zunehmen.`);
+    }
+  }
+  compAdjust(data, date).notes.forEach((n) => add('info', n));
+  const pf = painFocus(data, date);
+  if (pf.length) add('info', `Ausgleich läuft für: ${pf.map((f) => PAIN_NAME[f.region]).join(', ')}.`);
+
+  // Fokus & Zusammenfassung
+  const focus = deloadNow ? 'Erholen: Deload-Woche mit weniger Sätzen und −10 % Gewicht.'
+    : !regular ? `Regelmäßig trainieren: ${planned} Einheiten pro Woche.`
+      : volumeAdjust.some((v) => v.delta > 0) ? `Mehr Sätze für ${volumeAdjust.filter((v) => v.delta > 0).map((v) => MUSCLES[v.muscle]).join(', ')}.`
+        : deload ? 'Deload-Woche: erholen, Technik sauber halten.'
+          : 'Weiter so – Gewichte und Wiederholungen langsam steigern.';
+  const warns = findings.filter((f) => f.kind === 'warn').length;
+  const summary = deloadNow ? 'Deine Werte zeigen Ermüdung – Zeit für eine Erholungswoche.'
+    : !regular ? 'Zuletzt waren es weniger Einheiten als geplant – Regelmäßigkeit bringt jetzt am meisten.'
+      : warns ? `Insgesamt solide, mit ${warns === 1 ? 'einem Punkt' : `${warns} Punkten`} zum Nachjustieren.`
+        : 'Starke Woche – alles im Zielbereich.';
+  if (!tips.length) tips.push('7–9 h Schlaf und genug Protein (1,6–2,2 g/kg) unterstützen den Fortschritt am meisten.');
+  return { summary, focus, tips: tips.slice(0, 4), findings, volumeAdjust, avoid: [], deloadNow };
 }
 
 // ---------- Kontext für Claude ----------

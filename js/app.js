@@ -1,14 +1,14 @@
 import { EX, EQUIPMENT, LOCATIONS, MUSCLES, ACTIVITIES, ACT, INTENSITY, videoSearchUrl, youtubeId } from './exercises.js';
 import { load, save, todayISO, daysBetween, uid, exportJSON, importJSON, requestPersistence } from './store.js';
 import {
-  TEMPLATES, ROTATIONS, blockInfo, recommendTemplate, buildSession, sessionFromPlan, rememberSlots, alternatives,
+  TEMPLATES, ROTATIONS, blockInfo, recommendTemplate, buildSession, rememberSlots, alternatives,
   makeItem, estimateMinutes, bodyweightSeries, exerciseSeries, trackedExercises, weeklyVolume, isStagnating,
   activityAdjust, activitySummary, activityLoad, activityName, autoRunType,
   feedbackAdjust, sessionRecords, allRecords, PAIN_NAME, autoEffort,
   tempoText, intervalPhases, bodyComp, bodyCompSeries, compAdjust, TEMPLATE_GROUPS, groupOf, nextVariant,
-  HR_ZONES, hrBase, hrRange, hrPlan, hrSummary, painFocus, addRegionWork,
+  HR_ZONES, hrBase, hrRange, hrPlan, hrSummary, painFocus, ruleReview,
 } from './engine.js';
-import { planSession, weeklyReview, CoachError, MODEL } from './coach.js';
+import { weeklyReview, CoachError, MODEL } from './coach.js';
 import { GOALS, GOAL, goalOf, rotationFor, daysToRace, weightStatus, SPORTS, SPORT, SEASONS, SEASON, WEEKDAYS, matchInfo, LEVELS, levelOf, levelHint } from './goals.js';
 import { lineChart, barChart } from './charts.js';
 
@@ -18,7 +18,6 @@ let data = DEMO ? (await import('./demo.js')).demoData(params.get('view')) : loa
 let view = 'today';
 let busy = null;
 let todayTpl = null;
-let wish = '';
 let runType = 'auto';
 let progressEx = null;
 let openHistory = null;
@@ -59,6 +58,8 @@ function render() {
 
 // ---------- Heute (Planung) ----------
 const shortTpl = (id) => TEMPLATES[id].name.split(' – ')[0];
+const FEELS = [['fit', 'Fit'], ['normal', 'Normal'], ['tired', 'Müde / schlecht geschlafen']];
+const feelToday = () => (data.today && data.today.date === todayISO() ? data.today.feel : 'normal');
 
 function renderToday() {
   const b = blockInfo(data);
@@ -72,7 +73,7 @@ function renderToday() {
   const goal = goalOf(data);
   const dtr = daysToRace(data);
   const hasKey = data.settings.useClaude && data.settings.apiKey;
-  const reviewDue = hasKey && data.sessions.length >= 2 && (!data.coach || daysBetween(data.coach.date, todayISO()) >= 7);
+  const reviewDue = data.sessions.length >= 2 && (!data.coach || daysBetween(data.coach.date, todayISO()) >= 7);
   const last = data.sessions[data.sessions.length - 1];
   const loc = data.location || 'gym';
   return `
@@ -87,7 +88,7 @@ function renderToday() {
     return ws.toGo > 0 ? ` · noch ${num(ws.toGo)} kg bis ${num(ws.goalW)} kg` : ' · Zielgewicht erreicht';
   })()}</p>
   ${!data.profile.setup ? `<button class="banner" data-action="setup">Profil & Home-Gym einrichten →</button>` : ''}
-  ${reviewDue ? `<button class="banner" data-action="goto" data-to="coach">Wochen-Check fällig – Claude passt deinen Plan an →</button>` : ''}
+  ${reviewDue ? `<button class="banner" data-action="goto" data-to="coach">Wochen-Check fällig – Plan für die nächste Woche anpassen →</button>` : ''}
   ${data.coach && data.coach.focus ? `<div class="card soft"><div class="label">Fokus diese Woche</div><p>${esc(data.coach.focus)}</p></div>` : ''}
 
   <section class="card">
@@ -136,24 +137,23 @@ function renderToday() {
   </section>`}
 
   <section class="card">
+    <div class="label">Wie fühlst du dich heute?</div>
+    <div class="chips">${FEELS.map(([k, l]) => `<button class="chip ${feelToday() === k ? 'on' : ''}" data-action="feel" data-v="${k}">${l}</button>`).join('')}</div>
+    <p class="muted small">${feelToday() === 'tired' ? 'Heute 1 Satz weniger pro Übung, weniger Sprünge, kein Finisher, Lauf nur locker.' : feelToday() === 'fit' ? 'Heute 1 Satz mehr bei den Hauptübungen (nicht im Deload).' : 'Normaler Plan.'}</p>
+  </section>
+
+  <section class="card">
     <div class="label">Zeit heute</div>
     <div class="chips">${[30, 45, 60, 75, 90, 105].map((m) => `<button class="chip ${data.profile.duration === m ? 'on' : ''}" data-action="dur" data-min="${m}">${m} min</button>`).join('')}</div>
   </section>
 
   ${(() => { const pf = painFocus(data); return pf.length ? `<div class="card soft"><div class="label">Ausgleich bei Beschwerden</div>
-    <p>Jede Einheit enthält zusätzlich Stabilisations-, Mobilitäts- und Dehnübungen für ${pf.map((f) => `<b>${esc(PAIN_NAME[f.region])}</b> (bis ${fmtDate(f.until)})`).join(', ')}. Schmerz bis ca. 3–5 von 10 ist in Ordnung, wenn er bis zum nächsten Morgen abklingt.</p>
-    <div class="chips">${pf.map((f) => `<button class="chip small" data-action="pain-clear" data-region="${f.region}">${esc(PAIN_NAME[f.region])} wieder gut ✓</button>`).join('')}</div></div>` : ''; })()}
+    <p>Jede Einheit enthält zusätzlich Stabilisations-, Mobilitäts- und Dehnübungen für ${pf.map((f) => `<b>${esc(PAIN_NAME[f.region])}</b> (${f.permanent ? 'dauerhaft, Profil' : `bis ${fmtDate(f.until)}`})`).join(', ')}. Schmerz bis ca. 3–5 von 10 ist in Ordnung, wenn er bis zum nächsten Morgen abklingt.</p>
+    ${pf.some((f) => !f.permanent) ? `<div class="chips">${pf.filter((f) => !f.permanent).map((f) => `<button class="chip small" data-action="pain-clear" data-region="${f.region}">${esc(PAIN_NAME[f.region])} wieder gut ✓</button>`).join('')}</div>` : ''}</div>` : ''; })()}
   ${(() => { const n = [...(todayTpl === 'REG' ? [] : activityAdjust(data, TEMPLATES[todayTpl].focus).notes), ...(todayTpl === 'RUN' ? [] : feedbackAdjust(data, todayTpl).notes), ...(TEMPLATES[todayTpl].slots.length ? compAdjust(data).notes : [])]; return n.length ? `<div class="card soft"><div class="label">Berücksichtigt</div><p>${n.map(esc).join('<br>')}</p></div>` : ''; })()}
 
-  ${hasKey ? `<section class="card">
-    <div class="label">Wunsch oder Befinden (optional)</div>
-    <textarea id="wish" rows="2" placeholder="z. B. „Nur 45 min“, „Linke Schulter zwickt“, „Heute Fokus Sprungkraft“">${esc(wish)}</textarea>
-  </section>` : ''}
-
   <div class="actions">
-    ${hasKey ? `<button class="btn primary" data-action="plan-ai" ${busy ? 'disabled' : ''}>${busy === 'plan' ? '<span class="spinner"></span> Claude plant …' : 'Mit Claude planen'}</button>` : ''}
-    <button class="btn ${hasKey ? '' : 'primary'}" data-action="plan-rule" ${busy ? 'disabled' : ''}>${hasKey ? 'Offline planen' : 'Training erstellen'}</button>
-    ${!hasKey ? `<p class="muted small center">Tipp: Hinterlege in den Einstellungen deinen Claude-API-Key für KI-Planung und Wochen-Check.</p>` : ''}
+    <button class="btn primary" data-action="plan-rule" ${busy ? 'disabled' : ''}>Training erstellen</button>
     <button class="btn ghost" data-action="act-new">+ Anderes Training nachtragen</button>
     <p class="muted small center">z. B. HIIT, Joggen, Yoga, CrossFit, Padel – fließt in die Planung ein.</p>
   </div>
@@ -189,36 +189,13 @@ function locationSummary(loc) {
 function countSets(s) { return s.blocks.flatMap((b) => b.items).reduce((n, it) => n + (it.sets || []).filter((x) => x.done).length, 0); }
 function tonnage(s) { return s.blocks.flatMap((b) => b.items).reduce((n, it) => n + (it.sets || []).filter((x) => x.done).reduce((m, x) => m + (Number(x.w) || 0) * (Number(x.r) || 0), 0), 0); }
 
-async function startPlan(useAI) {
+function startPlan() {
   // Laufeinheit: kein Trainingsort, keine Geräte nötig
   const equip = todayTpl === 'RUN' ? [] : equipFor(data.location || 'gym');
   if (todayTpl !== 'RUN') data.equipment = equip;
-  const rule = buildSession(data, { templateId: todayTpl, equip, runType });
-  let session = rule;
-  if (useAI) {
-    busy = 'plan'; render();
-    try {
-      const plan = await planSession(data, { templateId: todayTpl, equip, wish, ruleSession: rule, runType });
-      const s = addRegionWork(data, sessionFromPlan(data, plan, { templateId: todayTpl, equip }), equip, { full: !['RUN', 'HYX', 'PRIME'].includes(todayTpl) });
-      if (s.blocks.some((b) => b.type === 'strength' || b.type === 'power' || b.type === 'conditioning')) {
-        // Slot-Gedächtnis aus der Regel-Logik übernehmen, wenn Claude dieselbe Übung gewählt hat
-        const ruleSlots = Object.fromEntries(rule.blocks.flatMap((b) => b.items).filter((i) => i.slotKey).map((i) => [i.exId, i.slotKey]));
-        s.blocks.forEach((b) => b.items.forEach((i) => { if (ruleSlots[i.exId]) i.slotKey = ruleSlots[i.exId]; }));
-        session = s;
-      } else {
-        toast('Claude-Plan war leer – Offline-Plan verwendet.');
-      }
-    } catch (e) {
-      const msg = e instanceof CoachError ? e.message : 'Unerwarteter Fehler.';
-      toast(`${msg} Offline-Plan verwendet.`, 5000);
-      console.error(e);
-    } finally {
-      busy = null;
-    }
-  }
+  const session = buildSession(data, { templateId: todayTpl, equip, runType });
   session.estMin = estimateMinutes(session);
   data.active = session;
-  wish = '';
   runType = 'auto'; // nächstes Mal wieder den aktuellen Vorschlag vorauswählen
   persist();
   keepAwake(true);
@@ -456,7 +433,7 @@ function feedbackModal() {
     <div class="label">Beschwerden?</div>
     <div class="chips"><button class="chip ${!f.pain.length ? 'on' : ''}" data-action="fb-pain" data-id="none">Keine</button>${Object.entries(PAIN_NAME).map(([k, l]) => `<button class="chip ${f.pain.includes(k) ? 'on' : ''}" data-action="fb-pain" data-id="${k}">${l}</button>`).join('')}</div>
     <label class="field"><span>Notiz (optional)</span><textarea class="in wide" id="fb-note" rows="2" placeholder="z. B. Kniebeuge lief super, Schulter zwickt bei Überkopf">${esc(f.note)}</textarea></label>
-    ${claudeHint('Steht im Verlauf; in die Planung fließt die Notiz nur über Claude ein (API-Key unter Mehr → Claude).')}
+    ${claudeHint('Steht im Verlauf als Tagebuch; beim Wochen-Check mit Claude wird sie zusätzlich berücksichtigt.')}
     <button class="btn primary" data-action="fb-save">Speichern</button>
     <button class="btn ghost" data-action="fb-skip">Überspringen</button>`);
 }
@@ -783,7 +760,7 @@ function openSetup() {
     goal: p.goal || 'muscle', goalDate: p.goalDate || '', goalWeight: p.goalWeight || '',
     sport: p.sport || 'football', season: p.season || 'saison', matchDay: p.matchDay ?? '',
     days: p.days, duration: p.duration, notes: p.notes || '',
-    homeGym: [...(data.homeGym || [])], homeGymNotes: data.homeGymNotes || '',
+    homeGym: [...(data.homeGym || [])], homeMaxDb: p.homeMaxDb || '', zones: [...(p.zones || [])],
   };
   setupModal();
 }
@@ -822,13 +799,13 @@ function setupModal() {
     <div class="label">Übliche Dauer</div>
     <div class="chips">${chips('su-dur', [45, 60, 75, 90, 105], s.duration, (v) => `${v} min`)}</div>
     ${GOAL[s.goal].volumeFocus && s.days <= 2 && s.goal !== 'fitness' ? '<p class="muted small">Hinweis: Mit 2 Tagen kommt jeder Muskel auf ca. 6–9 Sätze pro Woche – das wirkt, für optimalen Muskel- bzw. Kraftaufbau sind aber 3–4 Tage besser.</p>' : GOAL[s.goal].volumeFocus && s.duration < 90 && (s.days <= 2 || (s.days <= 3 && s.goal !== 'fitness')) ? '<p class="muted small">Tipp: Bei nur ' + s.days + ' Tagen sind für dieses Ziel 90 min sinnvoll, damit jeder Muskel auf ~10 Sätze pro Woche kommt.</p>' : ''}
-    <label class="field"><span>Verletzungen / Hinweise (optional)</span><textarea class="in wide" data-su="notes" rows="2" placeholder="z. B. Knie links empfindlich bei tiefen Sprüngen">${esc(s.notes)}</textarea></label>
-    ${claudeHint()}
+    <div class="label">Dauerhafte Problemzonen (optional)</div>
+    <div class="chips">${Object.entries(PAIN_NAME).map(([k, l]) => `<button class="chip small ${s.zones.includes(k) ? 'on' : ''}" data-action="su-zone" data-id="${k}">${l}</button>`).join('')}</div>
+    <p class="muted small">Für diese Regionen enthält jede Einheit dauerhaft Stabilisations-, Mobilitäts- und Dehnübungen.</p>
     <div class="label mt">Dein Home-Gym</div>
     <p class="muted small">Was hast du zu Hause? Leer lassen, wenn du nur im Studio trainierst.</p>
     <div class="chips">${EQUIPMENT.map((e) => `<button class="chip ${s.homeGym.includes(e.id) ? 'on' : ''}" data-action="su-equip" data-id="${e.id}">${esc(e.name)}</button>`).join('')}</div>
-    <label class="field"><span>Details (optional)</span><textarea class="in wide" data-su="homeGymNotes" rows="2" placeholder="z. B. Kurzhanteln verstellbar 2–24 kg, Langhantel mit 100 kg Scheiben">${esc(s.homeGymNotes)}</textarea></label>
-    ${claudeHint()}
+    ${s.homeGym.includes('dumbbell') ? `<label class="field"><span>Schwerste Kurzhantel (kg pro Hand, optional)</span><input class="in" data-su="homeMaxDb" inputmode="decimal" placeholder="z. B. 24" value="${esc(s.homeMaxDb)}"></label>` : ''}
     <button class="btn primary" data-action="su-save">Speichern</button>
     <button class="btn ghost" data-action="close">Später</button>`);
 }
@@ -839,11 +816,13 @@ function saveSetup() {
   const kg = parseFloat(String(s.weight).replace(',', '.'));
   if (!(age >= 14 && age <= 90)) { toast('Bitte ein Alter zwischen 14 und 90 eingeben.'); return; }
   if (!(kg > 35 && kg < 250)) { toast('Bitte ein gültiges Gewicht eingeben.'); return; }
-  Object.assign(data.profile, { age, weight: kg, sex: s.sex, level: s.level, days: s.days, duration: s.duration, notes: s.notes.trim(), goal: s.goal, sport: s.sport, season: s.season, matchDay: s.matchDay, goalDate: GOAL[s.goal].race ? s.goalDate : '', goalWeight: GOAL[s.goal].weightGoal && parseFloat(String(s.goalWeight).replace(',', '.')) > 0 ? parseFloat(String(s.goalWeight).replace(',', '.')) : '', setup: true });
+  Object.assign(data.profile, { age, weight: kg, sex: s.sex, level: s.level, days: s.days, duration: s.duration, goal: s.goal, sport: s.sport, season: s.season, matchDay: s.matchDay, goalDate: GOAL[s.goal].race ? s.goalDate : '', goalWeight: GOAL[s.goal].weightGoal && parseFloat(String(s.goalWeight).replace(',', '.')) > 0 ? parseFloat(String(s.goalWeight).replace(',', '.')) : '', setup: true });
   setBodyweight({ kg });
   data.homeGym = s.homeGym.length ? [...s.homeGym] : null;
   if (data.location === 'home' && !data.homeGym) data.location = 'gym';
-  data.homeGymNotes = s.homeGymNotes.trim();
+  const mdb = parseFloat(String(s.homeMaxDb).replace(',', '.'));
+  data.profile.homeMaxDb = mdb > 0 ? mdb : '';
+  data.profile.zones = [...s.zones];
   todayTpl = null;
   persist();
   closeModal();
@@ -1125,18 +1104,23 @@ function drawCharts() {
 function renderCoach() {
   const c = data.coach;
   const hasKey = data.settings.useClaude && data.settings.apiKey;
+  const icon = { good: '✓', warn: '!', info: '•' };
   return `
   <header class="page-head"><h1>Coach</h1></header>
   <section class="card">
-    <p>Einmal pro Woche wertet Claude dein Training aus: Volumen pro Muskel, Kraftentwicklung, Stagnation und Körpergewicht. Die Anpassungen fließen automatisch in jede neue Einheit ein, auch offline.</p>
-    ${hasKey ? `<button class="btn primary" data-action="review" ${busy ? 'disabled' : ''}>${busy === 'review' ? '<span class="spinner"></span> Claude analysiert …' : 'Wochen-Check starten'}</button>`
-      : '<p class="muted">Dafür brauchst du einen Claude-API-Key (Einstellungen).</p>'}
+    <div class="label">Wochen-Check</div>
+    <p>Wertet deine letzten zwei Wochen aus – Einheiten, Sätze pro Muskel, Kraftentwicklung, Ermüdung, Belastung, Läufe, Körpergewicht – und passt den Plan für die nächste Woche an. Läuft ohne KI, auch offline.</p>
+    <button class="btn primary" data-action="review-rule">Wochen-Check starten</button>
+    ${hasKey ? `<button class="btn" data-action="review" ${busy ? 'disabled' : ''}>${busy === 'review' ? '<span class="spinner"></span> Claude analysiert …' : 'KI-Wochen-Check mit Claude'}</button>
+      <p class="muted small">Claude bewertet zusätzlich frei formuliert und berücksichtigt deine Notizen nach dem Training (ca. 5–10 Cent).</p>`
+      : '<p class="muted small">Optional: Mit einem Claude-API-Key (Mehr → Claude) gibt es zusätzlich einen KI-Wochen-Check.</p>'}
   </section>
   ${c ? `
   <section class="card">
-    <div class="label">Check vom ${fmtDate(c.date)}</div>
-    <p>${esc(c.summary)}</p>
-    ${c.focus ? `<div class="label mt">Fokus</div><p>${esc(c.focus)}</p>` : ''}
+    <div class="label">Check vom ${fmtDate(c.date)} · ${c.source === 'regel' ? 'Regel-Logik' : 'Claude'}</div>
+    ${c.summary ? `<p>${esc(c.summary)}</p>` : ''}
+    ${(c.findings || []).length ? `<ul class="findings">${c.findings.map((f) => `<li class="f-${f.kind}"><span>${icon[f.kind] || '•'}</span>${esc(f.text)}</li>`).join('')}</ul>` : ''}
+    ${c.focus ? `<div class="label mt">Fokus nächste Woche</div><p>${esc(c.focus)}</p>` : ''}
     ${c.deloadUntil && c.deloadUntil >= todayISO() ? `<p class="pill warn">Deload aktiv bis ${fmtDate(c.deloadUntil)}</p>` : ''}
     ${(c.volumeAdjust || []).length ? `<div class="label mt">Volumen-Anpassung</div>
       <ul class="adj">${c.volumeAdjust.map((v) => `<li><strong>${esc(MUSCLES[v.muscle] || v.muscle)} ${v.delta > 0 ? '+' : ''}${esc(v.delta)} Sätze/Woche</strong><br><span class="muted small">${esc(v.reason)}</span></li>`).join('')}</ul>` : ''}
@@ -1150,9 +1134,21 @@ function renderCoach() {
       <li><strong>Jede Einheit:</strong> Schaffst du in allen Sätzen das obere Wdh.-Ziel, steigt das Gewicht. Zweimal darunter: −5 %.</li>
       <li><strong>Blöcke:</strong> 4 Wochen Belastung mit steigendem Volumen, dann 1 Woche Deload.</li>
       <li><strong>Stagnation:</strong> Kommt eine Übung 3 Einheiten nicht voran, wird eine Variante gewählt.</li>
-      <li><strong>Wochen-Check:</strong> Claude justiert die Sätze pro Muskel und den Fokus.</li>
+      <li><strong>Wochen-Check:</strong> justiert Sätze pro Muskel, löst bei Ermüdung einen Deload aus und setzt den Fokus – nach festen Regeln oder optional mit Claude.</li>
     </ul>
   </section>`;
+}
+
+function runRuleReview() {
+  const r = ruleReview(data);
+  data.coach = {
+    date: todayISO(), source: 'regel', summary: r.summary, focus: r.focus, tips: r.tips, findings: r.findings,
+    volumeAdjust: r.volumeAdjust, avoid: [],
+    deloadUntil: r.deloadNow ? todayISO(new Date(Date.now() + 6 * 86400000)) : null,
+  };
+  persist();
+  render();
+  toast(r.volumeAdjust.length || r.deloadNow ? 'Plan für die nächste Woche angepasst.' : r.findings.some((f) => f.kind === 'warn') ? 'Wochen-Check fertig – schau dir die Hinweise an.' : 'Wochen-Check fertig – alles im grünen Bereich.');
 }
 
 async function runReview() {
@@ -1161,7 +1157,7 @@ async function runReview() {
     const r = await weeklyReview(data);
     const valid = (r.volumeAdjust || []).filter((v) => MUSCLES[v.muscle]).map((v) => ({ ...v, delta: Math.max(-4, Math.min(4, Math.round(v.delta))) }));
     data.coach = {
-      date: todayISO(), summary: r.summary, focus: r.focus, tips: r.tips || [],
+      date: todayISO(), source: 'claude', summary: r.summary, focus: r.focus, tips: r.tips || [],
       volumeAdjust: valid, avoid: (r.avoid || []).filter((id) => EX[id]),
       deloadUntil: r.deloadNow ? todayISO(new Date(Date.now() + 6 * 86400000)) : null,
     };
@@ -1187,15 +1183,15 @@ function renderSettings() {
   <section class="card">
     <div class="label">Mein Home-Gym</div>
     <div class="chips">${EQUIPMENT.map((e) => `<button class="chip ${(data.homeGym || []).includes(e.id) ? 'on' : ''}" data-action="home-equip" data-id="${e.id}">${esc(e.name)}</button>`).join('')}</div>
-    <label class="field"><span>Details (optional)</span><textarea class="in wide" id="home-notes" rows="2" placeholder="z. B. Kurzhanteln verstellbar 2–24 kg, Langhantel mit 100 kg Scheiben, Klimmzugstange im Türrahmen">${esc(data.homeGymNotes || '')}</textarea></label>
-    ${claudeHint()}
+    ${(data.homeGym || []).includes('dumbbell') ? `<label class="field"><span>Schwerste Kurzhantel (kg pro Hand, optional)</span><input class="in" data-prof="homeMaxDb" inputmode="decimal" placeholder="z. B. 24" value="${esc(data.profile.homeMaxDb || '')}"></label>
+    <p class="muted small">Zu Hause werden Richtwerte darauf begrenzt – stattdessen mehr Wiederholungen.</p>` : ''}
     <p class="muted small">Wird mit „Home-Gym“ beim Training übernommen.</p>
   </section>
   <section class="card">
     <div class="label">Claude</div>
     <label class="field"><span>API-Key</span><input id="api-key" class="in wide" type="password" autocomplete="off" placeholder="sk-ant-…" value="${esc(data.settings.apiKey)}"></label>
-    <label class="switch"><input type="checkbox" id="use-claude" ${data.settings.useClaude ? 'checked' : ''}> Claude für Planung & Wochen-Check nutzen</label>
-    <p class="muted small">Der Key bleibt nur auf diesem Gerät und wird ausschließlich an api.anthropic.com gesendet. Modell: ${MODEL}. Kosten ca. 5–10 Cent pro geplanter Einheit.</p>
+    <label class="switch"><input type="checkbox" id="use-claude" ${data.settings.useClaude ? 'checked' : ''}> Claude für den KI-Wochen-Check nutzen</label>
+    <p class="muted small">Optional – die App plant komplett ohne KI. Der Key wird nur für den Wochen-Check mit Claude im Coach-Tab genutzt, bleibt nur auf diesem Gerät und geht ausschließlich an api.anthropic.com. Modell: ${MODEL}. Kosten ca. 5–10 Cent pro Check.</p>
   </section>
   <section class="card">
     <div class="label">Profil</div>
@@ -1217,8 +1213,9 @@ function renderSettings() {
     ${goalOf(data).season !== 'pause' ? `<label class="field"><span>Fester Spieltag (optional)</span>${matchDaySelect('data-prof="matchDay"', p.matchDay)}</label>` : ''}` : ''}
     <label class="field"><span>Geschlecht</span><select class="in" data-prof="sex">${['', 'männlich', 'weiblich', 'divers'].map((s) => `<option value="${s}" ${p.sex === s ? 'selected' : ''}>${s || '– bitte wählen –'}</option>`).join('')}</select></label>
     <label class="field"><span>Kraftniveau</span>${levelSelect('data-prof="level"', levelOf(p).id, p.sex)}</label>
-    <label class="field"><span>Verletzungen / Hinweise (optional)</span><textarea class="in wide" data-prof="notes" rows="2" placeholder="z. B. Knie links empfindlich bei tiefen Sprüngen">${esc(p.notes)}</textarea></label>
-    ${claudeHint()}
+    <div class="label mt">Dauerhafte Problemzonen</div>
+    <div class="chips">${Object.entries(PAIN_NAME).map(([k, l]) => `<button class="chip small ${(p.zones || []).includes(k) ? 'on' : ''}" data-action="prof-zone" data-id="${k}">${l}</button>`).join('')}</div>
+    <p class="muted small">Für diese Regionen enthält jede Einheit dauerhaft Stabilisations-, Mobilitäts- und Dehnübungen.</p>
     <button class="btn small" data-action="setup">Einrichtungs-Assistent öffnen</button>
     <p class="muted small">Wochenplan bei ${p.days} Tagen (${esc(goalOf(data).name)}): ${(() => { const c = new Map(); rotationFor(data).forEach((k) => c.set(shortTpl(k), (c.get(shortTpl(k)) || 0) + 1)); return [...c].map(([n, x]) => `${x > 1 ? `${x}× ` : ''}${n}`).join(', '); })()}. Die Reihenfolge empfiehlt der Stern ★ jeden Tag neu.</p>
   </section>
@@ -1285,6 +1282,8 @@ document.addEventListener('click', async (e) => {
     case 'su-sport': setupDraft.sport = t.dataset.v; setupModal(); break;
     case 'su-season': setupDraft.season = t.dataset.v; setupModal(); break;
     case 'su-dur': setupDraft.duration = +t.dataset.v; setupModal(); break;
+    case 'su-zone': { const id = t.dataset.id; setupDraft.zones = setupDraft.zones.includes(id) ? setupDraft.zones.filter((x) => x !== id) : [...setupDraft.zones, id]; setupModal(); break; }
+    case 'prof-zone': { const id = t.dataset.id; const z = data.profile.zones || []; data.profile.zones = z.includes(id) ? z.filter((x) => x !== id) : [...z, id]; persist(); render(); break; }
     case 'su-equip': { const id = t.dataset.id; setupDraft.homeGym = setupDraft.homeGym.includes(id) ? setupDraft.homeGym.filter((x) => x !== id) : [...setupDraft.homeGym, id]; setupModal(); break; }
     case 'su-save': saveSetup(); break;
     case 'home-equip': {
@@ -1298,8 +1297,8 @@ document.addEventListener('click', async (e) => {
       data.equipment = [...data.travelEquip];
       persist(); render(); break;
     }
-    case 'plan-ai': wish = ($('#wish') || {}).value || ''; startPlan(true); break;
-    case 'plan-rule': wish = ($('#wish') || {}).value || ''; startPlan(false); break;
+    case 'plan-rule': startPlan(); break;
+    case 'feel': data.today = { date: todayISO(), feel: t.dataset.v }; persist(); render(); break;
     case 'set-done': {
       const it = itemAt(t); const st = it.sets[+t.dataset.s];
       const missing = st.r === '' ? 'r' : (EX[it.exId].load === 'kg' && st.w === '' ? 'w' : null);
@@ -1381,6 +1380,7 @@ document.addEventListener('click', async (e) => {
       persist(); render(); toast(muscle || fat ? 'Gewicht und Körperwerte gespeichert.' : 'Gewicht gespeichert.'); break;
     }
     case 'review': runReview(); break;
+    case 'review-rule': runRuleReview(); break;
     case 'reset-coach': if (confirm('Anpassungen aus dem Wochen-Check zurücksetzen?')) { data.coach = null; persist(); render(); } break;
     case 'new-block': if (confirm('Neuen 5-Wochen-Block ab heute starten?')) { data.block.start = todayISO(); persist(); render(); } break;
     case 'export': exportJSON(data); break;
@@ -1404,9 +1404,7 @@ document.addEventListener('input', (e) => {
     st[t.dataset.field] = v === '' ? '' : (isNaN(+v) ? st[t.dataset.field] : v);
     persist();
   }
-  if (t.id === 'wish') wish = t.value;
   if (t.id === 'fb-note' && fbDraft) fbDraft.note = t.value;
-  if (t.id === 'home-notes') { data.homeGymNotes = t.value; persist(); }
   if (setupDraft && t.dataset.su) setupDraft[t.dataset.su] = t.value;
   if (actDraft && t.id && t.id.startsWith('act-')) {
     const map = { 'act-date': 'date', 'act-min': 'minutes', 'act-km': 'km', 'act-note': 'note' };
@@ -1422,8 +1420,8 @@ document.addEventListener('change', async (e) => {
   if (t.id === 'use-claude') { data.settings.useClaude = t.checked; persist(); render(); }
   if (t.dataset.prof) {
     const k = t.dataset.prof;
-    const numeric = ['age', 'weight', 'days', 'duration', 'goalWeight', 'hrMax', 'hrRest'].includes(k);
-    const optional = ['goalWeight', 'hrMax', 'hrRest'].includes(k);
+    const numeric = ['age', 'weight', 'days', 'duration', 'goalWeight', 'hrMax', 'hrRest', 'homeMaxDb'].includes(k);
+    const optional = ['goalWeight', 'hrMax', 'hrRest', 'homeMaxDb'].includes(k);
     const v = optional && t.value.trim() === '' ? '' : numeric ? parseFloat(t.value.replace(',', '.')) : t.value;
     if (numeric && v !== '' && isNaN(v)) return;
     data.profile[k] = v;

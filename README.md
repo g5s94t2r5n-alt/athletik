@@ -6,12 +6,12 @@ Läuft vom iPhone-Homescreen wie eine normale App, auch offline im Gym. Kein App
 ## Funktionen
 
 - **Equipment vor jedem Training wählen** (oder Preset: Studio, Home-Gym, Hotel, Körpergewicht, Draußen) → passender Plan
-- **Planung mit Claude** (Opus 5.5) inkl. Wunsch/Befinden des Tages – oder offline mit der eingebauten Regel-Logik
+- **Planung komplett ohne KI** mit eingebauter, evidenzbasierter Regel-Logik – inkl. Befinden des Tages (fit/normal/müde), dauerhafter Problemzonen und schwerster Kurzhantel im Home-Gym
 - **Persönliche Rekorde** mit Feier nach dem Training und Rekordliste
 - **Kurze Umfrage nach dem Training** (Gefallen, Beschwerden) + automatische Belastungseinschätzung aus den Wdh. – die nächsten Einheiten passen sich an
 - **Richtwerte in kg** für jede Übung – aus deinen letzten Gewichten, passend zum Trainingsziel
 - **Automatische Progression** aus Gewicht × Wiederholungen (doppelte Progression, Deload alle 5 Wochen, Übungswechsel bei Stagnation)
-- **Wochen-Check mit Claude**: passt Sätze pro Muskel, Fokus und Übungsauswahl an
+- **Wochen-Check ohne KI** (Coach-Tab): passt Sätze pro Muskel an, löst bei Ermüdung einen Deload aus, gibt Fokus und Tipps – optional zusätzlich mit Claude
 - **Andere Trainings nachtragen** (HIIT, Joggen, Yoga, Kurse, CrossFit, Padel, Teamtraining, Spiele, Paddeln, Radfahren …) mit Dauer, Anstrengung und optional Strecke. Sie fließen in die Planung ein (z. B. kein Ausdauer-Finisher nach hartem HIIT gestern) und in den Wochen-Check
 - **Diagramme**: Körpergewicht (mit 7-Tage-Mittel und optionalem Zielgewicht), Kraftentwicklung je Übung (geschätztes 1RM), Wochenvolumen pro Muskel, Monatsübersicht im Verlauf (wie oft welche Einheit)
 - **Trainingsziele**: Muskelaufbau & Athletik, Kraftaufbau, Ausdauer, Marathon, HYROX, Sportartspezifisch (Fußball, Handball, Basketball, Volleyball, Tennis/Padel – mit Saisonphase und Spieltag), Allgemeine Fitness, Abnehmen
@@ -55,14 +55,14 @@ Danach auf dem iPhone:
 
 1. Adresse in **Safari** öffnen
 2. Teilen-Symbol → **„Zum Home-Bildschirm“**
-3. App vom Homescreen starten → Mehr → Claude-API-Key eintragen (console.anthropic.com)
+3. App vom Homescreen starten – fertig. Optional: Mehr → Claude-API-Key eintragen (console.anthropic.com) für den KI-Wochen-Check
 
 Deine Trainingsdaten liegen nur auf dem iPhone, nicht auf dem Server. Exportiere ab und zu ein Backup
 (Mehr → Backup exportieren → in iCloud Drive sichern).
 
 ## Kosten Claude
 
-Pro geplanter Einheit ca. 5–10 Cent, pro Wochen-Check ähnlich. Ohne API-Key läuft alles mit der Regel-Logik.
+Nur für den optionalen KI-Wochen-Check: ca. 5–10 Cent pro Check. Alles andere läuft ohne KI und ohne Kosten.
 
 ## Dateien
 
@@ -70,7 +70,7 @@ Pro geplanter Einheit ca. 5–10 Cent, pro Wochen-Check ähnlich. Ohne API-Key l
 |---|---|
 | `js/exercises.js` | Übungsdatenbank (Equipment, Muskeln, Technik, Video-Suche) |
 | `js/engine.js` | Split-Vorlagen, Plan-Generator, Progression, Statistiken |
-| `js/coach.js` | Claude-Anbindung (Einheit planen, Wochen-Check) |
+| `js/coach.js` | Optionaler KI-Wochen-Check mit Claude |
 | `js/charts.js` | Diagramme |
 | `js/app.js` | Oberfläche |
 | `sw.js` | Offline-Cache |

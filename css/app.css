@@ -319,3 +319,11 @@ select.in { appearance: none; -webkit-appearance: none; }
 /* Ausgleich bei Beschwerden */
 .t-stability { background: var(--tag-stability, #0f8a7a); }
 [data-design="d"] .t-stability { background: var(--pink); }
+
+/* Wochen-Check: Befunde */
+.findings { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+.findings li { display: grid; grid-template-columns: 22px 1fr; gap: 6px; font-size: 15px; line-height: 1.4; }
+.findings li span { font-weight: 800; text-align: center; }
+.findings .f-good span { color: var(--good); }
+.findings .f-warn span { color: var(--warn); }
+.findings .f-info span { color: var(--muted); }

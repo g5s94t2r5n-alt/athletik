@@ -204,7 +204,7 @@ function startPlan() {
 
 // ---------- Aktive Einheit ----------
 const BLOCK_ICON = { warmup: 'Aufwärmen', power: 'Schnellkraft', stability: 'Ausgleich', strength: 'Kraft', conditioning: 'Ausdauer', run: 'Laufen', cooldown: 'Mobilität' };
-const RUN_TYPES = ['run_easy', 'run_4x4', 'run_3030', 'run_tempo', 'run_fartlek', 'run_sprints', 'run_long', 'run_1515', 'run_rsa', 'run_shuttle'];
+const RUN_TYPES = ['run_easy', 'run_4x4', 'run_3030', 'run_tempo', 'run_fartlek', 'run_sprints', 'run_long', 'run_hills', 'run_1515', 'run_rsa', 'run_shuttle'];
 
 function pace(min, km) {
   const m = parseFloat(String(min).replace(',', '.')); const k = parseFloat(String(km).replace(',', '.'));

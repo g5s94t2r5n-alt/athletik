@@ -2,6 +2,36 @@
 // Lauf-Schwerpunkte und den Auftrag an Claude.
 import { todayISO, daysBetween } from './store.js';
 
+// Läufer (Ausdauer, Marathon): statt Bizeps, Seitheben, Brust- und Trizeps-Isolation gezielt Waden (Soleus),
+// seitliche Hüfte, Einbeinstand und Rumpf; reaktive Sprünge und einbeinige Kraft zuerst. Kraft- und
+// Sprungtraining verbessert die Laufökonomie (Blagrove 2018; Balsalobre-Fernández 2016), Hüftabduktoren
+// und Waden sind bei Läufer-Beschwerden zentral (Knie, Achillessehne) – Waden bleiben auch in Kurzeinheiten.
+const RUNNER = {
+  swap: {
+    side_delt: { slot: 'hip_abd', sets: 2, prio: 2, prefer: ['hip_abduction_machine', 'cable_hip_abduction', 'band_lateral_walk', 'side_lying_abduction'] },
+    biceps: { slot: 'calf', sets: 3, prio: 2, keep: true, prefer: ['seated_calf', 'seated_db_calf', 'bent_knee_calf', 'standing_calf', 'db_calf', 'bw_calf'] },
+    calf: { slot: 'calf', sets: 3, prio: 2, keep: true, prefer: ['standing_calf', 'db_calf', 'seated_calf', 'bw_calf', 'seated_db_calf', 'bent_knee_calf'] },
+    chest_iso: { slot: 'prev_lower', sets: 2, prio: 2, prefer: ['sl_balance', 'sl_landing'] },
+    triceps: { slot: 'core', sets: 2, prio: 3, prefer: ['copenhagen', 'copenhagen_short', 'pallof', 'band_pallof', 'suitcase_carry', 'dead_bug'] },
+    power_upper: { slot: 'power_lower', sets: 3, prio: 2, prefer: ['sl_hop', 'hurdle_hops', 'bounding', 'ankle_hops'] },
+  },
+  prefer: {
+    power_lower: ['ankle_hops', 'sl_hop', 'bounding', 'cmj', 'box_jump', 'broad_jump'],
+    lunge: ['bss_db', 'step_up', 'split_squat_db', 'reverse_lunge_bb', 'kb_reverse_lunge', 'bss_bw', 'reverse_lunge_bw'],
+  },
+};
+// HYROX: Tragen und Griffkraft statt Brust-Isolation, seitliche Hüfte für die Lunges, Swing/Weitsprung zuerst
+const HYROX_SLOTS = {
+  swap: {
+    chest_iso: { slot: 'core', sets: 3, prio: 2, prefer: ['farmer_walk', 'suitcase_carry', 'pallof', 'band_pallof', 'dead_bug'] },
+    side_delt: { slot: 'hip_abd', sets: 2, prio: 3, prefer: ['hip_abduction_machine', 'cable_hip_abduction', 'band_lateral_walk', 'side_lying_abduction'] },
+  },
+  prefer: {
+    power_lower: ['kb_swing', 'broad_jump', 'box_jump'],
+    lunge: ['walking_lunge', 'kb_reverse_lunge', 'reverse_lunge_bb', 'bss_db', 'split_squat_db', 'reverse_lunge_bw'],
+  },
+};
+
 export const GOALS = [
   {
     id: 'muscle', name: 'Muskelaufbau & Athletik',
@@ -29,7 +59,7 @@ export const GOALS = [
     id: 'endurance', name: 'Ausdauer aufbauen',
     desc: 'Grundlagenausdauer und VO₂max verbessern, Kraft 2× pro Woche zum Erhalt.',
     reps: 'hyp', volume: 0.65, finisher: false, volumeFocus: false, race: false,
-    runCycle: ['run_4x4', 'run_long', 'run_tempo', 'run_3030', 'run_fartlek'],
+    runCycle: ['run_4x4', 'run_long', 'run_tempo', 'run_hills', 'run_3030', 'run_fartlek'], ...RUNNER,
     rot: {
       2: ['RUN', 'FB_A'], 3: ['RUN', 'FB_A', 'RUN'], 4: ['RUN', 'FB_A', 'RUN', 'FB_B'],
       5: ['RUN', 'FB_A', 'RUN', 'FB_B', 'RUN'], 6: ['RUN', 'FB_A', 'RUN', 'FB_B', 'RUN', 'REG'],
@@ -40,7 +70,7 @@ export const GOALS = [
     id: 'marathon', name: 'Marathon-Vorbereitung',
     desc: 'Wöchentlicher langer Lauf, Tempoläufe, sonst locker – plus kurzes Krafttraining für Läufer.',
     reps: 'hyp', volume: 0.6, finisher: false, volumeFocus: false, race: true, key: 'RUN',
-    runCycle: ['run_tempo', 'run_4x4', 'run_tempo', 'run_3030'], longRun: true,
+    runCycle: ['run_tempo', 'run_4x4', 'run_tempo', 'run_hills', 'run_3030'], longRun: true, ...RUNNER,
     rot: {
       2: ['RUN', 'RUN'], 3: ['RUN', 'FB_A', 'RUN'], 4: ['RUN', 'FB_A', 'RUN', 'RUN'],
       5: ['RUN', 'FB_A', 'RUN', 'FB_B', 'RUN'], 6: ['RUN', 'FB_A', 'RUN', 'RUN', 'FB_B', 'RUN'],
@@ -51,7 +81,7 @@ export const GOALS = [
     id: 'hyrox', name: 'HYROX',
     desc: '8 × 1 km Laufen im Wechsel mit Stationen: Kraftausdauer und Laufen unter Vorermüdung.',
     reps: 'hyp', volume: 0.7, finisher: false, volumeFocus: false, race: true, key: 'HYX',
-    runCycle: ['run_3030', 'run_4x4', 'run_tempo'],
+    runCycle: ['run_3030', 'run_4x4', 'run_tempo'], ...HYROX_SLOTS,
     rot: {
       2: ['HYX', 'FB_A'], 3: ['FB_A', 'RUN', 'HYX'], 4: ['FB_A', 'RUN', 'FB_B', 'HYX'],
       5: ['FB_A', 'RUN', 'FB_B', 'HYX', 'RUN'], 6: ['FB_A', 'RUN', 'FB_B', 'HYX', 'RUN', 'REG'],
@@ -100,8 +130,8 @@ export const SPORTS = [
     runs: { vorbereitung: ['run_4x4', 'run_1515', 'run_rsa', 'run_4x4', 'run_sprints'], saison: ['run_1515', 'run_rsa', 'run_sprints'], pause: ['run_4x4', 'run_fartlek', 'run_tempo'] },
     desc: 'Antritt, wiederholte Sprints, Richtungswechsel, Sprung- und Schusskraft. Prävention für Beinbeuger (Nordic Curls) und Leiste (Copenhagen).',
     prefer: {
-      power_lower: ['broad_jump', 'lateral_bound', 'cmj', 'box_jump'], cod: ['cod_505', 'lateral_shuffle'],
-      core: ['copenhagen', 'pallof', 'band_pallof', 'dead_bug'], prev_lower: ['sl_landing', 'sl_balance'],
+      power_lower: ['broad_jump', 'lateral_bound', 'cmj', 'box_jump', 'sl_hop'], cod: ['cod_505', 'cod_45', 'lateral_shuffle', 'reactive_agility'],
+      core: ['copenhagen', 'copenhagen_short', 'pallof', 'band_pallof', 'dead_bug'], prev_lower: ['sl_landing', 'sl_balance'],
       power_upper: ['mb_rot_throw', 'mb_chest_pass', 'band_punch'],
     },
     always: { knee_flexion: ['nordic_curl'] },
@@ -115,7 +145,7 @@ export const SPORTS = [
     desc: 'Wurfkraft, Sprungkraft, Richtungswechsel und Zweikampf. Prävention für Schulter (Außenrotation) und Knie (Landetechnik).',
     prefer: {
       power_upper: ['mb_overhead_throw', 'mb_rot_throw', 'mb_chest_pass', 'plyo_pushup'], power_lower: ['cmj', 'lateral_bound', 'box_jump', 'broad_jump'],
-      cod: ['lateral_shuffle', 'cod_505'], prev_shoulder: ['ext_rotation_cable', 'ext_rotation_band', 'ext_rotation_db'],
+      cod: ['lateral_shuffle', 'cod_505', 'cod_45', 'reactive_agility'], prev_shoulder: ['ext_rotation_cable', 'ext_rotation_band', 'ext_rotation_db', 'band_ir', 'full_can', 'prone_er'],
     },
     always: { knee_flexion: ['nordic_curl'] },
     prio: { prev_shoulder: 1, prev_lower: 1 }, sets: { prev_shoulder: 3 },
@@ -127,7 +157,7 @@ export const SPORTS = [
     runs: { vorbereitung: ['run_1515', 'run_shuttle', 'run_rsa', 'run_4x4'], saison: ['run_rsa', 'run_1515', 'run_shuttle'], pause: ['run_4x4', 'run_fartlek', 'run_1515'] },
     desc: 'Vertikale Sprungkraft, Antritt, seitliche Schnelligkeit. Prävention für Knie (Landetechnik) und Sprunggelenk.',
     prefer: {
-      power_lower: ['approach_jump', 'depth_jump', 'cmj', 'box_jump'], cod: ['lateral_shuffle', 'cod_505'],
+      power_lower: ['approach_jump', 'depth_jump', 'cmj', 'box_jump', 'hurdle_hops'], cod: ['lateral_shuffle', 'cod_505', 'reactive_agility', 'cod_45'],
       prev_lower: ['sl_landing', 'sl_balance'], calf: ['standing_calf', 'db_calf', 'bw_calf'],
     },
     prio: { prev_lower: 1, calf: 2 },
@@ -139,8 +169,8 @@ export const SPORTS = [
     runs: { vorbereitung: ['run_sprints', 'run_rsa', 'run_1515'], saison: ['run_sprints', 'run_rsa'], pause: ['run_fartlek', 'run_1515', 'run_4x4'] },
     desc: 'Sprungkraft mit Anlauf, Schlagarm und Rumpf. Prävention für Schulter, Knie und Sprunggelenk.',
     prefer: {
-      power_lower: ['approach_jump', 'cmj', 'depth_jump', 'box_jump'], power_upper: ['mb_overhead_throw', 'mb_slam', 'mb_rot_throw'],
-      cod: ['lateral_shuffle', 'cod_505'], prev_shoulder: ['ext_rotation_cable', 'ext_rotation_band', 'ext_rotation_db'], prev_lower: ['sl_landing', 'sl_balance'],
+      power_lower: ['approach_jump', 'cmj', 'depth_jump', 'box_jump', 'hurdle_hops'], power_upper: ['mb_overhead_throw', 'mb_slam', 'mb_rot_throw'],
+      cod: ['lateral_shuffle', 'cod_505', 'reactive_agility'], prev_shoulder: ['ext_rotation_cable', 'ext_rotation_band', 'ext_rotation_db', 'full_can', 'band_ir', 'prone_er'], prev_lower: ['sl_landing', 'sl_balance'],
     },
     prio: { prev_shoulder: 1, prev_lower: 1 },
     prompt: 'Sportart: Volleyball. Schwerpunkte: vertikale Sprungkraft (Anlauf- und Blocksprung), Schlagarm (Überkopfwurf, Rotation), Rumpf, kurze seitliche Antritte. Prävention: Schulter-Außenrotation, Landetechnik, Sprunggelenk, Patellasehne (Sprungvolumen dosieren).',
@@ -151,9 +181,9 @@ export const SPORTS = [
     runs: { vorbereitung: ['run_shuttle', 'run_1515', 'run_4x4', 'run_rsa'], saison: ['run_shuttle', 'run_1515', 'run_sprints'], pause: ['run_4x4', 'run_fartlek', 'run_shuttle'] },
     desc: 'Rotationskraft, seitliche Schnelligkeit, einbeinige Beinkraft. Prävention für Schulter und Sprunggelenk.',
     prefer: {
-      power_upper: ['mb_rot_throw', 'mb_overhead_throw', 'band_punch'], power_lower: ['lateral_bound', 'cmj', 'ankle_hops'],
-      cod: ['lateral_shuffle', 'cod_505'], prev_shoulder: ['ext_rotation_cable', 'ext_rotation_band', 'ext_rotation_db'],
-      core: ['pallof', 'band_pallof', 'copenhagen', 'dead_bug'],
+      power_upper: ['mb_rot_throw', 'mb_overhead_throw', 'band_rotation_explosive', 'band_punch'], power_lower: ['lateral_bound', 'sl_lateral_hop', 'cmj', 'ankle_hops'],
+      cod: ['lateral_shuffle', 'cod_505', 'reactive_agility', 'cod_45'], prev_shoulder: ['ext_rotation_cable', 'ext_rotation_band', 'ext_rotation_db', 'full_can', 'prone_er'],
+      core: ['pallof', 'cable_woodchop', 'band_pallof', 'band_woodchop', 'copenhagen', 'dead_bug'],
     },
     prio: { prev_shoulder: 1 },
     prompt: 'Sportart: Tennis/Padel. Schwerpunkte: Rotationskraft (Medizinball-Rotationswürfe, Anti-Rotation), seitliche Schnelligkeit und Richtungswechsel, einbeinige Beinkraft, Griffkraft. Prävention: Schulter-Außenrotation, Ellbogen (Unterarm kräftigen), Sprunggelenk.',

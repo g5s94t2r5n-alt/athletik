@@ -11,6 +11,7 @@ Läuft vom iPhone-Homescreen wie eine normale App, auch offline im Gym. Kein App
 - **Kurze Umfrage nach dem Training** (Gefallen, Beschwerden) + automatische Belastungseinschätzung aus den Wdh. – die nächsten Einheiten passen sich an
 - **Richtwerte in kg** für jede Übung – aus deinen letzten Gewichten, passend zum Trainingsziel
 - **Automatische Progression** aus Gewicht × Wiederholungen (doppelte Progression, Deload alle 5 Wochen, Übungswechsel bei Stagnation)
+- **277 Übungen** für Studio, Home-Gym, unterwegs und Körpergewicht – Ergänzungsübungen wechseln je Trainingsblock (Muskelaufbau, Fitness, Abnehmen), Hauptübungen bleiben; Läufer und HYROX bekommen zielspezifische Übungen statt Bodybuilding-Isolation, HYROX zu Hause Ersatzstationen
 - **Wochen-Check ohne KI** (Coach-Tab): passt Sätze pro Muskel an, löst bei Ermüdung einen Deload aus, gibt Fokus und Tipps – optional zusätzlich mit Claude
 - **Andere Trainings nachtragen** (HIIT, Joggen, Yoga, Kurse, CrossFit, Padel, Teamtraining, Spiele, Paddeln, Radfahren …) mit Dauer, Anstrengung und optional Strecke. Sie fließen in die Planung ein (z. B. kein Ausdauer-Finisher nach hartem HIIT gestern) und in den Wochen-Check
 - **Diagramme**: Körpergewicht (mit 7-Tage-Mittel und optionalem Zielgewicht), Kraftentwicklung je Übung (geschätztes 1RM), Wochenvolumen pro Muskel, Monatsübersicht im Verlauf (wie oft welche Einheit)
@@ -68,7 +69,7 @@ Nur für den optionalen KI-Wochen-Check: ca. 5–10 Cent pro Check. Alles andere
 
 | Datei | Inhalt |
 |---|---|
-| `js/exercises.js` | Übungsdatenbank (Equipment, Muskeln, Technik, Video-Suche) |
+| `js/exercises.js` | Übungsdatenbank mit 277 Übungen (Equipment, Muskeln, Technik, Video-Suche) |
 | `js/engine.js` | Split-Vorlagen, Plan-Generator, Progression, Statistiken |
 | `js/coach.js` | Optionaler KI-Wochen-Check mit Claude |
 | `js/charts.js` | Diagramme |

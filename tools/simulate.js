@@ -15,7 +15,7 @@ class FakeDate extends RealDate {
 
 const ALL = EQUIPMENT.map((e) => e.id);
 const PATTERN = { 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 5], 5: [0, 1, 2, 4, 5], 6: [0, 1, 2, 3, 4, 5] };
-const HARD = ['run_4x4', 'run_3030', 'run_tempo', 'run_sprints', 'hx_runs', 'run_1515', 'run_rsa', 'run_shuttle'];
+const HARD = ['run_4x4', 'run_3030', 'run_tempo', 'run_sprints', 'hx_runs', 'run_1515', 'run_rsa', 'run_shuttle', 'run_hills'];
 const BIG = ['brust', 'ruecken', 'schultern', 'quadrizeps', 'beinbeuger', 'gesaess'];
 
 // Sportart: sport, season, matchRel (Spieltag als Tag 0–6 der Simulationswoche), team (Teamtrainings, Tage 0–6)
@@ -24,7 +24,7 @@ export function simulate({ goal, days = 4, weeks = 8, raceInDays = null, duratio
   window.Date = FakeDate; offset = 0;
   try {
     const d = st.load();
-    Object.assign(d, { sessions: [], activities: [], bodyweight: [], slotMemory: {}, coach: null, active: null, location: 'gym' });
+    Object.assign(d, { sessions: [], activities: [], bodyweight: [], slotMemory: {}, slotSince: {}, coach: null, active: null, location: 'gym', today: null, dislikes: [], painCleared: {} });
     const wd0 = new Date().getDay();
     d.profile = { ...d.profile, goal, days, duration, setup: true, age: 32, weight: 90, goalDate: raceInDays != null ? st.todayISO(new Date(RealDate.now() + raceInDays * 86400000)) : '', sport, season, matchDay: matchRel != null ? String((wd0 + matchRel) % 7) : '' };
     const evening = (type, min) => d.activities.push({ id: st.uid(), type, date: st.todayISO(), minutes: min, intensity: 'hart' });
@@ -49,6 +49,8 @@ export function simulate({ goal, days = 4, weeks = 8, raceInDays = null, duratio
         log.push({
           day, week: Math.floor(day / 7) + 1, tpl: rec.id, why: rec.why, deload: s.deload, note: s.note, mi, forced, prevHard,
           ex: s.blocks.flatMap((b) => b.items.map((i) => i.exId)),
+          // wechselbare Ergänzungsübungen (ohne Hauptübungen, feste Prävention, Ausgleich)
+          rot: s.blocks.filter((b) => ['power', 'strength'].includes(b.type)).flatMap((b) => b.items).filter((i) => !i.main && !i.keep).map((i) => i.exId),
           run: runIt ? runIt.exId : null, min: eng.estimateMinutes(s),
           blocks: s.blocks.map((b) => b.type),
           stations: s.blocks.filter((b) => b.type === 'conditioning').flatMap((b) => b.items.map((i) => i.exId)).filter((x) => x.startsWith('hx_')),
@@ -224,10 +226,35 @@ export function evaluate(res) {
     if (!x.tempo) tBad.push(`T${l.day} ${x.ex} ohne Tempo`);
     else if (x.hi <= 6 && !l.deload && !x.tempo.endsWith('X')) tBad.push(`T${l.day} ${x.ex} ${x.tempo} (schwer, nicht explosiv)`);
     else if (res.g.season === 'saison' && res.g.id === 'sport' && x.tempo.startsWith('3')) tBad.push(`T${l.day} ${x.ex} ${x.tempo} in der Saison`);
-    else if (l.deload && !['calf', 'prev_shoulder'].includes(sl) && x.ex !== 'nordic_curl' && x.tempo !== '2-0-1') tBad.push(`T${l.day} ${x.ex} ${x.tempo} im Deload`);
+    else if (l.deload && !['calf', 'prev_shoulder'].includes(sl) && !['nordic_curl', 'neg_pullup'].includes(x.ex) && x.tempo !== '2-0-1') tBad.push(`T${l.day} ${x.ex} ${x.tempo} im Deload`);
   }));
   const wk = (w) => [...new Set(res.log.filter((l) => l.week === w && !l.deload).flatMap((l) => l.strength.filter((x) => x.main).map((x) => x.tempo)))].join('/');
   check(tBad.length === 0, `Tempo passend zu Wdh., Blockwoche und Saison (W1: ${wk(1) || '–'}, W3: ${wk(3) || '–'}) – Verstöße: ${tBad.slice(0, 4).join(', ') || 'keine'}`);
+
+  // 9e. Abwechslung je Block: Ergänzungsübungen (inkl. Sprung/Sprint) wechseln mit dem neuen Block, Hauptübungen
+  // nicht (nur Ziele mit Abwechslung; Kurzeinheiten ohne Ergänzungsübungen zählen nicht)
+  if (eng.rotatesExercises(g) && res.weeks > eng.BLOCK_WEEKS) {
+    const mainsOf = (l) => l.strength.filter((x) => x.main).map((x) => x.ex);
+    const acc = (l) => l.rot;
+    const pairs = [...new Set(res.log.filter((l) => l.strength.length && !eng.TEMPLATES[l.tpl].light).map((l) => l.tpl))].map((t) => ({
+      t, a: res.log.filter((l) => l.tpl === t && l.week <= eng.BLOCK_WEEKS).pop(), b: res.log.find((l) => l.tpl === t && l.week > eng.BLOCK_WEEKS),
+    })).filter((p) => p.a && p.b && acc(p.a).length && acc(p.b).length);
+    const same = pairs.filter((p) => acc(p.b).every((x) => acc(p.a).includes(x))).map((p) => p.t);
+    check(same.length === 0, `Neue Varianten der Ergänzungsübungen im 2. Block (unverändert: ${same.join(', ') || 'keine'})`);
+    const base = (id) => Object.keys(eng.STRENGTH_VARIANT).find((k) => eng.STRENGTH_VARIANT[k] === id) || id;
+    const moved = pairs.filter((p) => mainsOf(p.a).map(base).join() !== mainsOf(p.b).map(base).join()).map((p) => `${p.t} ${mainsOf(p.a)}→${mainsOf(p.b)}`);
+    check(moved.length === 0, `Hauptübungen wechseln nicht mit dem Block (geändert: ${moved.join(', ') || 'keine'})`);
+  }
+  // 9f. Laufziele/HYROX: Isolationsplätze ersetzt (Waden, Hüfte, Einbeinstand, Rumpf statt Bizeps & Co.)
+  if (g.swap) {
+    const gone = Object.keys(g.swap).filter((k) => g.swap[k].slot !== k); // ersetzte Plätze (calf → calf heißt nur „bleibt“)
+    const bad = res.log.filter((l) => l.strength.length && l.ex.some((x) => gone.includes(EX[x].slot)));
+    check(bad.length === 0, `Zielgerechte Ergänzungen statt ${gone.join('/')} (Verstöße: ${bad.map((l) => `T${l.day}`).join(', ') || 'keine'})`);
+    if (g.swap.biceps) {
+      const fb = res.log.filter((l) => l.strength.length);
+      check(fb.every((l) => l.ex.some((x) => EX[x].slot === 'calf')), `Waden in jeder Krafteinheit für Läufer (${fb.length})`);
+    }
+  }
 
   // 10. Dauer
   // Lauf- und HYROX-Einheiten richten sich nach Strecke/Stationen, nicht nach der Zeitvorgabe für Kraft
@@ -280,4 +307,44 @@ export function runAll(configs) {
     const checks = evaluate(res);
     return { name: `${res.g.name} · ${c.days} Tage${c.raceInDays ? ' · Wettkampf Tag ' + c.raceInDays : ''}${c.matchRel != null ? ' · Spieltag' : ''}${c.team && c.team.length ? ` · ${c.team.length}× Teamtraining` : ''}`, checks, plan: res.log.map((l) => `T${l.day}:${l.tpl}${l.run ? '(' + l.run.replace('run_', '') + ')' : ''}`).join(' ') };
   });
+}
+
+// Ausstattungs-Batterie: jede Vorlage jedes Ziels mit jeder typischen Ausstattung bauen
+// → genug Übungen, keine doppelten Übungen/Varianten, nur verfügbare Geräte
+export const EQUIP_SETS = {
+  Studio: ALL,
+  'Home (Kurzhanteln, Bank, Band, Stange)': ['dumbbell', 'bench', 'band', 'pullup', 'space'],
+  'Home (nur Kurzhanteln)': ['dumbbell'],
+  'Home (Kettlebell, Band)': ['kettlebell', 'band', 'space'],
+  'Unterwegs (Band)': ['band', 'space'],
+  'Nur Körpergewicht': [],
+};
+export function equipmentBattery() {
+  const out = [];
+  const goals = ['muscle', 'strength', 'fitness', 'lose', 'endurance', 'marathon', 'hyrox', 'sport'];
+  for (const goal of goals) {
+    const d = st.load();
+    Object.assign(d, { sessions: [], activities: [], bodyweight: [], slotMemory: {}, slotSince: {}, coach: null, active: null, today: null, dislikes: [], painCleared: {} });
+    d.profile = { ...d.profile, goal, days: 4, duration: 75, setup: true, age: 32, weight: 90, sport: 'football', season: 'vorbereitung', matchDay: '', zones: [] };
+    d.block = { start: st.todayISO() };
+    const g = goalOf(d);
+    const tpls = [...new Set(Object.values(g.rot).flat())].filter((t) => !['RUN', 'REG'].includes(t));
+    for (const [where, equip] of Object.entries(EQUIP_SETS)) {
+      const probs = [];
+      for (const t of tpls) {
+        const s = eng.buildSession(d, { templateId: t, equip, runType: 'auto' });
+        const work = s.blocks.filter((b) => ['power', 'strength', 'conditioning'].includes(b.type)).flatMap((b) => b.items.map((i) => i.exId));
+        const ids = s.blocks.flatMap((b) => b.items.map((i) => i.exId));
+        const dup = ids.filter((x, i) => ids.indexOf(x) !== i);
+        const miss = ids.filter((x) => !EX[x].equip.every((q) => equip.includes(q)));
+        const min = t === 'HYX' ? 3 : t === 'PRIME' ? 2 : 5;
+        const n = t === 'HYX' ? s.blocks.filter((b) => b.type === 'conditioning').flatMap((b) => b.items).length : work.length;
+        if (n < min) probs.push(`${t}: nur ${n} Übungen`);
+        if (dup.length) probs.push(`${t}: doppelt ${dup.join(',')}`);
+        if (miss.length) probs.push(`${t}: Gerät fehlt für ${miss.join(',')}`);
+      }
+      out.push({ ok: probs.length === 0, text: `${g.name} · ${where}: ${probs.length ? probs.join('; ') : 'ok'}` });
+    }
+  }
+  return out;
 }

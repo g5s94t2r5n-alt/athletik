@@ -8,101 +8,101 @@ export const TEMPLATES = {
   UK_A: {
     name: 'Unterkörper – Kniebeuge & Sprungkraft', focus: 'lower', cond: 'short',
     slots: [
-      { slot: 'power_lower', sets: 4, prio: 1, prefer: ['box_jump', 'cmj', 'db_jump_squat'] },
-      { slot: 'squat', sets: 3, main: true, prio: 1, prefer: ['back_squat', 'hack_squat', 'front_squat', 'leg_press', 'goblet_squat', 'kb_goblet_squat', 'tempo_squat_bw'] },
-      { slot: 'hinge', sets: 3, prio: 1, prefer: ['rdl', 'db_rdl', 'kb_rdl', 'sl_rdl_bw'] },
-      { slot: 'knee_flexion', sets: 3, prio: 2, prefer: ['seated_leg_curl', 'lying_leg_curl', 'nordic_curl', 'cable_leg_curl', 'slider_curl'] },
-      { slot: 'quad_iso', sets: 2, prio: 3, prefer: ['leg_extension', 'spanish_squat', 'sissy_squat'] },
-      { slot: 'calf', sets: 4, prio: 2, prefer: ['standing_calf', 'db_calf', 'seated_calf', 'bw_calf'] },
-      { slot: 'core', sets: 3, prio: 3, prefer: ['hanging_leg_raise', 'cable_crunch', 'dead_bug', 'ab_rollout_bw'] },
+      { slot: 'power_lower', sets: 4, prio: 1, prefer: ['box_jump', 'cmj', 'split_jump', 'db_jump_squat'] },
+      { slot: 'squat', sets: 3, main: true, prio: 1, prefer: ['back_squat', 'hack_squat', 'front_squat', 'leg_press', 'goblet_squat', 'kb_goblet_squat', 'heel_goblet_squat', 'tempo_squat_bw', 'pistol_box', 'band_squat'] },
+      { slot: 'hinge', sets: 3, prio: 1, prefer: ['rdl', 'db_rdl', 'back_extension', 'cable_pull_through', 'db_hip_thrust', 'kb_deadlift', 'kb_rdl', 'sl_rdl_bw', 'sl_hip_thrust', 'band_good_morning'] },
+      { slot: 'knee_flexion', sets: 3, prio: 2, prefer: ['seated_leg_curl', 'lying_leg_curl', 'nordic_curl', 'cable_leg_curl', 'slider_curl', 'db_leg_curl', 'band_leg_curl'] },
+      { slot: 'quad_iso', sets: 2, prio: 3, prefer: ['leg_extension', 'spanish_squat', 'sissy_squat', 'reverse_nordic', 'band_leg_extension'] },
+      { slot: 'calf', sets: 4, prio: 2, prefer: ['standing_calf', 'db_calf', 'seated_calf', 'seated_db_calf', 'bw_calf', 'bent_knee_calf'] },
+      { slot: 'core', sets: 3, prio: 3, prefer: ['hanging_leg_raise', 'cable_crunch', 'dead_bug', 'hollow_hold', 'reverse_crunch', 'ab_rollout_bw', 'plank'] },
     ],
   },
   OK_A: {
     name: 'Oberkörper – Drücken & Wurfkraft', focus: 'upper', cond: null,
     slots: [
-      { slot: 'power_upper', sets: 3, prio: 2, prefer: ['mb_chest_pass', 'plyo_pushup', 'db_push_press', 'band_punch'] },
-      { slot: 'hpush', sets: 4, main: true, prio: 1, prefer: ['bench_press', 'db_bench', 'chest_press', 'dips', 'band_pushup', 'pushup'] },
-      { slot: 'vpull', sets: 3, prio: 1, prefer: ['pullup', 'lat_pulldown', 'band_pulldown', 'towel_row_door'] },
-      { slot: 'vpush', sets: 3, prio: 2, prefer: ['db_shoulder_press', 'ohp', 'machine_shoulder', 'db_shoulder_press_st', 'kb_press', 'pike_pushup'] },
-      { slot: 'hpull', sets: 3, prio: 1, prefer: ['cable_row', 'cs_db_row', 'machine_row', 'bb_row', 'one_arm_row', 'inverted_row', 'band_row', 'table_row'] },
-      { slot: 'side_delt', sets: 3, prio: 2, prefer: ['cable_lateral', 'lateral_raise', 'machine_lateral', 'band_lateral', 'ytw_bw'] },
-      { slot: 'triceps', sets: 2, prio: 2, prefer: ['oh_cable_ext', 'db_oh_ext', 'skullcrusher', 'band_pushdown', 'diamond_pushup'] },
-      { slot: 'biceps', sets: 2, prio: 2, prefer: ['incline_curl', 'cable_curl', 'bb_curl', 'hammer_curl', 'kb_curl', 'band_curl'] },
+      { slot: 'power_upper', sets: 3, prio: 2, prefer: ['mb_chest_pass', 'plyo_pushup', 'db_push_press', 'kb_push_press', 'band_punch', 'band_rotation_explosive'] },
+      { slot: 'hpush', sets: 4, main: true, prio: 1, prefer: ['bench_press', 'db_bench', 'db_floor_press', 'kb_floor_press', 'chest_press', 'machine_incline_press', 'dips', 'band_pushup', 'pushup', 'decline_pushup', 'band_chest_press'] },
+      { slot: 'vpull', sets: 3, prio: 1, prefer: ['pullup', 'lat_pulldown', 'neutral_pulldown', 'band_pulldown', 'db_pullover', 'towel_row_door', 'band_pullup', 'neg_pullup'] },
+      { slot: 'vpush', sets: 3, prio: 2, prefer: ['db_shoulder_press', 'ohp', 'machine_shoulder', 'db_shoulder_press_st', 'arnold_press', 'kb_press', 'pike_pushup', 'band_ohp', 'wall_hspu'] },
+      { slot: 'hpull', sets: 3, prio: 1, prefer: ['cable_row', 'sa_cable_row', 'cs_db_row', 'machine_row', 'bb_row', 'tbar_row', 'one_arm_row', 'db_row_bent', 'kb_row', 'inverted_row', 'band_row', 'table_row'] },
+      { slot: 'side_delt', sets: 3, prio: 2, prefer: ['cable_lateral', 'lateral_raise', 'lean_away_lateral', 'machine_lateral', 'band_lateral', 'ytw_bw'] },
+      { slot: 'triceps', sets: 2, prio: 2, prefer: ['oh_cable_ext', 'db_oh_ext', 'skullcrusher', 'close_grip_bench', 'band_pushdown', 'kb_oh_ext', 'diamond_pushup', 'bench_dip', 'db_kickback'] },
+      { slot: 'biceps', sets: 2, prio: 2, prefer: ['incline_curl', 'bayesian_curl', 'cable_curl', 'bb_curl', 'preacher_curl', 'hammer_curl', 'concentration_curl', 'kb_curl', 'band_curl'] },
     ],
   },
   UK_B: {
     name: 'Unterkörper – Hüfte & Explosivität', focus: 'lower', cond: null,
     slots: [
-      { slot: 'power_lower', sets: 4, prio: 1, prefer: ['broad_jump', 'kb_swing', 'hang_power_clean', 'lateral_bound'] },
-      { slot: 'hinge', sets: 3, main: true, prio: 1, prefer: ['deadlift', 'hip_thrust', 'rdl', 'db_rdl', 'kb_rdl', 'glute_bridge_sl'] },
-      { slot: 'lunge', sets: 3, prio: 1, prefer: ['bss_db', 'reverse_lunge_bb', 'walking_lunge', 'step_up', 'bss_bw'] },
-      { slot: 'quad_iso', sets: 3, prio: 2, prefer: ['leg_extension', 'spanish_squat', 'sissy_squat'] },
-      { slot: 'knee_flexion', sets: 3, prio: 2, prefer: ['lying_leg_curl', 'nordic_curl', 'cable_leg_curl', 'slider_curl', 'seated_leg_curl'] },
-      { slot: 'calf', sets: 4, prio: 2, prefer: ['seated_calf', 'standing_calf', 'db_calf', 'bw_calf'] },
-      { slot: 'core', sets: 3, prio: 3, prefer: ['pallof', 'copenhagen', 'farmer_walk', 'band_pallof', 'dead_bug'] },
+      { slot: 'power_lower', sets: 4, prio: 1, prefer: ['broad_jump', 'sl_hop', 'kb_swing', 'hang_power_clean', 'lateral_bound', 'sl_lateral_hop'] },
+      { slot: 'hinge', sets: 3, main: true, prio: 1, prefer: ['deadlift', 'hip_thrust', 'rdl', 'db_rdl', 'back_extension', 'cable_pull_through', 'db_hip_thrust', 'kb_deadlift', 'kb_rdl', 'glute_bridge_sl', 'sl_hip_thrust', 'band_good_morning'] },
+      { slot: 'lunge', sets: 3, prio: 1, prefer: ['bss_db', 'reverse_lunge_bb', 'walking_lunge', 'split_squat_db', 'lateral_lunge', 'step_up', 'kb_reverse_lunge', 'bss_bw', 'reverse_lunge_bw', 'cossack_squat'] },
+      { slot: 'quad_iso', sets: 3, prio: 2, prefer: ['leg_extension', 'spanish_squat', 'sissy_squat', 'reverse_nordic', 'band_leg_extension'] },
+      { slot: 'knee_flexion', sets: 3, prio: 2, prefer: ['lying_leg_curl', 'nordic_curl', 'cable_leg_curl', 'slider_curl', 'seated_leg_curl', 'db_leg_curl', 'band_leg_curl'] },
+      { slot: 'calf', sets: 4, prio: 2, prefer: ['seated_calf', 'standing_calf', 'db_calf', 'seated_db_calf', 'bw_calf', 'bent_knee_calf'] },
+      { slot: 'core', sets: 3, prio: 3, prefer: ['pallof', 'cable_woodchop', 'copenhagen', 'copenhagen_short', 'farmer_walk', 'suitcase_carry', 'band_pallof', 'band_woodchop', 'dead_bug', 'hollow_hold', 'reverse_crunch'] },
     ],
   },
   OK_B: {
     name: 'Oberkörper – Ziehen & Schulter', focus: 'upper', cond: 'short',
     slots: [
-      { slot: 'power_upper', sets: 3, prio: 2, prefer: ['mb_slam', 'mb_rot_throw', 'band_punch', 'plyo_pushup'] },
-      { slot: 'vpull', sets: 3, main: true, prio: 1, prefer: ['chinup', 'pullup', 'lat_pulldown', 'sa_pulldown', 'band_pulldown', 'towel_row_door'] },
-      { slot: 'hpush', sets: 4, prio: 1, prefer: ['incline_db', 'incline_bench', 'db_bench', 'chest_press', 'dips', 'pushup', 'band_pushup'] },
-      { slot: 'hpull', sets: 3, prio: 1, prefer: ['cs_db_row', 'one_arm_row', 'bb_row', 'machine_row', 'cable_row', 'inverted_row', 'band_row', 'table_row'] },
-      { slot: 'rear_delt', sets: 3, prio: 2, prefer: ['face_pull', 'reverse_pec_deck', 'reverse_fly', 'band_face_pull', 'ytw_bw'] },
-      { slot: 'chest_iso', sets: 3, prio: 2, prefer: ['cable_fly', 'pec_deck', 'db_fly'] },
-      { slot: 'biceps', sets: 3, prio: 2, prefer: ['hammer_curl', 'cable_curl', 'bb_curl', 'incline_curl', 'kb_curl', 'band_curl'] },
-      { slot: 'triceps', sets: 3, prio: 2, prefer: ['pushdown', 'oh_cable_ext', 'db_oh_ext', 'skullcrusher', 'band_pushdown', 'diamond_pushup'] },
+      { slot: 'power_upper', sets: 3, prio: 2, prefer: ['mb_slam', 'mb_rot_throw', 'band_punch', 'band_rotation_explosive', 'plyo_pushup'] },
+      { slot: 'vpull', sets: 3, main: true, prio: 1, prefer: ['chinup', 'pullup', 'lat_pulldown', 'neutral_pulldown', 'sa_pulldown', 'band_pulldown', 'db_pullover', 'towel_row_door', 'band_pullup', 'neg_pullup'] },
+      { slot: 'hpush', sets: 4, prio: 1, prefer: ['incline_db', 'incline_bench', 'db_bench', 'db_floor_press', 'kb_floor_press', 'chest_press', 'machine_incline_press', 'dips', 'pushup', 'decline_pushup', 'band_chest_press', 'band_pushup'] },
+      { slot: 'hpull', sets: 3, prio: 1, prefer: ['cs_db_row', 'one_arm_row', 'bb_row', 'tbar_row', 'machine_row', 'cable_row', 'sa_cable_row', 'db_row_bent', 'kb_row', 'inverted_row', 'band_row', 'table_row'] },
+      { slot: 'rear_delt', sets: 3, prio: 2, prefer: ['face_pull', 'cable_rear_fly', 'reverse_pec_deck', 'reverse_fly', 'band_face_pull', 'ytw_bw', 'reverse_snow_angel'] },
+      { slot: 'chest_iso', sets: 3, prio: 2, prefer: ['cable_fly', 'low_cable_fly', 'pec_deck', 'db_fly', 'band_fly'] },
+      { slot: 'biceps', sets: 3, prio: 2, prefer: ['hammer_curl', 'concentration_curl', 'cable_curl', 'bb_curl', 'preacher_curl', 'incline_curl', 'bayesian_curl', 'kb_curl', 'band_curl'] },
+      { slot: 'triceps', sets: 3, prio: 2, prefer: ['pushdown', 'oh_cable_ext', 'db_oh_ext', 'skullcrusher', 'close_grip_bench', 'band_pushdown', 'kb_oh_ext', 'diamond_pushup', 'bench_dip', 'db_kickback'] },
     ],
   },
   FB_A: {
     name: 'Ganzkörper – Kniebeuge & Drücken', focus: 'full', cond: 'short',
     slots: [
-      { slot: 'power_lower', sets: 3, prio: 1, prefer: ['box_jump', 'cmj', 'db_jump_squat'] },
-      { slot: 'squat', sets: 4, main: true, prio: 1, prefer: ['back_squat', 'hack_squat', 'leg_press', 'goblet_squat', 'kb_goblet_squat', 'tempo_squat_bw'] },
-      { slot: 'hpush', sets: 4, main: true, prio: 1, prefer: ['bench_press', 'db_bench', 'chest_press', 'dips', 'pushup'] },
-      { slot: 'hpull', sets: 3, prio: 1, prefer: ['cable_row', 'cs_db_row', 'bb_row', 'one_arm_row', 'machine_row', 'inverted_row', 'band_row', 'table_row'] },
-      { slot: 'knee_flexion', sets: 3, prio: 2, prefer: ['seated_leg_curl', 'nordic_curl', 'lying_leg_curl', 'slider_curl'] },
-      { slot: 'side_delt', sets: 3, prio: 2, prefer: ['cable_lateral', 'lateral_raise', 'band_lateral', 'ytw_bw'] },
-      { slot: 'biceps', sets: 2, prio: 3, prefer: ['incline_curl', 'cable_curl', 'hammer_curl', 'band_curl'] },
-      { slot: 'core', sets: 2, prio: 3, prefer: ['hanging_leg_raise', 'cable_crunch', 'dead_bug'] },
+      { slot: 'power_lower', sets: 3, prio: 1, prefer: ['box_jump', 'cmj', 'split_jump', 'db_jump_squat'] },
+      { slot: 'squat', sets: 4, main: true, prio: 1, prefer: ['back_squat', 'hack_squat', 'leg_press', 'goblet_squat', 'kb_goblet_squat', 'heel_goblet_squat', 'tempo_squat_bw', 'pistol_box', 'band_squat'] },
+      { slot: 'hpush', sets: 4, main: true, prio: 1, prefer: ['bench_press', 'db_bench', 'db_floor_press', 'kb_floor_press', 'chest_press', 'machine_incline_press', 'dips', 'pushup', 'decline_pushup', 'band_chest_press'] },
+      { slot: 'hpull', sets: 3, prio: 1, prefer: ['cable_row', 'sa_cable_row', 'cs_db_row', 'bb_row', 'tbar_row', 'one_arm_row', 'machine_row', 'db_row_bent', 'kb_row', 'inverted_row', 'band_row', 'table_row'] },
+      { slot: 'knee_flexion', sets: 3, prio: 2, prefer: ['seated_leg_curl', 'nordic_curl', 'lying_leg_curl', 'slider_curl', 'db_leg_curl', 'band_leg_curl'] },
+      { slot: 'side_delt', sets: 3, prio: 2, prefer: ['cable_lateral', 'lateral_raise', 'lean_away_lateral', 'band_lateral', 'ytw_bw'] },
+      { slot: 'biceps', sets: 2, prio: 3, prefer: ['incline_curl', 'bayesian_curl', 'cable_curl', 'hammer_curl', 'concentration_curl', 'band_curl'] },
+      { slot: 'core', sets: 2, prio: 3, prefer: ['hanging_leg_raise', 'cable_crunch', 'dead_bug', 'hollow_hold', 'reverse_crunch'] },
     ],
   },
   FB_B: {
     name: 'Ganzkörper – Hüfte & Ziehen', focus: 'full', cond: 'long',
     slots: [
-      { slot: 'power_upper', sets: 3, prio: 2, prefer: ['mb_slam', 'mb_chest_pass', 'plyo_pushup', 'db_push_press'] },
-      { slot: 'hinge', sets: 3, main: true, prio: 1, prefer: ['deadlift', 'rdl', 'db_rdl', 'kb_rdl', 'sl_rdl_bw'] },
-      { slot: 'vpull', sets: 3, main: true, prio: 1, prefer: ['pullup', 'chinup', 'lat_pulldown', 'band_pulldown', 'towel_row_door'] },
-      { slot: 'vpush', sets: 3, prio: 1, prefer: ['ohp', 'db_shoulder_press', 'machine_shoulder', 'db_shoulder_press_st', 'kb_press', 'pike_pushup'] },
-      { slot: 'lunge', sets: 3, prio: 2, prefer: ['bss_db', 'walking_lunge', 'reverse_lunge_bb', 'step_up', 'bss_bw'] },
-      { slot: 'chest_iso', sets: 3, prio: 2, prefer: ['cable_fly', 'pec_deck', 'db_fly'] },
-      { slot: 'triceps', sets: 2, prio: 3, prefer: ['oh_cable_ext', 'db_oh_ext', 'pushdown', 'band_pushdown', 'diamond_pushup'] },
-      { slot: 'calf', sets: 3, prio: 2, prefer: ['standing_calf', 'db_calf', 'bw_calf'] },
+      { slot: 'power_upper', sets: 3, prio: 2, prefer: ['mb_slam', 'mb_chest_pass', 'plyo_pushup', 'db_push_press', 'kb_push_press'] },
+      { slot: 'hinge', sets: 3, main: true, prio: 1, prefer: ['deadlift', 'rdl', 'db_rdl', 'back_extension', 'cable_pull_through', 'db_hip_thrust', 'kb_deadlift', 'kb_rdl', 'sl_rdl_bw', 'sl_hip_thrust', 'band_good_morning'] },
+      { slot: 'vpull', sets: 3, main: true, prio: 1, prefer: ['pullup', 'chinup', 'lat_pulldown', 'neutral_pulldown', 'band_pulldown', 'db_pullover', 'towel_row_door', 'band_pullup', 'neg_pullup'] },
+      { slot: 'vpush', sets: 3, prio: 1, prefer: ['ohp', 'db_shoulder_press', 'machine_shoulder', 'db_shoulder_press_st', 'arnold_press', 'kb_press', 'pike_pushup', 'band_ohp', 'wall_hspu'] },
+      { slot: 'lunge', sets: 3, prio: 2, prefer: ['bss_db', 'walking_lunge', 'split_squat_db', 'lateral_lunge', 'reverse_lunge_bb', 'step_up', 'kb_reverse_lunge', 'bss_bw', 'reverse_lunge_bw', 'cossack_squat'] },
+      { slot: 'chest_iso', sets: 3, prio: 2, prefer: ['cable_fly', 'low_cable_fly', 'pec_deck', 'db_fly', 'band_fly'] },
+      { slot: 'triceps', sets: 2, prio: 3, prefer: ['oh_cable_ext', 'db_oh_ext', 'pushdown', 'band_pushdown', 'kb_oh_ext', 'diamond_pushup', 'bench_dip', 'db_kickback'] },
+      { slot: 'calf', sets: 3, prio: 2, prefer: ['standing_calf', 'db_calf', 'seated_db_calf', 'bw_calf', 'bent_knee_calf'] },
     ],
   },
   FB_C: {
     name: 'Ganzkörper – Beine & Oberkörper-Mix', focus: 'full', cond: null,
     slots: [
-      { slot: 'power_lower', sets: 3, prio: 1, prefer: ['broad_jump', 'kb_swing', 'lateral_bound'] },
-      { slot: 'squat', sets: 3, main: true, prio: 1, prefer: ['front_squat', 'leg_press', 'hack_squat', 'goblet_squat', 'kb_goblet_squat', 'tempo_squat_bw'] },
-      { slot: 'hpush', sets: 3, prio: 1, prefer: ['incline_db', 'incline_bench', 'chest_press', 'pushup'] },
-      { slot: 'vpull', sets: 3, prio: 1, prefer: ['lat_pulldown', 'chinup', 'pullup', 'band_pulldown', 'towel_row_door'] },
-      { slot: 'hinge', sets: 3, prio: 2, prefer: ['hip_thrust', 'db_rdl', 'kb_rdl', 'glute_bridge_sl'] },
-      { slot: 'knee_flexion', sets: 2, prio: 2, prefer: ['seated_leg_curl', 'nordic_curl', 'lying_leg_curl', 'slider_curl'] },
-      { slot: 'rear_delt', sets: 3, prio: 2, prefer: ['face_pull', 'reverse_fly', 'band_face_pull', 'ytw_bw'] },
-      { slot: 'triceps', sets: 2, prio: 3, prefer: ['skullcrusher', 'oh_cable_ext', 'db_oh_ext', 'diamond_pushup'] },
-      { slot: 'core', sets: 2, prio: 3, prefer: ['pallof', 'copenhagen', 'band_pallof', 'dead_bug'] },
+      { slot: 'power_lower', sets: 3, prio: 1, prefer: ['broad_jump', 'sl_hop', 'kb_swing', 'lateral_bound', 'sl_lateral_hop'] },
+      { slot: 'squat', sets: 3, main: true, prio: 1, prefer: ['front_squat', 'leg_press', 'hack_squat', 'goblet_squat', 'kb_goblet_squat', 'heel_goblet_squat', 'tempo_squat_bw', 'pistol_box', 'band_squat'] },
+      { slot: 'hpush', sets: 3, prio: 1, prefer: ['incline_db', 'incline_bench', 'chest_press', 'machine_incline_press', 'db_floor_press', 'kb_floor_press', 'pushup', 'decline_pushup', 'band_chest_press'] },
+      { slot: 'vpull', sets: 3, prio: 1, prefer: ['lat_pulldown', 'neutral_pulldown', 'chinup', 'pullup', 'band_pulldown', 'db_pullover', 'towel_row_door', 'band_pullup', 'neg_pullup'] },
+      { slot: 'hinge', sets: 3, prio: 2, prefer: ['hip_thrust', 'db_rdl', 'back_extension', 'cable_pull_through', 'db_hip_thrust', 'kb_deadlift', 'kb_rdl', 'glute_bridge_sl', 'sl_hip_thrust', 'band_good_morning'] },
+      { slot: 'knee_flexion', sets: 2, prio: 2, prefer: ['seated_leg_curl', 'nordic_curl', 'lying_leg_curl', 'slider_curl', 'db_leg_curl', 'band_leg_curl'] },
+      { slot: 'rear_delt', sets: 3, prio: 2, prefer: ['face_pull', 'cable_rear_fly', 'reverse_fly', 'band_face_pull', 'ytw_bw', 'reverse_snow_angel'] },
+      { slot: 'triceps', sets: 2, prio: 3, prefer: ['skullcrusher', 'close_grip_bench', 'oh_cable_ext', 'db_oh_ext', 'diamond_pushup', 'bench_dip', 'db_kickback'] },
+      { slot: 'core', sets: 2, prio: 3, prefer: ['pallof', 'cable_woodchop', 'copenhagen', 'copenhagen_short', 'band_pallof', 'band_woodchop', 'dead_bug', 'hollow_hold', 'reverse_crunch'] },
     ],
   },
   ATH: {
     name: 'Athletik – Schnellkraft & Ausdauer', focus: 'full', cond: 'long',
     slots: [
-      { slot: 'power_lower', sets: 4, prio: 1, prefer: ['broad_jump', 'box_jump', 'lateral_bound', 'cmj'] },
-      { slot: 'power_upper', sets: 4, prio: 1, prefer: ['mb_rot_throw', 'mb_slam', 'mb_chest_pass', 'plyo_pushup', 'band_punch'] },
-      { slot: 'power_lower', sets: 3, prio: 2, prefer: ['kb_swing', 'hang_power_clean', 'db_jump_squat', 'cmj'] },
-      { slot: 'core', sets: 3, prio: 2, prefer: ['copenhagen', 'pallof', 'band_pallof', 'dead_bug'] },
-      { slot: 'core', sets: 3, prio: 3, prefer: ['farmer_walk', 'hanging_leg_raise', 'ab_rollout_bw'] },
+      { slot: 'power_lower', sets: 4, prio: 1, prefer: ['broad_jump', 'sl_hop', 'box_jump', 'lateral_bound', 'sl_lateral_hop', 'cmj', 'split_jump'] },
+      { slot: 'power_upper', sets: 4, prio: 1, prefer: ['mb_rot_throw', 'mb_slam', 'mb_chest_pass', 'plyo_pushup', 'band_punch', 'band_rotation_explosive'] },
+      { slot: 'power_lower', sets: 3, prio: 2, prefer: ['kb_swing', 'hang_power_clean', 'db_jump_squat', 'cmj', 'split_jump'] },
+      { slot: 'core', sets: 3, prio: 2, prefer: ['copenhagen', 'copenhagen_short', 'pallof', 'cable_woodchop', 'band_pallof', 'band_woodchop', 'dead_bug', 'hollow_hold', 'reverse_crunch'] },
+      { slot: 'core', sets: 3, prio: 3, prefer: ['farmer_walk', 'suitcase_carry', 'hanging_leg_raise', 'ab_rollout_bw', 'plank'] },
     ],
     longCooldown: true,
   },
@@ -115,47 +115,47 @@ export const TEMPLATES = {
   SP_L: {
     name: 'Unterkörper Sport – Sprung, Speed & Kraft', focus: 'lower', cond: null, sport: true,
     slots: [
-      { slot: 'power_lower', sets: 3, prio: 1, prefer: ['cmj', 'box_jump', 'broad_jump', 'lateral_bound', 'depth_jump'] },
-      { slot: 'cod', sets: 3, prio: 1, prefer: ['cod_505', 'lateral_shuffle'] },
-      { slot: 'squat', sets: 3, main: true, prio: 1, prefer: ['back_squat', 'front_squat', 'hack_squat', 'leg_press', 'goblet_squat', 'kb_goblet_squat', 'tempo_squat_bw'] },
-      { slot: 'hinge', sets: 3, prio: 1, prefer: ['rdl', 'hip_thrust', 'db_rdl', 'kb_rdl', 'sl_rdl_bw', 'glute_bridge_sl'] },
-      { slot: 'lunge', sets: 2, prio: 2, prefer: ['bss_db', 'reverse_lunge_bb', 'step_up', 'walking_lunge', 'bss_bw'] },
-      { slot: 'knee_flexion', sets: 2, prio: 1, prefer: ['nordic_curl', 'lying_leg_curl', 'seated_leg_curl', 'slider_curl', 'cable_leg_curl'] },
+      { slot: 'power_lower', sets: 3, prio: 1, prefer: ['cmj', 'split_jump', 'box_jump', 'broad_jump', 'sl_hop', 'lateral_bound', 'sl_lateral_hop', 'depth_jump'] },
+      { slot: 'cod', sets: 3, prio: 1, prefer: ['cod_505', 'lateral_shuffle', 'cod_45', 'reactive_agility'] },
+      { slot: 'squat', sets: 3, main: true, prio: 1, prefer: ['back_squat', 'front_squat', 'hack_squat', 'leg_press', 'goblet_squat', 'kb_goblet_squat', 'heel_goblet_squat', 'tempo_squat_bw', 'pistol_box', 'band_squat'] },
+      { slot: 'hinge', sets: 3, prio: 1, prefer: ['rdl', 'hip_thrust', 'db_rdl', 'back_extension', 'cable_pull_through', 'db_hip_thrust', 'kb_deadlift', 'kb_rdl', 'sl_rdl_bw', 'glute_bridge_sl', 'sl_hip_thrust', 'band_good_morning'] },
+      { slot: 'lunge', sets: 2, prio: 2, prefer: ['bss_db', 'reverse_lunge_bb', 'step_up', 'kb_reverse_lunge', 'walking_lunge', 'split_squat_db', 'lateral_lunge', 'bss_bw', 'reverse_lunge_bw', 'cossack_squat'] },
+      { slot: 'knee_flexion', sets: 2, prio: 1, prefer: ['nordic_curl', 'lying_leg_curl', 'seated_leg_curl', 'slider_curl', 'cable_leg_curl', 'db_leg_curl', 'band_leg_curl'] },
       { slot: 'prev_lower', sets: 2, prio: 2, prefer: ['sl_landing', 'sl_balance'] },
-      { slot: 'core', sets: 2, prio: 2, prefer: ['pallof', 'copenhagen', 'band_pallof', 'dead_bug'] },
-      { slot: 'calf', sets: 2, prio: 3, prefer: ['standing_calf', 'db_calf', 'bw_calf'] },
+      { slot: 'core', sets: 2, prio: 2, prefer: ['pallof', 'cable_woodchop', 'copenhagen', 'copenhagen_short', 'band_pallof', 'band_woodchop', 'dead_bug', 'hollow_hold', 'reverse_crunch'] },
+      { slot: 'calf', sets: 2, prio: 3, prefer: ['standing_calf', 'db_calf', 'seated_db_calf', 'bw_calf', 'bent_knee_calf'] },
     ],
   },
   SP_U: {
     name: 'Oberkörper Sport – Wurf, Zug & Rumpf', focus: 'upper', cond: null, sport: true,
     slots: [
-      { slot: 'power_upper', sets: 3, prio: 1, prefer: ['mb_rot_throw', 'mb_chest_pass', 'mb_overhead_throw', 'plyo_pushup', 'band_punch'] },
-      { slot: 'hpush', sets: 3, main: true, prio: 1, prefer: ['bench_press', 'db_bench', 'incline_db', 'dips', 'pushup', 'band_pushup'] },
-      { slot: 'vpull', sets: 3, prio: 1, prefer: ['pullup', 'chinup', 'lat_pulldown', 'band_pulldown', 'towel_row_door'] },
-      { slot: 'hpull', sets: 3, prio: 1, prefer: ['cs_db_row', 'one_arm_row', 'cable_row', 'bb_row', 'inverted_row', 'band_row', 'table_row'] },
-      { slot: 'vpush', sets: 2, prio: 2, prefer: ['db_shoulder_press_st', 'kb_press', 'db_shoulder_press', 'ohp', 'pike_pushup'] },
-      { slot: 'prev_shoulder', sets: 2, prio: 2, prefer: ['ext_rotation_cable', 'ext_rotation_band', 'ext_rotation_db'] },
-      { slot: 'core', sets: 3, prio: 2, prefer: ['pallof', 'band_pallof', 'hanging_leg_raise', 'dead_bug', 'farmer_walk'] },
-      { slot: 'rear_delt', sets: 2, prio: 3, prefer: ['face_pull', 'band_face_pull', 'reverse_fly', 'ytw_bw'] },
+      { slot: 'power_upper', sets: 3, prio: 1, prefer: ['mb_rot_throw', 'mb_chest_pass', 'mb_overhead_throw', 'plyo_pushup', 'band_punch', 'band_rotation_explosive'] },
+      { slot: 'hpush', sets: 3, main: true, prio: 1, prefer: ['bench_press', 'db_bench', 'db_floor_press', 'kb_floor_press', 'incline_db', 'dips', 'pushup', 'decline_pushup', 'band_chest_press', 'band_pushup'] },
+      { slot: 'vpull', sets: 3, prio: 1, prefer: ['pullup', 'chinup', 'lat_pulldown', 'neutral_pulldown', 'band_pulldown', 'db_pullover', 'towel_row_door', 'band_pullup', 'neg_pullup'] },
+      { slot: 'hpull', sets: 3, prio: 1, prefer: ['cs_db_row', 'one_arm_row', 'cable_row', 'sa_cable_row', 'bb_row', 'tbar_row', 'db_row_bent', 'kb_row', 'inverted_row', 'band_row', 'table_row'] },
+      { slot: 'vpush', sets: 2, prio: 2, prefer: ['db_shoulder_press_st', 'landmine_press', 'arnold_press', 'kb_press', 'db_shoulder_press', 'ohp', 'pike_pushup', 'band_ohp', 'wall_hspu'] },
+      { slot: 'prev_shoulder', sets: 2, prio: 2, prefer: ['ext_rotation_cable', 'ext_rotation_band', 'ext_rotation_db', 'band_ir', 'full_can', 'prone_er'] },
+      { slot: 'core', sets: 3, prio: 2, prefer: ['pallof', 'cable_woodchop', 'band_pallof', 'band_woodchop', 'hanging_leg_raise', 'dead_bug', 'hollow_hold', 'reverse_crunch', 'farmer_walk', 'suitcase_carry'] },
+      { slot: 'rear_delt', sets: 2, prio: 3, prefer: ['face_pull', 'cable_rear_fly', 'band_face_pull', 'reverse_fly', 'ytw_bw', 'reverse_snow_angel'] },
     ],
   },
   SP_C: {
     name: 'Speed & Spielausdauer – Sprints, Richtungswechsel', focus: 'lower', cond: 'rsa', condMain: true, sport: true,
     slots: [
-      { slot: 'sprint_short', sets: 4, prio: 1, prefer: ['acceleration_10m', 'wall_drill'] },
-      { slot: 'cod', sets: 3, prio: 1, prefer: ['cod_505', 'lateral_shuffle'] },
-      { slot: 'power_lower', sets: 3, prio: 2, prefer: ['lateral_bound', 'broad_jump', 'ankle_hops', 'cmj'] },
-      { slot: 'knee_flexion', sets: 2, prio: 2, prefer: ['nordic_curl', 'slider_curl', 'lying_leg_curl', 'seated_leg_curl'] },
-      { slot: 'core', sets: 2, prio: 3, prefer: ['copenhagen', 'band_pallof', 'pallof', 'dead_bug'] },
+      { slot: 'sprint_short', sets: 4, prio: 1, prefer: ['acceleration_10m', 'wall_drill', 'falling_start', 'hill_sprint', 'sled_sprint'] },
+      { slot: 'cod', sets: 3, prio: 1, prefer: ['cod_505', 'lateral_shuffle', 'cod_45', 'reactive_agility'] },
+      { slot: 'power_lower', sets: 3, prio: 2, prefer: ['lateral_bound', 'sl_lateral_hop', 'broad_jump', 'sl_hop', 'ankle_hops', 'cmj', 'split_jump'] },
+      { slot: 'knee_flexion', sets: 2, prio: 2, prefer: ['nordic_curl', 'slider_curl', 'lying_leg_curl', 'seated_leg_curl', 'db_leg_curl', 'band_leg_curl'] },
+      { slot: 'core', sets: 2, prio: 3, prefer: ['copenhagen', 'copenhagen_short', 'band_pallof', 'band_woodchop', 'pallof', 'cable_woodchop', 'dead_bug', 'hollow_hold', 'reverse_crunch'] },
     ],
   },
   PRIME: {
     name: 'Aktivierung – kurz vor dem Spiel', focus: 'lower', cond: null, light: true, sport: true,
     slots: [
-      { slot: 'power_lower', sets: 2, prio: 1, prefer: ['cmj', 'box_jump', 'approach_jump'] },
-      { slot: 'sprint_short', sets: 3, prio: 1, prefer: ['acceleration_10m', 'wall_drill'] },
-      { slot: 'power_upper', sets: 2, prio: 2, prefer: ['mb_chest_pass', 'mb_rot_throw', 'plyo_pushup', 'band_punch'] },
-      { slot: 'core', sets: 2, prio: 2, prefer: ['dead_bug', 'band_pallof', 'pallof', 'ab_rollout_bw'] },
+      { slot: 'power_lower', sets: 2, prio: 1, prefer: ['cmj', 'split_jump', 'box_jump', 'approach_jump'] },
+      { slot: 'sprint_short', sets: 3, prio: 1, prefer: ['acceleration_10m', 'wall_drill', 'falling_start', 'hill_sprint', 'sled_sprint'] },
+      { slot: 'power_upper', sets: 2, prio: 2, prefer: ['mb_chest_pass', 'mb_rot_throw', 'plyo_pushup', 'band_punch', 'band_rotation_explosive'] },
+      { slot: 'core', sets: 2, prio: 2, prefer: ['dead_bug', 'hollow_hold', 'reverse_crunch', 'band_pallof', 'band_woodchop', 'pallof', 'cable_woodchop', 'ab_rollout_bw', 'plank'] },
     ],
   },
 };
@@ -179,8 +179,8 @@ export const ROTATIONS = {
 };
 
 const COND = {
-  short: ['bike_sprints', 'sprints', 'shuttle_runs', 'kb_emom', 'bw_circuit'],
-  long: ['interval_4x4', 'run_intervals', 'row_2k', 'kb_emom', 'bw_circuit'],
+  short: ['bike_sprints', 'skierg_intervals', 'sled_intervals', 'sprints', 'shuttle_runs', 'kb_emom', 'db_complex', 'bw_circuit', 'tabata_bw', 'stair_intervals'],
+  long: ['interval_4x4', 'run_intervals', 'row_2k', 'kb_emom', 'db_complex', 'bw_circuit', 'stair_intervals'],
   zone2: ['zone2_cardio', 'zone2_run'],
   rsa: ['rsa_sprints', 'shuttle_runs', 'bike_sprints', 'bw_circuit'], // wiederholte Sprints (Spielausdauer)
 };
@@ -205,7 +205,8 @@ export function blockInfo(data, date = todayISO()) {
   if (diff < 0) diff = 0;
   const week = (Math.floor(diff / 7) % BLOCK_WEEKS) + 1;
   const forced = data.coach && data.coach.deloadUntil && data.coach.deloadUntil >= date;
-  return { week, deload: week === BLOCK_WEEKS || !!forced, forced: !!forced };
+  // block = laufende Nummer des 5-Wochen-Blocks (für den Übungswechsel je Block)
+  return { week, block: Math.floor(diff / 7 / BLOCK_WEEKS), deload: week === BLOCK_WEEKS || !!forced, forced: !!forced };
 }
 
 // ---------- Empfehlung der nächsten Einheit ----------
@@ -365,10 +366,11 @@ function bestE1rm(data, ex, perf) {
   return Math.max(...perf.sets.map((s) => e1rm(loadOf(data, ex, s.w, perf.date), s.r)));
 }
 
-export function isStagnating(data, exId) {
+// from = nur Leistungen ab diesem Datum zählen (z. B. seit die Übung wieder im Plan ist)
+export function isStagnating(data, exId, from = '') {
   const ex = EX[exId];
   if (!ex || ex.cat !== 'strength') return false;
-  const p = performances(data, exId).filter((x) => !x.deload);
+  const p = performances(data, exId).filter((x) => !x.deload && x.date >= from);
   if (p.length < 4) return false;
   const ref = bestE1rm(data, ex, p[3]);
   const recent = Math.max(...p.slice(0, 3).map((x) => bestE1rm(data, ex, x)));
@@ -398,9 +400,17 @@ const STD = {
   incline_curl: 0.2, bb_curl: 0.55, cable_curl: 0.45, hammer_curl: 0.24, kb_curl: 0.22,
   oh_cable_ext: 0.45, db_oh_ext: 0.35, pushdown: 0.55, skullcrusher: 0.5, cable_crunch: 0.8, pallof: 0.25,
   ext_rotation_cable: 0.12, ext_rotation_db: 0.1, wrist_ext_ecc: 0.08,
+  // Erweiterung v32
+  pause_squat: 1.3, heel_goblet_squat: 0.45, good_morning: 0.65, deficit_deadlift: 1.75, cable_pull_through: 0.55,
+  db_hip_thrust: 0.65, kb_deadlift: 0.6, split_squat_db: 0.35, lateral_lunge: 0.25, kb_reverse_lunge: 0.35,
+  db_leg_curl: 0.15, seated_db_calf: 0.35, hip_abduction_machine: 0.6, cable_hip_abduction: 0.1,
+  db_floor_press: 0.4, kb_floor_press: 0.3, machine_incline_press: 1.0, arnold_press: 0.28,
+  db_row_bent: 0.4, kb_row: 0.45, tbar_row: 0.8, sa_cable_row: 0.5, neutral_pulldown: 1.0, db_pullover: 0.25, straight_arm_pulldown: 0.35,
+  low_cable_fly: 0.2, lean_away_lateral: 0.12, cable_rear_fly: 0.08, bayesian_curl: 0.18, preacher_curl: 0.4, concentration_curl: 0.17,
+  close_grip_bench: 1.05, kb_oh_ext: 0.3, db_kickback: 0.1, cable_woodchop: 0.2, full_can: 0.07, pause_bench: 1.1,
 };
 // Arbeitsgewicht direkt als Vielfaches des Körpergewichts (Schnellkraft & Tragen)
-const WORK = { kb_swing: 0.27, hang_power_clean: 0.5, db_jump_squat: 0.12, db_push_press: 0.22, farmer_walk: 0.4 };
+const WORK = { kb_swing: 0.27, hang_power_clean: 0.5, db_jump_squat: 0.12, db_push_press: 0.22, farmer_walk: 0.4, kb_push_press: 0.2, suitcase_carry: 0.3 };
 const LOWER_M = ['quadrizeps', 'beinbeuger', 'gesaess', 'waden'];
 const regionOfEx = (ex) => (ex.prim.some((m) => LOWER_M.includes(m)) ? 'lower' : 'upper');
 const kg = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
@@ -540,12 +550,33 @@ const FAMILY = {
   inverted_row: 'bwrow', table_row: 'bwrow',
   pallof: 'pallof', band_pallof: 'pallof',
   rdl: 'rdl', db_rdl: 'rdl', kb_rdl: 'rdl', sl_rdl_bw: 'rdl',
-  bss_db: 'bss', bss_bw: 'bss',
-  goblet_squat: 'goblet', kb_goblet_squat: 'goblet',
+  bss_db: 'bss', bss_bw: 'bss', split_squat_db: 'bss',
+  goblet_squat: 'goblet', kb_goblet_squat: 'goblet', heel_goblet_squat: 'goblet',
+  decline_pushup: 'pushup',
+  back_squat: 'bsquat', pause_squat: 'bsquat', bench_press: 'bench', pause_bench: 'bench', close_grip_bench: 'bench',
+  deadlift: 'deadlift', deficit_deadlift: 'deadlift', good_morning: 'gm', band_good_morning: 'gm',
+  hip_thrust: 'hipthrust', db_hip_thrust: 'hipthrust', glute_bridge_sl: 'bridge', sl_hip_thrust: 'bridge',
+  reverse_lunge_bb: 'revlunge', kb_reverse_lunge: 'revlunge', reverse_lunge_bw: 'revlunge',
+  dips: 'dip', bench_dip: 'dip', lat_pulldown: 'pulldown', neutral_pulldown: 'pulldown',
+  pullup: 'pullup', band_pullup: 'pullup', neg_pullup: 'pullup',
+  copenhagen: 'copenhagen', copenhagen_short: 'copenhagen', farmer_walk: 'carry', suitcase_carry: 'carry',
+  cable_woodchop: 'woodchop', band_woodchop: 'woodchop', ab_rollout_bw: 'plank', plank: 'plank',
 };
 const familyOf = (id) => FAMILY[id] || id;
 // Schließt alle Übungen aus, deren Familie in der Einheit schon vorkommt
 const familyBlocked = (used) => { const f = new Set(used.map(familyOf)); return EXERCISES.filter((e) => f.has(familyOf(e.id))).map((e) => e.id); };
+
+// Abwechslung je Block (Muskelaufbau, Fitness, Abnehmen, Ergänzungsübungen beim Kraftaufbau):
+// Ergänzungs- und Isolationsübungen wechseln mit jedem neuen 5-Wochen-Block zur nächsten der drei
+// passendsten Varianten, Hauptübungen bleiben für den messbaren Kraftfortschritt gleich. Moderater,
+// geplanter Wechsel trifft mehr Muskelanteile (Fonseca 2014; Kassiano 2022); ständiger Wechsel bremst
+// den Kraftzuwachs. Laufziele und HYROX bleiben bei vertrauten Übungen (weniger Muskelkater vor Läufen).
+const ROTATE_TOP = 3;
+const ROTATE_GOALS = ['muscle', 'fitness', 'lose', 'strength'];
+export const rotatesExercises = (goal) => ROTATE_GOALS.includes(goal.id) || (goal.id === 'sport' && goal.season !== 'saison');
+// Kraftaufbau: stagniert eine Grundübung, kommt für den Rest des Blocks eine nahe Variante (Pause/Defizit),
+// mit dem nächsten Block geht es zurück zur Grundübung
+export const STRENGTH_VARIANT = { back_squat: 'pause_squat', bench_press: 'pause_bench', deadlift: 'deficit_deadlift' };
 
 function pick(data, key, slotDef, equip, used, opts = {}) {
   const coachAvoid = (data.coach && data.coach.avoid) || [];
@@ -564,9 +595,26 @@ function pick(data, key, slotDef, equip, used, opts = {}) {
   // Präventionsübungen der Sportart (z. B. Nordic Curls, Copenhagen) bleiben – Fortschritt über Wdh./Variante
   if (slotDef.keep) return sorted[0];
   const remembered = data.slotMemory[key];
-  if (remembered && !opts.vary && pool.some((e) => e.id === remembered) && !isStagnating(data, remembered)) return EX[remembered];
+  const since = (data.slotSince || {})[key];
+  const newBlock = !!remembered && !!since && opts.block != null && since.b !== opts.block;
+  const inPool = (id) => pool.some((e) => e.id === id);
+  // Neuer Block beim Kraftaufbau: von der Variante zurück zur Grundübung
+  if (newBlock && opts.strength && slotDef.main) {
+    const base = Object.keys(STRENGTH_VARIANT).find((k) => STRENGTH_VARIANT[k] === remembered);
+    if (base && inPool(base)) return EX[base];
+  }
+  // Neuer Block: Ergänzungsübung wechselt zur nächsten der passendsten Varianten
+  if (newBlock && opts.rotate && !slotDef.main && !opts.vary) {
+    // je Übungsfamilie nur die beste Variante (z. B. kein Wechsel Copenhagen → Copenhagen kurz)
+    const top = sorted.filter((e, i) => sorted.findIndex((x) => familyOf(x.id) === familyOf(e.id)) === i).slice(0, ROTATE_TOP);
+    if (top.length > 1) return top[(top.findIndex((e) => e.id === remembered) + 1) % top.length];
+  }
+  const stagnating = (id) => isStagnating(data, id, (since && since.d) || '');
+  if (remembered && !opts.vary && inPool(remembered) && !stagnating(remembered)) return EX[remembered];
   // Bei Stagnation oder Wunsch nach Abwechslung die nächste Variante nehmen
-  if (remembered && (opts.vary || isStagnating(data, remembered))) {
+  if (remembered && (opts.vary || stagnating(remembered))) {
+    const v = opts.strength && slotDef.main && STRENGTH_VARIANT[remembered];
+    if (v && inPool(v)) return EX[v];
     const alt = sorted.find((e) => e.id !== remembered);
     if (alt) return alt;
   }
@@ -606,7 +654,8 @@ function muscleAdjustments(data) {
 // Pause (Technik, Spannung in der Dehnung), Woche 3–4 zügig/explosiv mit mehr Gewicht, Deload ruhig.
 export function tempoFor(data, ex, lo, hi, week, deload) {
   if (!ex || ex.cat !== 'strength' || ['core', 'prev_lower', 'rehab'].includes(ex.slot)) return null;
-  if (ex.id === 'nordic_curl') return '4-0-X';
+  if (['nordic_curl', 'neg_pullup'].includes(ex.id)) return '4-0-X'; // betont langsam ablassen
+  if (['pause_squat', 'pause_bench'].includes(ex.id)) return deload ? '2-0-1' : '2-2-X';
   if (ex.slot === 'calf') return '2-2-1'; // Pause unten nimmt den Achillessehnen-Federeffekt raus
   if (ex.slot === 'prev_shoulder') return '2-0-2';
   const g = data && data.profile ? goalOf(data) : null;
@@ -648,12 +697,12 @@ export function hrRange(profile, zone) {
   return { lo, hi, text: `${lo}–${hi}`, zone, name: z.name, lag: !!z.lag };
 }
 // Welche Zone gilt in welcher Phase einer Übung?
-const HR_SHORT = ['run_3030', 'run_1515', 'run_rsa', 'run_shuttle', 'run_sprints', 'bike_sprints', 'sprints', 'shuttle_runs', 'rsa_sprints', 'bw_circuit', 'kb_emom', 'row_2k'];
+const HR_SHORT = ['run_3030', 'run_1515', 'run_rsa', 'run_shuttle', 'run_sprints', 'bike_sprints', 'sprints', 'shuttle_runs', 'rsa_sprints', 'bw_circuit', 'kb_emom', 'row_2k', 'tabata_bw', 'stair_intervals', 'db_complex', 'skierg_intervals', 'sled_intervals'];
 export function hrPlan(exId) {
   if (['run_easy', 'run_long', 'zone2_cardio', 'zone2_run'].includes(exId)) return { all: 'easy' };
   if (exId === 'run_fartlek') return { all: 'easy', surge: 'tempo' };
   if (exId === 'run_tempo') return { warm: 'easy', work: 'tempo', rest: 'recovery', cool: 'recovery' };
-  if (['run_4x4', 'interval_4x4', 'run_intervals'].includes(exId)) return { warm: 'easy', work: 'interval', rest: 'recovery', cool: 'recovery' };
+  if (['run_4x4', 'interval_4x4', 'run_intervals', 'run_hills'].includes(exId)) return { warm: 'easy', work: 'interval', rest: 'recovery', cool: 'recovery' };
   if (HR_SHORT.includes(exId)) return { warm: 'easy', work: 'short', rest: 'recovery', cool: 'recovery' };
   return null;
 }
@@ -725,7 +774,7 @@ function mobilityBlock(type, focus, equip, long, short = false) {
   return ids.slice(0, n);
 }
 
-const ISOLATION = ['knee_flexion', 'quad_iso', 'calf', 'chest_iso', 'side_delt', 'rear_delt', 'biceps', 'triceps', 'core', 'prev_lower', 'prev_shoulder', 'rehab'];
+const ISOLATION = ['knee_flexion', 'quad_iso', 'calf', 'hip_abd', 'chest_iso', 'side_delt', 'rear_delt', 'biceps', 'triceps', 'core', 'prev_lower', 'prev_shoulder', 'rehab'];
 const COND_MIN = { short: 12, long: 25, zone2: 30, rsa: 20 };
 const condKind = (exId) => Object.keys(COND).find((k) => COND[k].includes(exId)) || 'short';
 
@@ -851,7 +900,7 @@ export const feelOf = (data, date = todayISO()) => (data.today && data.today.dat
 export const REGION_WORK = {
   sprunggelenk: { stab: [['sl_balance', 'star_balance'], ['ankle_eversion_band', 'bw_calf']], warm: ['ankle_mob'], cool: ['calf_stretch'] },
   knie: { stab: [['wall_sit', 'spanish_squat'], ['clamshell', 'step_down']], warm: ['leg_swings'], cool: ['couch_stretch', 'ham_stretch'] },
-  schulter: { stab: [['ext_rotation_band', 'ext_rotation_cable', 'ext_rotation_db'], ['wall_slide', 'scap_pushup', 'ytw_bw']], warm: ['band_pull_apart', 'arm_circles'], cool: ['sleeper_stretch', 'doorway_stretch'] },
+  schulter: { stab: [['ext_rotation_band', 'ext_rotation_cable', 'ext_rotation_db', 'prone_er'], ['wall_slide', 'scap_pushup', 'ytw_bw']], warm: ['band_pull_apart', 'arm_circles'], cool: ['sleeper_stretch', 'doorway_stretch'] },
   ruecken: { stab: [['bird_dog', 'dead_bug'], ['side_plank', 'band_pallof']], warm: ['cat_cow'], cool: ['childs_pose', 'pigeon'] },
   ellbogen: { stab: [['wrist_ext_ecc', 'wrist_ext_iso']], warm: ['arm_circles'], cool: ['forearm_stretch'] },
   huefte: { stab: [['adductor_squeeze', 'copenhagen'], ['clamshell', 'side_plank']], warm: ['hip_9090'], cool: ['adductor_stretch', 'pigeon'] },
@@ -1015,8 +1064,8 @@ export function recentActivities(data, days, endDate = todayISO()) {
   return [...(data.activities || []), ...runActivities(data)].filter((a) => { const d = daysBetween(a.date, endDate); return d >= 0 && d < days; });
 }
 
-export const RUN_MIN = { hx_runs: 30, run_easy: 40, run_4x4: 45, run_3030: 40, run_tempo: 45, run_fartlek: 40, run_sprints: 35, run_long: 65, run_1515: 32, run_rsa: 32, run_shuttle: 32 };
-const RUN_INTENSITY = { hx_runs: 'hart', run_easy: 'leicht', run_long: 'mittel', run_fartlek: 'mittel', run_4x4: 'hart', run_3030: 'hart', run_tempo: 'hart', run_sprints: 'hart', run_1515: 'hart', run_rsa: 'hart', run_shuttle: 'hart' };
+export const RUN_MIN = { hx_runs: 30, run_easy: 40, run_4x4: 45, run_3030: 40, run_tempo: 45, run_fartlek: 40, run_sprints: 35, run_long: 65, run_1515: 32, run_rsa: 32, run_shuttle: 32, run_hills: 45 };
+const RUN_INTENSITY = { hx_runs: 'hart', run_easy: 'leicht', run_long: 'mittel', run_fartlek: 'mittel', run_4x4: 'hart', run_3030: 'hart', run_tempo: 'hart', run_sprints: 'hart', run_1515: 'hart', run_rsa: 'hart', run_shuttle: 'hart', run_hills: 'hart' };
 
 // Polarisiert: hart nur nach lockeren Tagen, sonst locker. Ziel bestimmt Schwerpunkte
 // (z. B. Marathon: wöchentlicher langer Lauf), vor dem Wettkampf Tapering.
@@ -1107,12 +1156,16 @@ export function buildRunSession(data, { equip, runType }) {
     note: [taper ? `Tapering: noch ${dtr} Tage bis zum Wettkampf – Umfang runter, Frische zählt.` : '', 'Draußen oder auf dem Laufband. Trag danach Dauer und Strecke ein.'].filter(Boolean).join(' '), blocks,
   }, equip, { full: false });
 }
-const HX_STATIONS = ['hx_skierg', 'hx_sled_push', 'hx_sled_pull', 'hx_bbj', 'hx_row', 'hx_farmers', 'hx_lunges', 'hx_wallballs'];
+// Je Station das Original, sonst ein Ersatz mit gleichem Bewegungsmuster (Home-Gym, unterwegs)
+const HX_STATIONS = [
+  ['hx_skierg', 'hx_band_ski'], ['hx_sled_push', 'hx_push_sub'], ['hx_sled_pull', 'hx_pull_band'], ['hx_bbj'],
+  ['hx_row', 'hx_kb_swings'], ['hx_farmers', 'hx_kb_carry'], ['hx_lunges', 'hx_kb_lunges', 'hx_bw_lunges'], ['hx_wallballs', 'hx_thrusters', 'hx_kb_thrusters'],
+];
 
 export function buildHyroxSession(data, { equip }) {
   const { week, deload } = blockInfo(data);
   const dtr = daysToRace(data);
-  const avail = HX_STATIONS.filter((id) => available(EX[id], equip));
+  const avail = HX_STATIONS.map((g) => g.find((id) => available(EX[id], equip))).filter(Boolean);
   const rounds = deload || (dtr !== null && dtr <= 7) ? 3 : 4;
   const done = data.sessions.filter((s) => s.template === 'HYX').length;
   const stations = [];
@@ -1170,6 +1223,14 @@ export function activityAdjust(data, focus) {
 // Sportart-Ziel: Übungsvorlieben, Prioritäten und Sätze der Sportart auf den Slot anwenden.
 // prefer gilt in den Sport-Vorlagen, always (z. B. Nordic Curls beim Fußball) in allen Vorlagen.
 function sportSlot(goal, tpl, sd) {
+  // Zielspezifisch (Laufziele, HYROX): Isolationsplätze tauschen (z. B. Bizeps → Waden) bzw. passendere
+  // Übungen zuerst – eigene Übungs-Erinnerung je Ziel
+  if (!tpl.sport && !tpl.light) {
+    const sw = goal.swap && goal.swap[sd.slot];
+    if (sw) return { sd: { ...sd, ...sw, main: false }, tag: `:${goal.id}` };
+    const gp = goal.prefer && goal.prefer[sd.slot];
+    if (gp) return { sd: { ...sd, prefer: [...new Set([...gp, ...(sd.prefer || [])])] }, tag: `:${goal.id}` };
+  }
   const sp = goal.sportProfile;
   if (!sp) return { sd, tag: '' };
   const pre = (tpl.sport && sp.prefer && sp.prefer[sd.slot]) || (sp.always && sp.always[sd.slot]);
@@ -1187,8 +1248,9 @@ export function buildSession(data, { templateId, equip, runType }) {
   if (templateId === 'RUN') return buildRunSession(data, { equip, runType });
   if (templateId === 'HYX') return buildHyroxSession(data, { equip });
   const tpl = TEMPLATES[templateId];
-  const { week, deload } = blockInfo(data);
+  const { week, deload, block } = blockInfo(data);
   const goal = goalOf(data);
+  const rotate = rotatesExercises(goal) && !tpl.light;
   const dtr = daysToRace(data);
   const mi = matchInfo(data);
   const taper = dtr !== null && dtr <= 14;
@@ -1209,7 +1271,7 @@ export function buildSession(data, { templateId, equip, runType }) {
   order.forEach(({ sd0, idx }) => {
     const { sd, tag } = sportSlot(goal, tpl, sd0);
     const key = `${templateId}:${idx}${tag}`;
-    const ex = pick(data, key, sd, equip, used, { avoid: fb.avoid, pain: fb.pain, vary: fb.vary });
+    const ex = pick(data, key, sd, equip, used, { avoid: fb.avoid, pain: fb.pain, vary: fb.vary, rotate, block, strength: goal.id === 'strength' });
     if (!ex) return;
     used.push(ex.id);
     let a = 0;
@@ -1244,7 +1306,10 @@ export function buildSession(data, { templateId, equip, runType }) {
   if (strengthBlock && !tpl.condMain) blocks.push(strengthBlock);
   const matchDay = mi && (mi.toMatch === 0 || mi.sinceMatch === 0);
   if (tpl.cond && !((actAdj.dropCond || fb.dropCond || ca.dropCond) && tpl.cond !== 'zone2') && (goal.finisher || ca.addCond || tpl.cond === 'zone2' || tpl.condMain) && !(matchDay && templateId === 'REG')) {
-    const c = COND[tpl.cond].map((id) => EX[id]).find((e) => available(e, equip));
+    // Finisher wechselt (bei Zielen mit Abwechslung) reihum zwischen den drei passendsten Formen
+    const cands = COND[tpl.cond].map((id) => EX[id]).filter((e) => available(e, equip));
+    const prevCond = rotate && ['short', 'long'].includes(tpl.cond) ? data.sessions.filter((s) => s.template === templateId && s.blocks.some((b) => b.type === 'conditioning')).length : 0;
+    const c = cands.length ? cands[prevCond % Math.min(ROTATE_TOP, cands.length)] : null;
     if (c) blocks.push({ type: 'conditioning', title: tpl.cond === 'zone2' ? 'Ausdauer – locker' : tpl.condMain ? 'Spielausdauer – wiederholte Sprints' : 'Ausdauer-Finisher', items: [makeItem(data, c, 0)] });
   }
   if (strengthBlock && tpl.condMain) blocks.push(strengthBlock);
@@ -1272,8 +1337,13 @@ export function buildSession(data, { templateId, equip, runType }) {
   addRegionWork(data, session, equip, { full: !tpl.light });
   // Zone-2-Teil der Regeneration und Spielausdauer sind Hauptinhalt und werden nicht gestrichen
   fitDuration(session, data.profile.duration, equip, !!tpl.condMain || tpl.cond === 'zone2', goal.reps !== 'strength' && !tpl.light);
-  const iso = strength.filter((it) => ISOLATION.includes(EX[it.exId].slot) && !it.ss).length;
-  if (iso >= 3) session.note = [session.note, `Tipp: Isolationsübungen paarweise als Supersatz (z. B. ${tpl.focus === 'lower' ? 'Beinbeuger + Waden' : 'Bizeps + Trizeps'}) – spart Zeit ohne Nachteil für den Muskelaufbau.`].filter(Boolean).join(' ');
+  const isoItems = strength.filter((it) => ISOLATION.includes(EX[it.exId].slot) && !it.ss);
+  if (isoItems.length >= 3) {
+    // Beispiel-Paar aus den tatsächlich geplanten Isolationsübungen
+    const has = (sl) => isoItems.some((it) => EX[it.exId].slot === sl);
+    const pair = has('biceps') && has('triceps') ? 'Bizeps + Trizeps' : has('knee_flexion') && has('calf') ? 'Beinbeuger + Waden' : `${EX[isoItems[0].exId].name} + ${EX[isoItems[1].exId].name}`;
+    session.note = [session.note, `Tipp: Isolationsübungen paarweise als Supersatz (z. B. ${pair}) – spart Zeit ohne Nachteil für den Muskelaufbau.`].filter(Boolean).join(' ');
+  }
   return session;
 }
 
@@ -1322,7 +1392,8 @@ function fitDuration(session, minutes, equip, keepCond = false, superset = false
   }
   let guard = 60;
   while (over() && guard-- > 0) {
-    const p3 = items().find((it) => it.prio === 3);
+    // Prävention (keep) wird nicht gestrichen, höchstens gekürzt
+    const p3 = items().find((it) => it.prio === 3 && !it.keep);
     if (p3) { drop(p3); continue; }
     const big2 = items().find((it) => it.prio === 2 && it.sets.length > 2);
     if (big2) { big2.sets.pop(); continue; }
@@ -1330,7 +1401,7 @@ function fitDuration(session, minutes, equip, keepCond = false, superset = false
     if (c && minutes < 60 && !keepCond) { session.blocks.splice(session.blocks.indexOf(c), 1); continue; }
     const big1 = items().find((it) => it.prio === 1 && !it.main && it.sets.length > 2);
     if (big1) { big1.sets.pop(); continue; }
-    const p2 = items().find((it) => it.prio === 2);
+    const p2 = items().find((it) => it.prio === 2 && !it.keep);
     if (p2) { drop(p2); continue; }
     break;
   }
@@ -1359,8 +1430,15 @@ function fitDuration(session, minutes, equip, keepCond = false, superset = false
 }
 
 export function rememberSlots(data, session) {
+  // slotSince: seit welchem Block (b) bzw. Datum (d) die Übung im Plan ist – für Blockwechsel und Stagnation
+  data.slotSince = data.slotSince || {};
+  const { block } = blockInfo(data, session.date);
   for (const b of session.blocks) for (const it of b.items) {
-    if (it.slotKey) data.slotMemory[it.slotKey] = it.exId;
+    if (!it.slotKey) continue;
+    const prev = data.slotMemory[it.slotKey];
+    if (prev !== it.exId) data.slotSince[it.slotKey] = { b: block, d: session.date };
+    else if (!data.slotSince[it.slotKey]) data.slotSince[it.slotKey] = { b: block, d: '' };
+    data.slotMemory[it.slotKey] = it.exId;
   }
 }
 

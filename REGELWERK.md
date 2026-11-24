@@ -49,7 +49,7 @@ Beim Sportart-Ziel gelten eigene Regeln: spielnahe kurze Intervalle statt polari
 | Regel in der App | Grundlage |
 |---|---|
 | Polarisiert: ca. 80 % locker (Zone 2), höchstens 1–2 harte Läufe pro Woche | Stöggl & Sperlich 2014 |
-| Automatischer Lauftyp: nach hartem Training (≤ 48 h), nach hartem letzten Lauf (< 4 Tage) oder im Deload → locker; sonst rotierend 4×4, Tempo, 30/30, Sprints, Fahrtspiel | Polarisiertes Training; 4×4-Intervalle als starker VO₂max-Reiz (Helgerud et al. 2007) |
+| Automatischer Lauftyp: nach hartem Training (≤ 48 h), nach hartem letzten Lauf (< 4 Tage) oder im Deload → locker; sonst rotierend 4×4, Tempo, Bergintervalle (Ausdauer, Marathon), 30/30, Sprints, Fahrtspiel | Polarisiertes Training; 4×4-Intervalle als starker VO₂max-Reiz (Helgerud et al. 2007); Bergintervalle verbessern die Laufökonomie (Barnes et al. 2013) |
 | Laufeinheit = Aufwärmen, Laufen, Dehnen – keine Kraftübungen danach; Kraft für Läufer (einbeinig, Waden, Rumpf, Plyometrie) steckt in den Ganzkörper-Einheiten des Wochenplans | Krafttraining verbessert die Laufökonomie (Balsalobre-Fernández et al. 2016) |
 | Läufe zählen als Ausdauerreiz (Session-RPE) und fließen in die Interferenz-Regeln und den Wochen-Check ein | Foster et al. 2001 |
 
@@ -62,6 +62,22 @@ Beim Sportart-Ziel gelten eigene Regeln: spielnahe kurze Intervalle statt polari
 5. **Cool-down-Mobilität** (3–5 min)
 
 Die Übungen hängen von dem Equipment ab, das du vor dem Training auswählst.
+
+### Übungsdatenbank & Abwechslung
+
+Die Datenbank umfasst 277 Übungen. Jeder Platz einer Einheit (z. B. „horizontal ziehen“, „Waden“) hat Varianten für Studio, Home-Gym, unterwegs (Band) und reines Körpergewicht. Gewählt wird jeweils die beste verfügbare Variante: im Studio z. B. Rudern am Kabel, zu Hause vorgebeugtes Kurzhantelrudern ohne Bank, unterwegs Tischrudern.
+
+**Wo mehr Übungen etwas bringen – und wo nicht:**
+
+| Ziel | Abwechslung | Warum |
+|---|---|---|
+| Muskelaufbau, Fitness, Abnehmen | Ergänzungs- und Isolationsübungen wechseln mit jedem neuen 5-Wochen-Block zur nächsten der drei passendsten Varianten. Die Hauptübungen bleiben gleich, der Ausdauer-Finisher wechselt reihum. | Geplanter, moderater Wechsel trifft mehr Muskelanteile (Fonseca 2014; Kassiano 2022). Abwechslung hält außerdem die Motivation hoch. Ständiger Wechsel würde den messbaren Fortschritt bremsen. |
+| Kraftaufbau | Grundübungen bleiben. Stagniert Kniebeuge, Bankdrücken oder Kreuzheben, kommt für den Rest des Blocks eine nahe Variante (Pausen-Kniebeuge, Bankdrücken mit Pause, Defizit-Kreuzheben), danach geht es zurück zur Grundübung. Die Ergänzungsübungen wechseln je Block. | Kraft ist sehr bewegungsspezifisch, deshalb nur nahe Varianten und nur kurz (Kassiano 2022). |
+| Ausdauer, Marathon | Keine Rotation, dafür läuferspezifische Übungen statt Bodybuilding-Isolation: Waden sitzend/Soleus statt Bizeps, Hüftabduktoren statt Seitheben, Einbeinstand statt Brust-Fliegende, Rumpf/Copenhagen statt Trizeps, einbeinige Sprünge (Hops, Bounding, Pogo) statt Medizinball-Würfe. Die Waden bleiben auch in Kurzeinheiten drin. Neu im Laufplan: Bergintervalle. | Kraft- und Sprungtraining verbessert die Laufökonomie (Blagrove 2018; Balsalobre-Fernández 2016; Saunders 2006), Bergintervalle ebenso (Barnes 2013). Hüft- und Wadenkraft sind zentral bei Knie- und Achillessehnen-Beschwerden (Crossley 2016; Neal 2024). Vertraute Übungen bedeuten weniger Muskelkater vor den Läufen (Repeated-Bout-Effekt, McHugh 2003). |
+| HYROX | Keine Rotation. Tragen (Farmer's Walk, Suitcase Carry) statt Brust-Isolation, Hüftabduktoren statt Seitheben, Swing und Weitsprung zuerst. Ohne Spezialgeräte kommen Ersatzstationen mit gleichem Bewegungsmuster: Band-Ski-Zug, Wand-Schieben mit Bärengang, Band-Rudern mit Rückwärtsgehen, Kettlebell-Swings, Kettlebell- oder Kurzhantel-Thrusters statt Wall Balls. | Wettkampfspezifisch trainieren, auch zu Hause. |
+| Sportartspezifisch | In Vorbereitung und Saisonpause wechseln Sprung-, Sprint- und Richtungswechsel-Drills je Block, Prävention (Nordic Curls, Copenhagen, Außenrotation) bleibt immer gleich. In der Saison gibt es keinen Wechsel. Neu sind Schneiden 45°, reaktive Richtungswechsel, Fallstart-, Berg- und Schlittensprints, einbeinige Hops, Hürdensprünge, Landmine Press sowie Innenrotation und Full Can für die Schulter. | Widerstandssprints verbessern den Antritt (Alcaraz 2018). Schneidetechnik senkt die Kniebelastung (Dos'Santos 2019). Reaktive Agilität ist eine eigene Fähigkeit (Young 2015). Schulterprogramm nach Andersson 2017. In der Saison zählt Stabilität. |
+
+Varianten derselben Übung (z. B. Copenhagen lang/kurz, Bulgarische Kniebeuge/Split Squat) wechseln nicht gegeneinander. Die leichtere Variante kommt nur, wenn die Ausstattung für die schwerere fehlt.
 
 ### Bewegungstempo
 
@@ -140,7 +156,7 @@ Das Ziel legt fest, welche Einheiten in einer Woche vorkommen (bei z. B. 4 Tagen
 | Kraftaufbau | 2× Unterkörper, 2× Oberkörper | Grundübungen 3–6 Wdh. (Ergänzung 5–8), 2,5–3,5 min Pause, kein Finisher |
 | Ausdauer aufbauen | 2 × Lauf, 2 × Ganzkörper | Polarisiert, Kraft mit ~65 % Volumen zum Erhalt |
 | Marathon-Vorbereitung | 3 × Lauf, 1 × Ganzkörper | Wöchentlicher langer Lauf (auch im Deload, dann kürzer), Tempo/Intervalle, Kraft kurz (~60 % Volumen); Tapering in den letzten 14 Tagen (−30 % Volumen, kein langer Lauf ab 10 Tagen, nur locker ab 3 Tagen) |
-| HYROX | 2 × Ganzkörper, 1 × Lauf, 1 × HYROX | HYROX-Einheit: 1-km-Läufe im Wechsel mit Stationen (Compromised Running), alle 8 Stationen rotieren, Kraft ~70 % Volumen, Tapering vor dem Wettkampf |
+| HYROX | 2 × Ganzkörper, 1 × Lauf, 1 × HYROX | HYROX-Einheit: 1-km-Läufe im Wechsel mit Stationen (Compromised Running), alle 8 Stationen rotieren (ohne Spezialgeräte als Ersatzstationen, s. „Übungsdatenbank & Abwechslung“), Kraft ~70 % Volumen, Tapering vor dem Wettkampf |
 | Allgemeine Fitness | 3 × Ganzkörper, 1 × Lauf | Moderates Volumen (~90 %, Ziel ≥ 6 Sätze/Muskel), Läufe abwechselnd locker und fordernd |
 | Sportartspezifisch | je nach Saisonphase (s. u.) | Sportart (Fußball, Handball, Basketball, Volleyball, Tennis/Padel), Saisonphase und optional fester Spieltag |
 | Abnehmen | 3 × Ganzkörper, 1 × Lauf | Krafttraining bleibt (Muskelerhalt im Kaloriendefizit, ~85 % Volumen), Läufe überwiegend locker + Intervalle, Finisher; optionales Zielgewicht, angestrebtes Tempo 0,5–1 % Körpergewicht pro Woche (Anzeige im Fortschritt), Hinweise zu Alltagsbewegung und Protein (1,6–2,2 g/kg) über Claude |
@@ -298,15 +314,20 @@ Der Wochen-Check (Regel-Logik und optional Claude) bewertet die Werte und Trends
 ## Quellen
 
 - Afonso J. et al. (2021). Strength Training versus Stretching for Improving Range of Motion: A Systematic Review and Meta-Analysis. *Healthcare*.
+- Alcaraz P.E. et al. (2018). The Effectiveness of Resisted Sled Training (RST) for Sprint Performance: A Systematic Review and Meta-analysis. *Sports Medicine*.
 - Andersson S.H. et al. (2017). Preventing overuse shoulder injuries among throwing athletes: a cluster-randomised controlled trial in 660 elite handball players. *Br J Sports Med*.
 - Balsalobre-Fernández C., Santos-Concejero J., Grivas G.V. (2016). Effects of Strength Training on Running Economy in Highly Trained Runners: A Systematic Review With Meta-Analysis of Controlled Trials. *J Strength Cond Res*.
+- Barnes K.R. et al. (2013). Effects of different uphill interval-training programs on running economy and performance. *Int J Sports Physiol Perform*.
 - Behm D.G. et al. (2016). Acute effects of muscle stretching on physical performance, range of motion, and injury incidence. *Appl Physiol Nutr Metab*.
 - Bell L. et al. (2023). Integrating Deloading into Strength and Physique Sports Training Programmes: An International Delphi Consensus Approach. *Sports Medicine – Open*.
 - Bishop D., Girard O., Mendez-Villanueva A. (2011). Repeated-Sprint Ability – Part II: Recommendations for Training. *Sports Medicine*.
+- Blagrove R.C., Howatson G., Hayes P.R. (2018). Effects of Strength Training on the Physiological Determinants of Middle- and Long-Distance Running Performance: A Systematic Review. *Sports Medicine*.
 - Buchheit M., Laursen P.B. (2013). High-Intensity Interval Training, Solutions to the Programming Puzzle. Part I & II. *Sports Medicine*.
 - Chen Z., Baker N.A. (2021). Effectiveness of eccentric strengthening in the treatment of lateral elbow tendinopathy: A systematic review with meta-analysis. *J Hand Ther*.
 - Crossley K.M. et al. (2016). 2016 Patellofemoral pain consensus statement from the 4th International Patellofemoral Pain Research Retreat, Manchester. Part 2: recommended physical interventions. *Br J Sports Med*.
+- Dos'Santos T. et al. (2019). Effects of a 6-Week Change of Direction Speed and Technique Modification Training Programme on Cutting Performance and Movement Quality in Male Athletes. *Sports (Basel)*.
 - van Dyk N., Behan F.P., Whiteley R. (2019). Including the Nordic hamstring exercise in injury prevention programmes halves the rate of hamstring injuries: a systematic review and meta-analysis of 8459 athletes. *Br J Sports Med*.
+- Fonseca R.M. et al. (2014). Changes in exercises are more effective than in loading schemes to improve muscle strength. *J Strength Cond Res*.
 - Foster C. et al. (2001). A New Approach to Monitoring Exercise Training. *J Strength Cond Res*.
 - Harøy J. et al. (2019). The Adductor Strengthening Programme prevents groin problems among male football players: a cluster-randomised controlled trial. *Br J Sports Med*.
 - Hayden J.A. et al. (2021). Exercise therapy for chronic low back pain. *Cochrane Database Syst Rev*.
@@ -316,9 +337,11 @@ Der Wochen-Check (Regel-Logik und optional Claude) bewertet die Werte und Trends
 - Hölmich P. et al. (1999). Effectiveness of active physical training as treatment for long-standing adductor-related groin pain in athletes: randomised trial. *Lancet*.
 - van der Horst N. et al. (2015). The Preventive Effect of the Nordic Hamstring Exercise on Hamstring Injuries in Amateur Soccer Players: A Randomized Controlled Trial. *Am J Sports Med*.
 - Karvonen M.J., Kentala E., Mustala O. (1957). The effects of training on heart rate; a longitudinal study. *Ann Med Exp Biol Fenn*.
+- Kassiano W. et al. (2022). Does Varying Resistance Exercises Promote Superior Muscle Hypertrophy and Strength Gains? A Systematic Review. *J Strength Cond Res*.
 - Lauersen J.B., Bertelsen D.M., Andersen L.B. (2014). The effectiveness of exercise interventions to prevent sports injuries: a systematic review and meta-analysis of randomised controlled trials. *Br J Sports Med*.
 - Maeo S. et al. (2021). Greater Hamstrings Muscle Hypertrophy but Similar Damage Protection after Training at Long versus Short Muscle Lengths. *Med Sci Sports Exerc*.
 - McGuine T.A., Keene J.S. (2006). The effect of a balance training program on the risk of ankle sprains in high school athletes. *Am J Sports Med*.
+- McHugh M.P. (2003). Recent advances in the understanding of the repeated bout effect: the protective effect against muscle damage from a single bout of eccentric exercise. *Scand J Med Sci Sports*.
 - Milanović Z., Sporiš G., Weston M. (2015). Effectiveness of High-Intensity Interval Training and Continuous Endurance Training for VO₂max Improvements. *Sports Medicine*.
 - Morton R.W. et al. (2018). A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength in healthy adults. *Br J Sports Med*.
 - Neal B.S. et al. (2024). Best practice guide for patellofemoral pain based on synthesis of a systematic review, the patient voice and expert clinical reasoning. *Br J Sports Med*.
@@ -329,6 +352,7 @@ Der Wochen-Check (Regel-Logik und optional Claude) bewertet die Werte und Trends
 - Rønnestad B.R. et al. (2011). In-season strength maintenance training increases well-trained soccer players' performance. *J Strength Cond Res*.
 - Sáez de Villarreal E. et al. (2009). Determining variables of plyometric training for improving vertical jump height performance: a meta-analysis. *J Strength Cond Res*.
 - Saragiotto B.T. et al. (2016). Motor control exercise for chronic non-specific low-back pain. *Cochrane Database Syst Rev*.
+- Saunders P.U. et al. (2006). Short-term plyometric training improves running economy in highly trained middle and long distance runners. *J Strength Cond Res*.
 - Schiftan G.S., Ross L.A., Hahne A.J. (2015). The effectiveness of proprioceptive training in preventing ankle sprains in sporting populations: a systematic review and meta-analysis. *J Sci Med Sport*.
 - Schoenfeld B.J. et al. (2016). Longer interset rest periods enhance muscle strength and hypertrophy in resistance-trained men. *J Strength Cond Res*.
 - Schoenfeld B.J. et al. (2021). Loading Recommendations for Muscle Strength, Hypertrophy, and Local Endurance: A Re-Examination of the Repetition Continuum. *Sports*.
@@ -344,4 +368,5 @@ Der Wochen-Check (Regel-Logik und optional Claude) bewertet die Werte und Trends
 - Stöggl T., Sperlich B. (2014). Polarized training has greater impact on key endurance variables than threshold, high intensity, or high volume training. *Front Physiol*.
 - Suchomel T.J., Nimphius S., Stone M.H. (2016). The Importance of Muscular Strength in Athletic Performance. *Sports Medicine*.
 - Tanaka H., Monahan K.D., Seals D.R. (2001). Age-predicted maximal heart rate revisited. *J Am Coll Cardiol*.
+- Young W.B., Dawson B., Henry G.J. (2015). Agility and Change-of-Direction Speed are Independent Skills: Implications for Training for Agility in Invasion Sports. *Int J Sports Sci Coach*.
 - Zhang X. et al. (2025). Superset Versus Traditional Resistance Training Prescriptions: A Systematic Review and Meta-analysis Exploring Acute and Chronic Effects on Mechanical, Metabolic, and Perceptual Variables. *Sports Medicine*.

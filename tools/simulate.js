@@ -263,6 +263,8 @@ export const SPORT_CONFIGS = [
 export const SHORT_CONFIGS = [
   { goal: 'muscle', days: 4, duration: 60 }, { goal: 'muscle', days: 4, duration: 45 }, { goal: 'muscle', days: 2, duration: 60 },
   { goal: 'fitness', days: 5, duration: 45 }, { goal: 'strength', days: 4, duration: 45 }, { goal: 'lose', days: 3, duration: 45 },
+  { goal: 'muscle', days: 4, duration: 30 }, { goal: 'fitness', days: 3, duration: 30 }, { goal: 'strength', days: 3, duration: 30 },
+  { goal: 'sport', sport: 'football', season: 'saison', days: 4, duration: 30 },
 ];
 
 export function runAll(configs) {

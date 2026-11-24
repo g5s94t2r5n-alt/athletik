@@ -137,7 +137,7 @@ function renderToday() {
 
   <section class="card">
     <div class="label">Zeit heute</div>
-    <div class="chips">${[45, 60, 75, 90, 105].map((m) => `<button class="chip ${data.profile.duration === m ? 'on' : ''}" data-action="dur" data-min="${m}">${m} min</button>`).join('')}</div>
+    <div class="chips">${[30, 45, 60, 75, 90, 105].map((m) => `<button class="chip ${data.profile.duration === m ? 'on' : ''}" data-action="dur" data-min="${m}">${m} min</button>`).join('')}</div>
   </section>
 
   ${(() => { const pf = painFocus(data); return pf.length ? `<div class="card soft"><div class="label">Ausgleich bei Beschwerden</div>

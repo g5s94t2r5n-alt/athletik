@@ -80,6 +80,16 @@ Jede Kraftübung hat ein Tempo „ablassen – Pause in der Dehnung – zurück�
 - **Rumpf- und Landeübungen:** ohne Tempo.
 - **Saison (Sportart-Ziel):** keine betonte Exzentrik (2-0-X), um Muskelkater vor Spielen zu vermeiden.
 
+### Kurzeinheit (30 min)
+
+Bei 30 Minuten wird die Einheit stärker gekürzt:
+- 3 Aufwärm- und 2 Dehnübungen,
+- höchstens eine Schnellkraftübung,
+- Hauptübungen mit weniger Sätzen,
+- Ergänzungsübungen fallen weg.
+
+Hauptübungen und Präventionsübungen (z. B. Nordic Curls, Copenhagen, Außenrotation) bleiben. Der lockere Ausdauerteil der Regeneration und die Spielausdauer bleiben ebenfalls, weil sie der Hauptinhalt sind.
+
 ### Supersätze bei wenig Zeit
 
 Passt die Einheit nicht in die gewählte Zeit und das Ziel ist kein Maximalkraft-Ziel, bildet die App **zuerst Gegenspieler-Supersätze**, bevor sie Übungen streicht:

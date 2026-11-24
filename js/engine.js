@@ -718,9 +718,10 @@ export function makeItem(data, ex, nSets, opts = {}) {
   };
 }
 
-function mobilityBlock(type, focus, equip, long) {
+function mobilityBlock(type, focus, equip, long, short = false) {
   const ids = (type === 'warmup' ? WARMUP : COOLDOWN)[focus].filter((id) => available(EX[id], equip));
-  const n = type === 'warmup' ? 4 : long ? 6 : 3;
+  // Kurzeinheit (≤ 30 min): 3 Übungen zum Aufwärmen, 2 zum Dehnen
+  const n = type === 'warmup' ? (short ? 3 : 4) : short ? 2 : long ? 6 : 3;
   return ids.slice(0, n);
 }
 
@@ -732,7 +733,7 @@ const condKind = (exId) => Object.keys(COND).find((k) => COND[k].includes(exId))
 export function estimateMinutes(session) {
   let m = 0;
   for (const b of session.blocks) {
-    if (b.type === 'warmup') m += 7;
+    if (b.type === 'warmup') m += Math.min(7, b.items.length * 1.75);
     else if (b.type === 'cooldown') m += b.items.length * 1.5;
     else if (b.type === 'conditioning') m += b.items.reduce((s, i) => s + (i.exId.startsWith('hx_') ? 5 : COND_MIN[condKind(i.exId)]), 0);
     else if (b.type === 'run') m += b.items.reduce((s, i) => s + (RUN_MIN[i.exId] || 40), 0);
@@ -1203,12 +1204,13 @@ export function buildSession(data, { templateId, equip, runType }) {
     item.prio = sd.prio;
     item.slotKey = key;
     item.pos = idx;
+    if (sd.keep || ['prev_lower', 'prev_shoulder'].includes(ex.slot)) item.keep = true; // Prävention bleibt auch in Kurzeinheiten
     (ex.cat === 'power' ? power : strength).push(item);
   });
   [power, strength].forEach((arr) => { arr.sort((a, b) => a.pos - b.pos); arr.forEach((it) => delete it.pos); });
 
   const blocks = [];
-  blocks.push({ type: 'warmup', title: 'Aufwärmen & Mobilität', items: mobilityBlock('warmup', tpl.focus, equip).map((id) => makeItem(data, EX[id], 0)) });
+  blocks.push({ type: 'warmup', title: 'Aufwärmen & Mobilität', items: mobilityBlock('warmup', tpl.focus, equip, false, data.profile.duration <= 30).map((id) => makeItem(data, EX[id], 0)) });
   if (power.length) blocks.push({ type: 'power', title: tpl.light ? 'Aktivierung – Sprünge & Antritte' : tpl.sport ? 'Speed, Sprung & Richtungswechsel' : 'Schnellkraft', items: power });
   const strengthBlock = strength.length ? { type: 'strength', title: tpl.sport ? 'Kraft & Prävention' : 'Kraft & Muskelaufbau', items: strength } : null;
   // Spielausdauer (condMain) ist Hauptinhalt und kommt vor den Kraft-/Präventionsübungen:
@@ -1220,7 +1222,7 @@ export function buildSession(data, { templateId, equip, runType }) {
     if (c) blocks.push({ type: 'conditioning', title: tpl.cond === 'zone2' ? 'Ausdauer – locker' : tpl.condMain ? 'Spielausdauer – wiederholte Sprints' : 'Ausdauer-Finisher', items: [makeItem(data, c, 0)] });
   }
   if (strengthBlock && tpl.condMain) blocks.push(strengthBlock);
-  blocks.push({ type: 'cooldown', title: 'Cool-down & Beweglichkeit', items: mobilityBlock('cooldown', tpl.focus, equip, tpl.longCooldown).map((id) => makeItem(data, EX[id], 0)) });
+  blocks.push({ type: 'cooldown', title: 'Cool-down & Beweglichkeit', items: mobilityBlock('cooldown', tpl.focus, equip, tpl.longCooldown, data.profile.duration <= 30).map((id) => makeItem(data, EX[id], 0)) });
 
   // Regenerationstag (keine Kraftübungen): Hinweise zu Finisher/Sprüngen und Saisonphase passen nicht
   const plain = !tpl.slots.length;
@@ -1242,7 +1244,8 @@ export function buildSession(data, { templateId, equip, runType }) {
     blocks,
   };
   addRegionWork(data, session, equip, { full: !tpl.light });
-  fitDuration(session, data.profile.duration, equip, !!tpl.condMain, goal.reps !== 'strength' && !tpl.light);
+  // Zone-2-Teil der Regeneration und Spielausdauer sind Hauptinhalt und werden nicht gestrichen
+  fitDuration(session, data.profile.duration, equip, !!tpl.condMain || tpl.cond === 'zone2', goal.reps !== 'strength' && !tpl.light);
   const iso = strength.filter((it) => ISOLATION.includes(EX[it.exId].slot) && !it.ss).length;
   if (iso >= 3) session.note = [session.note, `Tipp: Isolationsübungen paarweise als Supersatz (z. B. ${tpl.focus === 'lower' ? 'Beinbeuger + Waden' : 'Bizeps + Trizeps'}) – spart Zeit ohne Nachteil für den Muskelaufbau.`].filter(Boolean).join(' ');
   return session;
@@ -1305,6 +1308,27 @@ function fitDuration(session, minutes, equip, keepCond = false, superset = false
     if (p2) { drop(p2); continue; }
     break;
   }
+  // Sehr wenig Zeit (z. B. 30 min): Kurzeinheit – höchstens eine Schnellkraftübung, Hauptübungen mit
+  // weniger Sätzen, Ergänzungsübungen fallen weg, Hauptübungen bleiben
+  let cut = false;
+  guard = 60;
+  while (minutes <= 30 && estimateMinutes(session) > minutes + 3 && guard-- > 0) {
+    cut = true;
+    if (power && power.items.length > 1) { drop(power.items[power.items.length - 1]); continue; }
+    const pw = power && power.items.find((it) => it.sets.length > 2);
+    if (pw) { pw.sets.pop(); continue; }
+    const mainBig = items().find((it) => it.main && it.sets.length > 3);
+    if (mainBig) { mainBig.sets.pop(); continue; }
+    const extra = items().find((it) => !it.main && !it.keep && (!power || !power.items.includes(it)));
+    if (extra) { drop(extra); continue; }
+    const keepBig = items().find((it) => it.keep && it.sets.length > 2);
+    if (keepBig) { keepBig.sets.pop(); continue; }
+    if (power && power.items.length) { drop(power.items[0]); continue; }
+    const main = items().find((it) => it.main && it.sets.length > 2);
+    if (main) { main.sets.pop(); continue; }
+    break;
+  }
+  if (cut) session.note = [session.note, 'Kurzeinheit: nur das Wichtigste – Hauptübungen zuerst, Ergänzungen fallen heute weg.'].filter(Boolean).join(' ');
   for (const b of [strength, power]) if (b && !b.items.length) session.blocks.splice(session.blocks.indexOf(b), 1);
 }
 

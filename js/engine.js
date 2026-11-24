@@ -397,7 +397,7 @@ const STD = {
   face_pull: 0.4, reverse_fly: 0.13, reverse_pec_deck: 0.55,
   incline_curl: 0.2, bb_curl: 0.55, cable_curl: 0.45, hammer_curl: 0.24, kb_curl: 0.22,
   oh_cable_ext: 0.45, db_oh_ext: 0.35, pushdown: 0.55, skullcrusher: 0.5, cable_crunch: 0.8, pallof: 0.25,
-  ext_rotation_cable: 0.12, ext_rotation_db: 0.1,
+  ext_rotation_cable: 0.12, ext_rotation_db: 0.1, wrist_ext_ecc: 0.08,
 };
 // Arbeitsgewicht direkt als Vielfaches des Körpergewichts (Schnellkraft & Tragen)
 const WORK = { kb_swing: 0.27, hang_power_clean: 0.5, db_jump_squat: 0.12, db_push_press: 0.22, farmer_walk: 0.4 };
@@ -467,7 +467,7 @@ export function estimateWeight(data, ex, lo, hi) {
 
 // Doppelte Progression -> Zielgewicht + Hinweis
 export function target(data, ex, lo, hi, deload) {
-  if (ex.load === 'none') return { w: null, note: '' };
+  if (ex.load === 'none' || (['rehab', 'prev_lower'].includes(ex.slot) && ex.load === 'bw')) return { w: null, note: '' };
   const hist = performances(data, ex.id);
   const step = ex.inc || 0;
   if (!hist.length) {
@@ -605,7 +605,7 @@ function muscleAdjustments(data) {
 // konzentrische Phase bringt mehr Kraft (Pareja-Blanco 2017). Im Block: Woche 1–2 langsam ablassen +
 // Pause (Technik, Spannung in der Dehnung), Woche 3–4 zügig/explosiv mit mehr Gewicht, Deload ruhig.
 export function tempoFor(data, ex, lo, hi, week, deload) {
-  if (!ex || ex.cat !== 'strength' || ['core', 'prev_lower'].includes(ex.slot)) return null;
+  if (!ex || ex.cat !== 'strength' || ['core', 'prev_lower', 'rehab'].includes(ex.slot)) return null;
   if (ex.id === 'nordic_curl') return '4-0-X';
   if (ex.slot === 'calf') return '2-2-1'; // Pause unten nimmt den Achillessehnen-Federeffekt raus
   if (ex.slot === 'prev_shoulder') return '2-0-2';
@@ -619,39 +619,32 @@ export function tempoFor(data, ex, lo, hi, week, deload) {
 }
 
 // ---------- Pulszonen ----------
-// Vier Berechnungswege; alle liefern dieselben Trainingsbereiche in Schlägen pro Minute.
-export const HR_METHODS = [
-  { id: 'age', name: 'Aus dem Alter geschätzt', need: [], hint: 'Max-Puls ≈ 208 − 0,7 × Alter (Tanaka 2001). Einfach, aber ungenau: Abweichungen von ±10 Schlägen sind normal.' },
-  { id: 'max', name: 'Gemessener Max-Puls', need: ['hrMax'], hint: 'Prozent vom Max-Puls. Max-Puls messen: nach gutem Aufwärmen 3 min zügig, dann 1–2 min so schnell wie möglich (am besten bergauf) – der höchste Wert der Uhr/des Brustgurts.' },
-  { id: 'hrr', name: 'Herzfrequenzreserve (Karvonen)', need: ['hrMax', 'hrRest'], hint: 'Ruhepuls + Prozent × (Max-Puls − Ruhepuls). Berücksichtigt deine Grundfitness. Ruhepuls morgens im Liegen messen, Mittel aus 3 Tagen.' },
-  { id: 'lthr', name: 'Schwellenpuls (Laktatschwelle)', need: ['hrLthr'], hint: 'Prozent vom Schwellenpuls – am genauesten für Tempo- und Intervalltraining. Test: 30 min so schnell wie gleichmäßig möglich laufen, Ø-Puls der letzten 20 min (Friel).' },
-];
-// Bereiche je Methode: Anteil vom Max-Puls, von der Herzfrequenzreserve bzw. vom Schwellenpuls
+// Eingabe: Max-Puls und Ruhepuls. Mit beiden → Herzfrequenzreserve (Karvonen 1957); nur Max-Puls → Prozent
+// vom Max-Puls; ohne Max-Puls wird er aus dem Alter geschätzt (208 − 0,7 × Alter, Tanaka 2001).
 export const HR_ZONES = {
-  recovery: { name: 'Erholung', max: [0.6, 0.7], hrr: [0.5, 0.6], lthr: [0.7, 0.8] },
-  easy: { name: 'Locker (Zone 2)', max: [0.65, 0.75], hrr: [0.6, 0.7], lthr: [0.78, 0.87] },
-  tempo: { name: 'Schwelle', max: [0.85, 0.9], hrr: [0.8, 0.87], lthr: [0.95, 1.0] },
-  interval: { name: 'Intervall (VO₂max)', max: [0.9, 0.95], hrr: [0.87, 0.93], lthr: [1.0, 1.06] },
-  short: { name: 'Kurz & schnell', max: [0.85, 0.95], hrr: [0.8, 0.93], lthr: [0.95, 1.06], lag: true },
+  recovery: { name: 'Erholung', max: [0.6, 0.7], hrr: [0.5, 0.6] },
+  easy: { name: 'Locker (Zone 2)', max: [0.65, 0.75], hrr: [0.6, 0.7] },
+  tempo: { name: 'Schwelle', max: [0.85, 0.9], hrr: [0.8, 0.87] },
+  interval: { name: 'Intervall (VO₂max)', max: [0.9, 0.95], hrr: [0.87, 0.93] },
+  short: { name: 'Kurz & schnell', max: [0.85, 0.95], hrr: [0.8, 0.93], lag: true },
 };
-const pnum = (v) => { const n = parseFloat(String(v ?? '').replace(',', '.')); return n > 0 ? n : null; };
+const pnum = (v) => { const n = parseFloat(String(v ?? '').replace(',', '.')); return n > 30 && n < 230 ? n : null; };
 export function hrBase(profile) {
-  const want = HR_METHODS.find((m) => m.id === profile.hrMethod) || HR_METHODS[0];
-  const ok = want.need.every((k) => { const v = pnum(profile[k]); return v && v > 30 && v < 230; }) && (want.id !== 'hrr' || pnum(profile.hrRest) < pnum(profile.hrMax));
-  const m = ok ? want : HR_METHODS[0];
   const age = Number(profile.age) || 30;
+  const measured = pnum(profile.hrMax);
+  const max = measured || Math.round(208 - 0.7 * age);
+  const rest = pnum(profile.hrRest) && pnum(profile.hrRest) < max - 40 ? pnum(profile.hrRest) : null;
   return {
-    method: m.id, name: m.name, fallback: !ok,
-    max: m.id === 'age' ? Math.round(208 - 0.7 * age) : pnum(profile.hrMax),
-    rest: pnum(profile.hrRest), lthr: pnum(profile.hrLthr),
+    method: rest ? 'hrr' : 'max', max, rest, estimated: !measured,
+    name: `${rest ? 'Herzfrequenzreserve aus Max- und Ruhepuls' : 'Prozent vom Max-Puls'}${measured ? '' : ' (Max-Puls aus dem Alter geschätzt)'}`,
   };
 }
 export function hrRange(profile, zone) {
   const z = HR_ZONES[zone];
   if (!z) return null;
   const b = hrBase(profile);
-  const calc = (f) => Math.round(b.method === 'hrr' ? b.rest + f * (b.max - b.rest) : b.method === 'lthr' ? f * b.lthr : f * b.max);
-  const [lo, hi] = (b.method === 'hrr' ? z.hrr : b.method === 'lthr' ? z.lthr : z.max).map(calc);
+  const calc = (f) => Math.round(b.method === 'hrr' ? b.rest + f * (b.max - b.rest) : f * b.max);
+  const [lo, hi] = (b.method === 'hrr' ? z.hrr : z.max).map(calc);
   return { lo, hi, text: `${lo}–${hi}`, zone, name: z.name, lag: !!z.lag };
 }
 // Welche Zone gilt in welcher Phase einer Übung?
@@ -731,7 +724,7 @@ function mobilityBlock(type, focus, equip, long) {
   return ids.slice(0, n);
 }
 
-const ISOLATION = ['knee_flexion', 'quad_iso', 'calf', 'chest_iso', 'side_delt', 'rear_delt', 'biceps', 'triceps', 'core', 'prev_lower', 'prev_shoulder'];
+const ISOLATION = ['knee_flexion', 'quad_iso', 'calf', 'chest_iso', 'side_delt', 'rear_delt', 'biceps', 'triceps', 'core', 'prev_lower', 'prev_shoulder', 'rehab'];
 const COND_MIN = { short: 12, long: 25, zone2: 30, rsa: 20 };
 const condKind = (exId) => Object.keys(COND).find((k) => COND[k].includes(exId)) || 'short';
 
@@ -814,15 +807,6 @@ export function compAdjust(data, date = todayISO()) {
 
 // ---------- Rückmeldungen nach dem Training ----------
 export const PAIN_NAME = { knie: 'Knie', schulter: 'Schulter', ruecken: 'Rücken', ellbogen: 'Ellbogen', huefte: 'Hüfte', sprunggelenk: 'Sprunggelenk' };
-// Übungen, die die jeweilige Region stark belasten → 7 Tage lang ersetzen
-const PAIN_AVOID = {
-  knie: ['box_jump', 'cmj', 'broad_jump', 'lateral_bound', 'db_jump_squat', 'sissy_squat', 'bss_db', 'bss_bw', 'walking_lunge', 'reverse_lunge_bb', 'step_up', 'leg_extension', 'front_squat', 'hack_squat', 'tempo_squat_bw', 'hx_bbj', 'hx_lunges', 'hx_wallballs', 'depth_jump', 'approach_jump', 'cod_505', 'lateral_shuffle', 'sl_landing', 'ankle_hops', 'sprints', 'shuttle_runs', 'rsa_sprints', 'bw_circuit'],
-  schulter: ['ohp', 'db_shoulder_press', 'db_shoulder_press_st', 'machine_shoulder', 'kb_press', 'dips', 'plyo_pushup', 'db_push_press', 'pike_pushup', 'skullcrusher', 'incline_bench', 'mb_slam', 'hx_wallballs', 'hx_skierg', 'mb_overhead_throw'],
-  ruecken: ['deadlift', 'back_squat', 'bb_row', 'rdl', 'kb_swing', 'hang_power_clean', 'reverse_lunge_bb', 'farmer_walk', 'hx_sled_pull', 'hx_farmers'],
-  ellbogen: ['skullcrusher', 'oh_cable_ext', 'db_oh_ext', 'chinup', 'bb_curl', 'dips', 'diamond_pushup', 'pushdown'],
-  huefte: ['deadlift', 'hip_thrust', 'bss_db', 'bss_bw', 'walking_lunge', 'lateral_bound', 'broad_jump', 'copenhagen', 'hx_lunges', 'cod_505'],
-  sprunggelenk: ['box_jump', 'cmj', 'broad_jump', 'lateral_bound', 'db_jump_squat', 'depth_jump', 'approach_jump', 'ankle_hops', 'sl_landing', 'acceleration_10m', 'wall_drill', 'cod_505', 'lateral_shuffle', 'bw_calf', 'db_calf', 'walking_lunge', 'hx_bbj', 'hx_lunges', 'sprints', 'shuttle_runs', 'rsa_sprints', 'run_intervals', 'zone2_run', 'bw_circuit'],
-};
 
 // Anstrengung automatisch aus den Wiederholungen: viele Sätze unter dem Ziel = zu schwer,
 // fast alle am oberen Ende = zu leicht
@@ -842,9 +826,62 @@ export function autoEffort(session) {
 }
 export const effortOf = (s) => (s.feedback && s.feedback.effort) || s.autoEffort || '';
 
-// Beschwerden aus den Rückmeldungen der letzten 7 Tage
-export function feedbackPain(data, date = todayISO()) {
-  return [...new Set(data.sessions.filter((s) => s.feedback && daysBetween(s.date, date) >= 0 && daysBetween(s.date, date) < 7).flatMap((s) => s.feedback.pain || []))];
+// ---------- Ausgleich bei Beschwerden ----------
+// Statt Schonung: gezielte Stabilisation/Kräftigung (gut belegt) plus Mobilität und Dehnung für die Region.
+// Je Gruppe wird die erste verfügbare Übung genommen. Schmerz-Monitoring statt Pause (Silbernagel 2007).
+export const REGION_WORK = {
+  sprunggelenk: { stab: [['sl_balance', 'star_balance'], ['ankle_eversion_band', 'bw_calf']], warm: ['ankle_mob'], cool: ['calf_stretch'] },
+  knie: { stab: [['wall_sit', 'spanish_squat'], ['clamshell', 'step_down']], warm: ['leg_swings'], cool: ['couch_stretch', 'ham_stretch'] },
+  schulter: { stab: [['ext_rotation_band', 'ext_rotation_cable', 'ext_rotation_db'], ['wall_slide', 'scap_pushup', 'ytw_bw']], warm: ['band_pull_apart', 'arm_circles'], cool: ['sleeper_stretch', 'doorway_stretch'] },
+  ruecken: { stab: [['bird_dog', 'dead_bug'], ['side_plank', 'band_pallof']], warm: ['cat_cow'], cool: ['childs_pose', 'pigeon'] },
+  ellbogen: { stab: [['wrist_ext_ecc', 'wrist_ext_iso']], warm: ['arm_circles'], cool: ['forearm_stretch'] },
+  huefte: { stab: [['adductor_squeeze', 'copenhagen'], ['clamshell', 'side_plank']], warm: ['hip_9090'], cool: ['adductor_stretch', 'pigeon'] },
+};
+export const PAIN_FOCUS_DAYS = 28;
+
+// Regionen mit Beschwerden in den letzten 4 Wochen (bis man sie als „wieder gut“ markiert)
+export function painFocus(data, date = todayISO()) {
+  const last = {};
+  for (const s of data.sessions) {
+    if (!s.feedback || !(s.feedback.pain || []).length) continue;
+    const d = daysBetween(s.date, date);
+    if (d < 0 || d >= PAIN_FOCUS_DAYS) continue;
+    s.feedback.pain.forEach((p) => { if (!last[p] || s.date > last[p]) last[p] = s.date; });
+  }
+  const cleared = data.painCleared || {};
+  return Object.entries(last).filter(([p, d]) => REGION_WORK[p] && !(cleared[p] && cleared[p] >= d))
+    .map(([region, since]) => ({ region, since, until: todayISO(new Date(new Date(since + 'T12:00:00').getTime() + PAIN_FOCUS_DAYS * 86400000)) }));
+}
+
+// Ergänzt eine Einheit um Ausgleichsübungen. full = auch Stabilisationsblock (nicht bei Lauf-/HYROX-Einheiten
+// und der Aktivierung vor dem Spiel – dort nur Mobilität und Dehnen).
+export function addRegionWork(data, session, equip, { full = true } = {}) {
+  const focus = painFocus(data);
+  if (!focus.length) return session;
+  const inSession = new Set(session.blocks.flatMap((b) => b.items.map((i) => i.exId)));
+  const ok = (id) => EX[id] && available(EX[id], equip) && !inSession.has(id) && !familyBlocked([...inSession]).includes(id);
+  const take = (id) => { inSession.add(id); return id; };
+  const stab = []; const warm = []; const cool = [];
+  for (const { region } of focus) {
+    const w = REGION_WORK[region];
+    if (full) w.stab.forEach((grp) => { const id = grp.find(ok); if (id && stab.length < 4) stab.push(take(id)); });
+    const wu = w.warm.find(ok); if (wu && warm.length < 2) warm.push(take(wu));
+    w.cool.filter(ok).slice(0, 2).forEach((id) => { if (cool.length < 4) cool.push(take(id)); });
+  }
+  const names = focus.map((f) => PAIN_NAME[f.region]).join(', ');
+  const wb = session.blocks.find((b) => b.type === 'warmup');
+  if (wb) warm.forEach((id) => wb.items.push(makeItem(data, EX[id], 0)));
+  const cb = session.blocks.find((b) => b.type === 'cooldown');
+  if (cb) cool.forEach((id) => cb.items.push(makeItem(data, EX[id], 0)));
+  if (stab.length) {
+    const items = stab.map((id) => { const it = makeItem(data, EX[id], 2, { rest: 45 }); it.prio = 1; return it; });
+    const at = session.blocks.findIndex((b) => ['strength', 'conditioning', 'cooldown'].includes(b.type));
+    session.blocks.splice(at < 0 ? session.blocks.length : at, 0, { type: 'stability', title: `Ausgleich: ${names}`, items });
+  }
+  if (stab.length || warm.length || cool.length) {
+    session.note = [session.note, `Ausgleich für ${names}: ${stab.length ? 'Stabilisation und ' : ''}Mobilität/Dehnung sind ergänzt. Schmerz-Regel: Beschwerden bis etwa 3–5 von 10 sind bei allen Übungen in Ordnung, wenn sie bis zum nächsten Morgen abklingen – sonst Gewicht oder Umfang reduzieren bzw. die Übung tauschen. Bei anhaltenden oder starken Schmerzen ärztlich abklären.`].filter(Boolean).join(' ');
+  }
+  return session;
 }
 
 export function feedbackAdjust(data, templateId, date = todayISO()) {
@@ -866,9 +903,7 @@ export function feedbackAdjust(data, templateId, date = todayISO()) {
   }
   const sameTpl = [...recent].reverse().find((s) => s.template === templateId && s.feedback);
   if (sameTpl && sameTpl.feedback.liked === 'no') { out.vary = true; out.notes.push('Diese Einheit hat dir zuletzt nicht gefallen – heute andere Übungsvarianten.'); }
-  const pain = new Set(recent.filter((s) => s.feedback && daysBetween(s.date, date) < 7).flatMap((s) => s.feedback.pain || []));
-  pain.forEach((p) => out.pain.push(...(PAIN_AVOID[p] || [])));
-  if (pain.size) out.notes.push(`Beschwerden (${[...pain].map((p) => PAIN_NAME[p]).join(', ')}): belastende Übungen vorerst ersetzt. Bei anhaltenden Schmerzen bitte ärztlich abklären.`);
+  // Beschwerden: keine Schonung mehr – stattdessen Ausgleichsübungen für die Region (addRegionWork)
   return out;
 }
 
@@ -899,7 +934,7 @@ export function sessionRecords(data, session) {
   const recs = [];
   for (const b of session.blocks) for (const it of b.items) {
     const ex = EX[it.exId];
-    if (!ex) continue;
+    if (!ex || ex.slot === 'rehab') continue;
     const sets = (it.sets || []).filter((st) => st.done && Number(st.r) > 0);
     if (sets.length && ex.load !== 'none') {
       const prev = best(ex.id);
@@ -972,8 +1007,6 @@ export function autoRunType(data) {
   const hadLongWeek = runsAll.some((r) => r.runType === 'run_long' && daysBetween(r.date, todayISO()) < 6);
   const lastHard = [...data.sessions].reverse().find((x) => daysBetween(x.date, todayISO()) < 2 && effortOf(x) === 'too_hard');
   if (lastHard) return { id: 'run_easy', why: 'Locker, weil bei deiner letzten Einheit viele Sätze unter dem Wdh.-Ziel lagen.' };
-  const legPain = feedbackPain(data).filter((p) => ['knie', 'sprunggelenk', 'huefte'].includes(p));
-  if (legPain.length) return { id: 'run_easy', why: `Beschwerden (${legPain.map((p) => PAIN_NAME[p]).join(', ')}): nur locker und nur schmerzfrei – oder aufs Rad ausweichen. Bei anhaltenden Schmerzen bitte ärztlich abklären.` };
   if (goal.id === 'sport') return sportRunType(data, goal, deload);
   if (deload) {
     if (goal.longRun && !hadLongWeek && !(dtr !== null && dtr <= 10)) return { id: 'run_long', why: 'Deload-Woche: langer Lauf etwas kürzer (ca. 45–60 min), ganz locker.' };
@@ -1045,11 +1078,11 @@ export function buildRunSession(data, { equip, runType }) {
   ];
   // Keine Kraftübungen nach dem Lauf – Kraft kommt aus den Ganzkörper-Einheiten des Wochenplans
   blocks.push({ type: 'cooldown', title: 'Cool-down & Beweglichkeit', items: COOLDOWN.run.map((c) => makeItem(data, EX[c], 0)) });
-  return {
+  return addRegionWork(data, {
     id: uid(), date: todayISO(), template: 'RUN', title: `Laufeinheit – ${ex.name}`, week, deload,
     source: 'regel', equipment: [...equip], status: 'active', startedAt: Date.now(),
     note: [taper ? `Tapering: noch ${dtr} Tage bis zum Wettkampf – Umfang runter, Frische zählt.` : '', 'Draußen oder auf dem Laufband. Trag danach Dauer und Strecke ein.'].filter(Boolean).join(' '), blocks,
-  };
+  }, equip, { full: false });
 }
 const HX_STATIONS = ['hx_skierg', 'hx_sled_push', 'hx_sled_pull', 'hx_bbj', 'hx_row', 'hx_farmers', 'hx_lunges', 'hx_wallballs'];
 
@@ -1069,7 +1102,7 @@ export function buildHyroxSession(data, { equip }) {
     { type: 'conditioning', title: 'Stationen (im Wechsel mit den Läufen)', items: stations.map((id) => makeItem(data, EX[id], 0)) },
     { type: 'cooldown', title: 'Cool-down & Beweglichkeit', items: COOLDOWN.full.slice(0, 4).map((c) => makeItem(data, EX[c], 0)) },
   ];
-  return {
+  return addRegionWork(data, {
     id: uid(), date: todayISO(), template: 'HYX', title: 'HYROX – Lauf & Stationen', week, deload,
     source: 'regel', equipment: [...equip], status: 'active', startedAt: Date.now(),
     note: [
@@ -1078,7 +1111,7 @@ export function buildHyroxSession(data, { equip }) {
       dtr !== null && dtr <= 14 ? `Noch ${dtr} Tage bis zum Wettkampf – Tempo kontrolliert, nicht ausbelasten.` : '',
     ].filter(Boolean).join(' '),
     blocks,
-  };
+  }, equip, { full: false });
 }
 
 export const activityName = (a) => (a.fromPlan ? a.note : a.type === 'course' && a.note ? `Kurs „${a.note.split(/[,\n]/)[0].trim()}“` : ACT[a.type]?.name || a.type);
@@ -1183,7 +1216,7 @@ export function buildSession(data, { templateId, equip, runType }) {
   if (strengthBlock && !tpl.condMain) blocks.push(strengthBlock);
   const matchDay = mi && (mi.toMatch === 0 || mi.sinceMatch === 0);
   if (tpl.cond && !((actAdj.dropCond || fb.dropCond || ca.dropCond) && tpl.cond !== 'zone2') && (goal.finisher || ca.addCond || tpl.cond === 'zone2' || tpl.condMain) && !(matchDay && templateId === 'REG')) {
-    const c = COND[tpl.cond].map((id) => EX[id]).find((e) => available(e, equip) && !fb.pain.includes(e.id));
+    const c = COND[tpl.cond].map((id) => EX[id]).find((e) => available(e, equip));
     if (c) blocks.push({ type: 'conditioning', title: tpl.cond === 'zone2' ? 'Ausdauer – locker' : tpl.condMain ? 'Spielausdauer – wiederholte Sprints' : 'Ausdauer-Finisher', items: [makeItem(data, c, 0)] });
   }
   if (strengthBlock && tpl.condMain) blocks.push(strengthBlock);
@@ -1208,6 +1241,7 @@ export function buildSession(data, { templateId, equip, runType }) {
     ].filter(Boolean).join(' '),
     blocks,
   };
+  addRegionWork(data, session, equip, { full: !tpl.light });
   fitDuration(session, data.profile.duration, equip, !!tpl.condMain, goal.reps !== 'strength' && !tpl.light);
   const iso = strength.filter((it) => ISOLATION.includes(EX[it.exId].slot) && !it.ss).length;
   if (iso >= 3) session.note = [session.note, `Tipp: Isolationsübungen paarweise als Supersatz (z. B. ${tpl.focus === 'lower' ? 'Beinbeuger + Waden' : 'Bizeps + Trizeps'}) – spart Zeit ohne Nachteil für den Muskelaufbau.`].filter(Boolean).join(' ');
@@ -1357,7 +1391,7 @@ export function trackedExercises(data) {
   const seen = new Map();
   for (const s of data.sessions) for (const b of s.blocks) for (const it of b.items) {
     const ex = EX[it.exId];
-    if (ex && ex.cat === 'strength' && (it.sets || []).some((x) => x.done && Number(x.r) > 0)) seen.set(ex.id, (seen.get(ex.id) || 0) + 1);
+    if (ex && ex.cat === 'strength' && ex.slot !== 'rehab' && (it.sets || []).some((x) => x.done && Number(x.r) > 0)) seen.set(ex.id, (seen.get(ex.id) || 0) + 1);
   }
   const MAIN = ['squat', 'hinge', 'hpush', 'vpull', 'vpush', 'hpull', 'lunge'];
   const rank = (id) => { const i = MAIN.indexOf(EX[id].slot); return i < 0 ? 99 : i; };

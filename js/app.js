@@ -6,7 +6,7 @@ import {
   activityAdjust, activitySummary, activityLoad, activityName, autoRunType,
   feedbackAdjust, sessionRecords, allRecords, PAIN_NAME, autoEffort,
   tempoText, intervalPhases, bodyComp, bodyCompSeries, compAdjust, TEMPLATE_GROUPS, groupOf, nextVariant,
-  HR_METHODS, HR_ZONES, hrBase, hrRange, hrPlan, hrSummary,
+  HR_ZONES, hrBase, hrRange, hrPlan, hrSummary, painFocus, addRegionWork,
 } from './engine.js';
 import { planSession, weeklyReview, CoachError, MODEL } from './coach.js';
 import { GOALS, GOAL, goalOf, rotationFor, daysToRace, weightStatus, SPORTS, SPORT, SEASONS, SEASON, WEEKDAYS, matchInfo, LEVELS, levelOf, levelHint } from './goals.js';
@@ -140,6 +140,9 @@ function renderToday() {
     <div class="chips">${[45, 60, 75, 90, 105].map((m) => `<button class="chip ${data.profile.duration === m ? 'on' : ''}" data-action="dur" data-min="${m}">${m} min</button>`).join('')}</div>
   </section>
 
+  ${(() => { const pf = painFocus(data); return pf.length ? `<div class="card soft"><div class="label">Ausgleich bei Beschwerden</div>
+    <p>Jede Einheit enthält zusätzlich Stabilisations-, Mobilitäts- und Dehnübungen für ${pf.map((f) => `<b>${esc(PAIN_NAME[f.region])}</b> (bis ${fmtDate(f.until)})`).join(', ')}. Schmerz bis ca. 3–5 von 10 ist in Ordnung, wenn er bis zum nächsten Morgen abklingt.</p>
+    <div class="chips">${pf.map((f) => `<button class="chip small" data-action="pain-clear" data-region="${f.region}">${esc(PAIN_NAME[f.region])} wieder gut ✓</button>`).join('')}</div></div>` : ''; })()}
   ${(() => { const n = [...(todayTpl === 'REG' ? [] : activityAdjust(data, TEMPLATES[todayTpl].focus).notes), ...(todayTpl === 'RUN' ? [] : feedbackAdjust(data, todayTpl).notes), ...(TEMPLATES[todayTpl].slots.length ? compAdjust(data).notes : [])]; return n.length ? `<div class="card soft"><div class="label">Berücksichtigt</div><p>${n.map(esc).join('<br>')}</p></div>` : ''; })()}
 
   ${hasKey ? `<section class="card">
@@ -196,7 +199,7 @@ async function startPlan(useAI) {
     busy = 'plan'; render();
     try {
       const plan = await planSession(data, { templateId: todayTpl, equip, wish, ruleSession: rule, runType });
-      const s = sessionFromPlan(data, plan, { templateId: todayTpl, equip });
+      const s = addRegionWork(data, sessionFromPlan(data, plan, { templateId: todayTpl, equip }), equip, { full: !['RUN', 'HYX', 'PRIME'].includes(todayTpl) });
       if (s.blocks.some((b) => b.type === 'strength' || b.type === 'power' || b.type === 'conditioning')) {
         // Slot-Gedächtnis aus der Regel-Logik übernehmen, wenn Claude dieselbe Übung gewählt hat
         const ruleSlots = Object.fromEntries(rule.blocks.flatMap((b) => b.items).filter((i) => i.slotKey).map((i) => [i.exId, i.slotKey]));
@@ -223,7 +226,7 @@ async function startPlan(useAI) {
 }
 
 // ---------- Aktive Einheit ----------
-const BLOCK_ICON = { warmup: 'Aufwärmen', power: 'Schnellkraft', strength: 'Kraft', conditioning: 'Ausdauer', run: 'Laufen', cooldown: 'Mobilität' };
+const BLOCK_ICON = { warmup: 'Aufwärmen', power: 'Schnellkraft', stability: 'Ausgleich', strength: 'Kraft', conditioning: 'Ausdauer', run: 'Laufen', cooldown: 'Mobilität' };
 const RUN_TYPES = ['run_easy', 'run_4x4', 'run_3030', 'run_tempo', 'run_fartlek', 'run_sprints', 'run_long', 'run_1515', 'run_rsa', 'run_shuttle'];
 
 function pace(min, km) {
@@ -273,7 +276,7 @@ function renderItem(it, bi, ii, type) {
   const ex = EX[it.exId];
   if (!ex) return '';
   const tracked = it.sets.length > 0;
-  const showW = ex.load === 'kg' || (ex.load === 'bw' && ex.cat === 'strength');
+  const showW = ex.load === 'kg' || (ex.load === 'bw' && ex.cat === 'strength' && !['rehab', 'prev_lower'].includes(ex.slot));
   const allDone = tracked ? it.sets.every((x) => x.done) : it.done;
   const partner = it.ss ? data.active.blocks[bi].items.find((x) => x !== it && x.ss && x.ss[0] === it.ss[0]) : null;
   return `
@@ -606,7 +609,7 @@ function ivRender() {
       <div class="ivc-cfg"><span>Runden</span><button class="chip" data-action="iv-rounds" data-d="-1" aria-label="Weniger Runden">−</button><strong>${c.rounds}</strong><button class="chip" data-action="iv-rounds" data-d="1" aria-label="Mehr Runden">+</button></div>
       ${iv.sets ? `<div class="ivc-cfg"><span>Serien</span><button class="chip" data-action="iv-sets" data-d="-1" aria-label="Weniger Serien">−</button><strong>${c.sets}</strong><button class="chip" data-action="iv-sets" data-d="1" aria-label="Mehr Serien">+</button></div>` : ''}
       <p class="ivc-sub">Dauer ca. ${Math.round(ivTotalSec(c) / 60)} min · Signalton 3-2-1 vor jedem Wechsel</p>
-      ${hrPlan(c.ex.id) ? `<p class="ivc-sub"><b>Zielpuls</b> ${esc(hrSummary(data.profile, c.ex.id))}<br><span class="ivc-small">${esc(hrBase(data.profile).name)}${hrBase(data.profile).fallback ? ' (Werte fehlen)' : ''} – ändern unter Mehr → Pulszonen</span></p>` : ''}
+      ${hrPlan(c.ex.id) ? `<p class="ivc-sub"><b>Zielpuls</b> ${esc(hrSummary(data.profile, c.ex.id))}<br><span class="ivc-small">${esc(hrBase(data.profile).name)} – ändern unter Mehr → Pulszonen</span></p>` : ''}
       <button class="btn primary" data-action="iv-start">Start</button>
       <button class="btn ghost" data-action="iv-close">Abbrechen</button>
     </div>`;
@@ -747,24 +750,17 @@ function claudeHint(text = 'Wird nur von Claude berücksichtigt – dafür unter
   return hasClaude() ? '' : `<p class="muted small claude-hint">${esc(text)}</p>`;
 }
 
-// Pulszonen: Methode wählen, benötigte Werte eintragen, Bereiche ansehen
+// Pulszonen: Max- und Ruhepuls eintragen, Bereiche ansehen
 function renderHrSettings() {
   const p = data.profile;
-  const want = HR_METHODS.find((m) => m.id === p.hrMethod) || HR_METHODS[0];
   const b = hrBase(p);
   const field = (k, label, ph) => `<label class="field"><span>${label}</span><input class="in" data-prof="${k}" inputmode="numeric" placeholder="${ph}" value="${esc(p[k] || '')}"></label>`;
   return `<section class="card">
     <div class="label">Pulszonen</div>
-    <label class="field"><span>Berechnung</span><select class="in wide" data-prof="hrMethod">${HR_METHODS.map((m) => `<option value="${m.id}" ${want.id === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>
-    <p class="muted small">${esc(want.hint)}</p>
-    ${want.need.length ? `<div class="grid2">
-      ${want.need.includes('hrMax') ? field('hrMax', 'Max-Puls', 'z. B. 190') : ''}
-      ${want.need.includes('hrRest') ? field('hrRest', 'Ruhepuls', 'z. B. 50') : ''}
-      ${want.need.includes('hrLthr') ? field('hrLthr', 'Schwellenpuls', 'z. B. 172') : ''}
-    </div>` : ''}
-    ${b.fallback ? '<p class="muted small">Noch nicht alle Werte eingetragen – bis dahin wird aus dem Alter geschätzt.</p>' : ''}
+    <div class="grid2">${field('hrMax', 'Max-Puls', `geschätzt ${Math.round(208 - 0.7 * (Number(p.age) || 30))}`)}${field('hrRest', 'Ruhepuls (optional)', 'z. B. 50')}</div>
+    <p class="muted small"><b>Max-Puls messen:</b> nach gutem Aufwärmen 3 min zügig, dann 1–2 min so schnell wie möglich (am besten bergauf) – der höchste Wert von Uhr oder Brustgurt. <b>Ruhepuls:</b> morgens nach dem Aufwachen im Liegen, Mittel aus 3 Tagen.</p>
     <div class="hr-table">${['recovery', 'easy', 'tempo', 'interval'].map((z) => { const r = hrRange(p, z); return `<div><span>${esc(HR_ZONES[z].name)}</span><b>${r.text}</b></div>`; }).join('')}</div>
-    <p class="muted small">Gilt für Laufkarten und die Intervall-Uhr. Bei kurzen Intervallen (15/15, 30/30, Sprints) hinkt der Puls hinterher – dort zählt das Tempo.</p>
+    <p class="muted small">Berechnung: ${esc(b.name)}${b.estimated ? ' – trag deinen Max-Puls ein, das ist genauer (±10 Schläge Abweichung bei der Schätzung).' : '.'} Bei kurzen Intervallen (15/15, 30/30, Sprints) hinkt der Puls hinterher – dort zählt das Tempo.</p>
   </section>`;
 }
 
@@ -1359,6 +1355,7 @@ document.addEventListener('click', async (e) => {
       break;
     }
     case 'repeat': repeatSession(t.dataset.id); break;
+    case 'pain-clear': data.painCleared = { ...(data.painCleared || {}), [t.dataset.region]: todayISO() }; persist(); render(); toast('Schön! Der Ausgleich für diese Region endet.'); break;
     case 'iv-open': ivOpen(+t.dataset.b, +t.dataset.i); break;
     case 'iv-start': ivStart(); break;
     case 'iv-rounds': if (ivc && !ivc.phases) { ivc.rounds = Math.min(30, Math.max(1, ivc.rounds + Number(t.dataset.d))); ivRender(); } break;
@@ -1425,8 +1422,8 @@ document.addEventListener('change', async (e) => {
   if (t.id === 'use-claude') { data.settings.useClaude = t.checked; persist(); render(); }
   if (t.dataset.prof) {
     const k = t.dataset.prof;
-    const numeric = ['age', 'weight', 'days', 'duration', 'goalWeight', 'hrMax', 'hrRest', 'hrLthr'].includes(k);
-    const optional = ['goalWeight', 'hrMax', 'hrRest', 'hrLthr'].includes(k);
+    const numeric = ['age', 'weight', 'days', 'duration', 'goalWeight', 'hrMax', 'hrRest'].includes(k);
+    const optional = ['goalWeight', 'hrMax', 'hrRest'].includes(k);
     const v = optional && t.value.trim() === '' ? '' : numeric ? parseFloat(t.value.replace(',', '.')) : t.value;
     if (numeric && v !== '' && isNaN(v)) return;
     data.profile[k] = v;

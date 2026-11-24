@@ -315,3 +315,7 @@ select.in { appearance: none; -webkit-appearance: none; }
 .ivc-hr { font-size: 20px; font-weight: 650; }
 .ivc-hr b { font-size: 24px; }
 .ivc-small { font-size: 13px; color: var(--muted); }
+
+/* Ausgleich bei Beschwerden */
+.t-stability { background: var(--tag-stability, #0f8a7a); }
+[data-design="d"] .t-stability { background: var(--pink); }

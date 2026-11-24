@@ -97,21 +97,17 @@ Fällt eine Supersatz-Übung später wegen Zeitmangel weg, wird der Partner wied
 
 ### Pulszonen
 
-Laufkarten und die Intervall-Uhr zeigen einen Zielpuls. Die Bereiche lassen sich auf vier Arten berechnen (Mehr → Pulszonen):
+Laufkarten und die Intervall-Uhr zeigen einen Zielpuls. Eingetragen werden Max-Puls und (optional) Ruhepuls (Mehr → Pulszonen):
+- **Max- und Ruhepuls:** Herzfrequenzreserve, also Ruhepuls + Prozent × (Max − Ruhepuls) (Karvonen 1957). Das berücksichtigt die Grundfitness.
+- **Nur Max-Puls:** Prozent vom Max-Puls.
+- **Kein Max-Puls:** Er wird aus dem Alter geschätzt, 208 − 0,7 × Alter (Tanaka 2001), mit etwa ±10 Schlägen Abweichung.
 
-| Methode | Eingabe | Berechnung |
-|---|---|---|
-| Aus dem Alter geschätzt (Standard) | – | Max-Puls ≈ 208 − 0,7 × Alter (Tanaka 2001), Abweichung ±10 Schläge |
-| Gemessener Max-Puls | Max-Puls | Prozent vom Max-Puls |
-| Herzfrequenzreserve (Karvonen 1957) | Max- und Ruhepuls | Ruhepuls + Prozent × (Max − Ruhepuls) |
-| Schwellenpuls (Laktatschwelle) | Schwellenpuls aus 30-min-Test (Ø der letzten 20 min, Friel) | Prozent vom Schwellenpuls |
-
-| Bereich | % Max-Puls | % Reserve | % Schwellenpuls | Verwendung |
-|---|---|---|---|---|
-| Erholung | 60–70 | 50–60 | 70–80 | Trabpausen, Auslaufen |
-| Locker (Zone 2) | 65–75 | 60–70 | 78–87 | Dauerlauf, langer Lauf, Einlaufen |
-| Schwelle | 85–90 | 80–87 | 95–100 | Tempolauf |
-| Intervall (VO₂max) | 90–95 | 87–93 | 100–106 | 4×4 (Helgerud 2007) |
+| Bereich | % Max-Puls | % Reserve | Verwendung |
+|---|---|---|---|
+| Erholung | 60–70 | 50–60 | Trabpausen, Auslaufen |
+| Locker (Zone 2) | 65–75 | 60–70 | Dauerlauf, langer Lauf, Einlaufen |
+| Schwelle | 85–90 | 80–87 | Tempolauf |
+| Intervall (VO₂max) | 90–95 | 87–93 | 4×4 (Helgerud 2007) |
 
 Bei kurzen Intervallen (15/15, 30/30, Sprints) hinkt der Puls hinterher. Dort zählt das Tempo, der Puls steigt erst über die Serie auf etwa 85–95 %.
 
@@ -233,12 +229,31 @@ Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:
 
 - **Rekorde:** Beim Abschließen vergleicht die App jede Übung mit allen früheren Einheiten – höheres geschätztes 1RM (Epley) oder schwerster Satz, beim Laufen längste Strecke und schnellste Pace (ab 3 km). Rekorde werden gefeiert, im Verlauf markiert und im Fortschritt gelistet.
 - **Belastung automatisch:** Aus den eingetragenen Wdh. – ≥ 50 % der Kraftsätze unter dem Wdh.-Ziel = zu schwer → nächste Einheit 1 Satz weniger pro Übung, kein Finisher, nächster Lauf locker; zweimal innerhalb kurzer Zeit → Deload-Charakter (−10 % Gewicht). ≥ 80 % am oberen Ende = zu leicht → Hauptübungen +1 Satz.
-- **Beschwerden:** Knie, Schulter, Rücken, Ellbogen, Hüfte, Sprunggelenk. Belastende Übungen werden 7 Tage lang ersetzt oder weggelassen, auch Sprint- und Sprung-Finisher. Bei Knie, Hüfte oder Sprunggelenk schlägt die App nur lockere Läufe vor oder Radfahren. Zusätzliche Übungen für die betroffene Region nimmt die App bisher nicht auf.
+- **Beschwerden:** Knie, Schulter, Rücken, Ellbogen, Hüfte, Sprunggelenk. Keine Schonung, sondern 4 Wochen lang Ausgleichsübungen für die Region (s. Abschnitt 6), bis du sie als „wieder gut“ markierst.
 - **Keine Doppelungen:** Jede Übung und jede Variante kommt höchstens einmal pro Einheit vor (z. B. nicht Liegestütze und Enge Liegestütze). Die Hauptübung wird zuerst gewählt. Auch Claude-Pläne werden so bereinigt, und Supersätze bestehen immer aus zwei verschiedenen Übungen.
 - **Kurze Umfrage:** „Hat es dir gefallen?“ (bei „nein“: nächstes Mal andere Varianten dieser Einheit, einzelne Übungen dauerhaft ausblendbar) und „Beschwerden?“ (Knie, Schulter, Rücken, Ellbogen, Hüfte → belastende Übungen 7 Tage lang ersetzt bzw. weggelassen; Hinweis auf ärztliche Abklärung bei anhaltenden Schmerzen).
 - Claude bekommt Belastung, Gefallen und Beschwerden der letzten Einheiten; ausgeblendete und schmerzauslösende Übungen sind aus seinem Übungskatalog entfernt.
 
-## 6. Körperzusammensetzung (optional)
+## 6. Ausgleich bei Beschwerden
+
+Meldest du nach dem Training Beschwerden, enthält jede Einheit der nächsten 4 Wochen zusätzliche Übungen für diese Region. Sobald du sie unter Heute als „wieder gut“ markierst, endet der Ausgleich.
+- **Kraft-Einheiten:** Block „Ausgleich“ mit 2 Stabilisations- bzw. Kräftigungsübungen, zusätzlich eine Mobilitätsübung im Aufwärmen und 1–2 Dehnungen im Cool-down.
+- **Lauf-, HYROX- und Aktivierungseinheiten:** nur Mobilität und Dehnung.
+
+Belastende Übungen bleiben im Plan. Es gilt das **Schmerz-Monitoring:** Beschwerden bis etwa 3–5 von 10 sind in Ordnung, wenn sie bis zum nächsten Morgen abklingen. Sonst Gewicht oder Umfang reduzieren bzw. die Übung tauschen. Fortgesetzte, dosierte Belastung war in Studien genauso wirksam wie Pausieren (Silbernagel 2007). Bei anhaltenden oder starken Schmerzen ärztlich abklären.
+
+**Datenlage:** Kräftigung und Stabilisation sind gut belegt. Krafttraining senkt Sportverletzungen auf unter ein Drittel, Propriozeption auf etwa die Hälfte. Dehnen allein zeigte dagegen keinen Schutz vor Verletzungen (Lauersen 2014). Dehnungen sind deshalb für die Beweglichkeit dabei, der Schwerpunkt liegt auf Stabilisation.
+
+| Region | Datenlage | Stabilisation / Kräftigung | Mobilität / Dehnung |
+|---|---|---|---|
+| Sprunggelenk | gut: Gleichgewichtstraining senkt erneute Umknicktraumata um ca. 35–50 % (Schiftan 2015) | Einbeinstand mit Störung bzw. Stern-Balance; Fuß-Auswärtsdrehen gegen Band bzw. einbeiniges Wadenheben | Sprunggelenk-Mobilisation, Wadendehnung |
+| Knie | gut: Hüft- plus Kniekräftigung bei vorderem Knieschmerz (Crossley 2016; Neal 2024) | Wandsitzen bzw. Spanish Squat (isometrisch); Clamshell bzw. langsamer Step-down | Beinpendel, Couch Stretch, Beinbeuger-Dehnung |
+| Schulter | gut: Übungstherapie ist Mittel der Wahl; Schulterblatt-Stabilisation wirksam (Steuri 2017); Außenrotation senkt Schulterprobleme bei Werfern (Andersson 2017) | Außenrotation (Band/Kabel/Kurzhantel); Wall Slides, Schulterblatt-Liegestütze bzw. Y-T-W | Band Pull-Apart, Armkreisen, Sleeper Stretch, Brustdehnung |
+| Unterer Rücken | mittel: Bewegungstherapie wirkt (Hayden 2021); Stabilisationsübungen sind gleich gut wie andere Übungen, nicht besser (Saragiotto 2016) | Bird Dog bzw. Dead Bug; Seitstütz bzw. Pallof Press | Katze-Kuh, Kindhaltung, Taube |
+| Ellbogen (Tennisarm) | mäßig: exzentrische Kräftigung der Handgelenkstrecker lindert Schmerz, kleine Effekte (Chen & Baker 2021) | Handgelenkstrecker exzentrisch bzw. isometrisch | Armkreisen, Unterarm-Dehnung |
+| Hüfte / Leiste | gut: aktives Adduktorentraining bei Leistenschmerz deutlich wirksamer als passive Therapie (Hölmich 1999); Copenhagen senkt Leistenprobleme (Harøy 2019) | Adduktoren-Drücken bzw. Copenhagen; Clamshell bzw. Seitstütz | Hüftrotation 90/90, Adduktoren-Dehnung, Taube |
+
+## 7. Körperzusammensetzung (optional)
 
 Zum Gewicht können **Muskelmasse (kg)** und **Körperfett (%)** eingetragen werden, z. B. von einer Körperanalyse-Waage. Solche Waagen schwanken von Tag zu Tag deutlich. Die App wertet deshalb nur Mittelwerte und Trends aus: die Messungen der letzten 10 Tage gegen die von vor 3–8 Wochen. Messungen, die älter als 3 Wochen sind, ändern den Plan nicht.
 
@@ -262,25 +277,32 @@ Claude bekommt die Werte und Trends für Planung und Wochen-Check.
 - Bell L. et al. (2023). Integrating Deloading into Strength and Physique Sports Training Programmes: An International Delphi Consensus Approach. *Sports Medicine – Open*.
 - Bishop D., Girard O., Mendez-Villanueva A. (2011). Repeated-Sprint Ability – Part II: Recommendations for Training. *Sports Medicine*.
 - Buchheit M., Laursen P.B. (2013). High-Intensity Interval Training, Solutions to the Programming Puzzle. Part I & II. *Sports Medicine*.
+- Chen Z., Baker N.A. (2021). Effectiveness of eccentric strengthening in the treatment of lateral elbow tendinopathy: A systematic review with meta-analysis. *J Hand Ther*.
+- Crossley K.M. et al. (2016). 2016 Patellofemoral pain consensus statement from the 4th International Patellofemoral Pain Research Retreat, Manchester. Part 2: recommended physical interventions. *Br J Sports Med*.
 - van Dyk N., Behan F.P., Whiteley R. (2019). Including the Nordic hamstring exercise in injury prevention programmes halves the rate of hamstring injuries: a systematic review and meta-analysis of 8459 athletes. *Br J Sports Med*.
 - Foster C. et al. (2001). A New Approach to Monitoring Exercise Training. *J Strength Cond Res*.
-- Friel J. (2009). *The Triathlete's Training Bible* (Schwellenpuls-Test und -Zonen). VeloPress.
 - Harøy J. et al. (2019). The Adductor Strengthening Programme prevents groin problems among male football players: a cluster-randomised controlled trial. *Br J Sports Med*.
+- Hayden J.A. et al. (2021). Exercise therapy for chronic low back pain. *Cochrane Database Syst Rev*.
 - Helgerud J. et al. (2001). Aerobic endurance training improves soccer performance. *Med Sci Sports Exerc*.
 - Helgerud J. et al. (2007). Aerobic High-Intensity Intervals Improve VO₂max More Than Moderate Training. *Med Sci Sports Exerc*.
 - Hewett T.E. et al. (1999). The effect of neuromuscular training on the incidence of knee injury in female athletes. *Am J Sports Med*.
+- Hölmich P. et al. (1999). Effectiveness of active physical training as treatment for long-standing adductor-related groin pain in athletes: randomised trial. *Lancet*.
 - van der Horst N. et al. (2015). The Preventive Effect of the Nordic Hamstring Exercise on Hamstring Injuries in Amateur Soccer Players: A Randomized Controlled Trial. *Am J Sports Med*.
 - Karvonen M.J., Kentala E., Mustala O. (1957). The effects of training on heart rate; a longitudinal study. *Ann Med Exp Biol Fenn*.
+- Lauersen J.B., Bertelsen D.M., Andersen L.B. (2014). The effectiveness of exercise interventions to prevent sports injuries: a systematic review and meta-analysis of randomised controlled trials. *Br J Sports Med*.
 - Maeo S. et al. (2021). Greater Hamstrings Muscle Hypertrophy but Similar Damage Protection after Training at Long versus Short Muscle Lengths. *Med Sci Sports Exerc*.
 - McGuine T.A., Keene J.S. (2006). The effect of a balance training program on the risk of ankle sprains in high school athletes. *Am J Sports Med*.
 - Milanović Z., Sporiš G., Weston M. (2015). Effectiveness of High-Intensity Interval Training and Continuous Endurance Training for VO₂max Improvements. *Sports Medicine*.
 - Morton R.W. et al. (2018). A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength in healthy adults. *Br J Sports Med*.
+- Neal B.S. et al. (2024). Best practice guide for patellofemoral pain based on synthesis of a systematic review, the patient voice and expert clinical reasoning. *Br J Sports Med*.
 - Pareja-Blanco F. et al. (2014). Effect of movement velocity during resistance training on neuromuscular performance. *Int J Sports Med*.
 - Pelland J. et al. (2024). The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gain. *SportRxiv (Preprint)*.
 - Refalo M.C. et al. (2023). Influence of Resistance Training Proximity-to-Failure on Skeletal Muscle Hypertrophy. *Sports Medicine*.
 - Robbins D.W. et al. (2010). Agonist–antagonist paired set resistance training: a brief review. *J Strength Cond Res*.
 - Rønnestad B.R. et al. (2011). In-season strength maintenance training increases well-trained soccer players' performance. *J Strength Cond Res*.
 - Sáez de Villarreal E. et al. (2009). Determining variables of plyometric training for improving vertical jump height performance: a meta-analysis. *J Strength Cond Res*.
+- Saragiotto B.T. et al. (2016). Motor control exercise for chronic non-specific low-back pain. *Cochrane Database Syst Rev*.
+- Schiftan G.S., Ross L.A., Hahne A.J. (2015). The effectiveness of proprioceptive training in preventing ankle sprains in sporting populations: a systematic review and meta-analysis. *J Sci Med Sport*.
 - Schoenfeld B.J. et al. (2016). Longer interset rest periods enhance muscle strength and hypertrophy in resistance-trained men. *J Strength Cond Res*.
 - Schoenfeld B.J. et al. (2021). Loading Recommendations for Muscle Strength, Hypertrophy, and Local Endurance: A Re-Examination of the Repetition Continuum. *Sports*.
 - Schoenfeld B.J., Ogborn D., Krieger J.W. (2016). Effects of Resistance Training Frequency on Measures of Muscle Hypertrophy. *Sports Medicine*.
@@ -288,8 +310,10 @@ Claude bekommt die Werte und Trends für Planung und Wochen-Check.
 - Schoenfeld B.J., Ogborn D.I., Krieger J.W. (2015). Effect of repetition duration during resistance training on muscle hypertrophy: a systematic review and meta-analysis. *Sports Medicine*.
 - Schumann M. et al. (2022). Compatibility of Concurrent Aerobic and Strength Training for Skeletal Muscle Size and Function: An Updated Systematic Review and Meta-Analysis. *Sports Medicine*.
 - Seitz L.B. et al. (2014). Increases in lower-body strength transfer positively to sprint performance: a systematic review with meta-analysis. *Sports Medicine*.
+- Silbernagel K.G. et al. (2007). Continued sports activity, using a pain-monitoring model, during rehabilitation in patients with Achilles tendinopathy: a randomized controlled study. *Am J Sports Med*.
 - Slimani M. et al. (2016). Effects of Plyometric Training on Physical Fitness in Team Sport Athletes: A Systematic Review. *J Hum Kinet*.
 - Soligard T. et al. (2008). Comprehensive warm-up programme to prevent injuries in young female footballers: cluster randomised controlled trial. *BMJ*.
+- Steuri R. et al. (2017). Effectiveness of conservative interventions including exercise, manual therapy and medical management in adults with shoulder impingement: a systematic review and meta-analysis of RCTs. *Br J Sports Med*.
 - Stöggl T., Sperlich B. (2014). Polarized training has greater impact on key endurance variables than threshold, high intensity, or high volume training. *Front Physiol*.
 - Suchomel T.J., Nimphius S., Stone M.H. (2016). The Importance of Muscular Strength in Athletic Performance. *Sports Medicine*.
 - Tanaka H., Monahan K.D., Seals D.R. (2001). Age-predicted maximal heart rate revisited. *J Am Coll Cardiol*.

@@ -95,6 +95,26 @@ Gegenspieler-Supersätze erhalten die Trainingslast bei deutlich kürzerer Dauer
 
 Fällt eine Supersatz-Übung später wegen Zeitmangel weg, wird der Partner wieder ein normaler Satz mit normaler Pause.
 
+### Pulszonen
+
+Laufkarten und die Intervall-Uhr zeigen einen Zielpuls. Die Bereiche lassen sich auf vier Arten berechnen (Mehr → Pulszonen):
+
+| Methode | Eingabe | Berechnung |
+|---|---|---|
+| Aus dem Alter geschätzt (Standard) | – | Max-Puls ≈ 208 − 0,7 × Alter (Tanaka 2001), Abweichung ±10 Schläge |
+| Gemessener Max-Puls | Max-Puls | Prozent vom Max-Puls |
+| Herzfrequenzreserve (Karvonen 1957) | Max- und Ruhepuls | Ruhepuls + Prozent × (Max − Ruhepuls) |
+| Schwellenpuls (Laktatschwelle) | Schwellenpuls aus 30-min-Test (Ø der letzten 20 min, Friel) | Prozent vom Schwellenpuls |
+
+| Bereich | % Max-Puls | % Reserve | % Schwellenpuls | Verwendung |
+|---|---|---|---|---|
+| Erholung | 60–70 | 50–60 | 70–80 | Trabpausen, Auslaufen |
+| Locker (Zone 2) | 65–75 | 60–70 | 78–87 | Dauerlauf, langer Lauf, Einlaufen |
+| Schwelle | 85–90 | 80–87 | 95–100 | Tempolauf |
+| Intervall (VO₂max) | 90–95 | 87–93 | 100–106 | 4×4 (Helgerud 2007) |
+
+Bei kurzen Intervallen (15/15, 30/30, Sprints) hinkt der Puls hinterher. Dort zählt das Tempo, der Puls steigt erst über die Serie auf etwa 85–95 %.
+
 ### Intervall-Uhr
 
 Intervall-Übungen (z. B. 4×4, 30/30, Rad-Sprints, EMOM, wiederholte Sprints, Tempolauf) haben eine Uhr:
@@ -110,8 +130,8 @@ Das Ziel legt fest, welche Einheiten in einer Woche vorkommen (bei z. B. 4 Tagen
 
 | Ziel | Woche (4 Tage) | Besonderheiten |
 |---|---|---|
-| Muskelaufbau & Athletik | Unterkörper A/B, Oberkörper A/B | 70/30, Ausdauer-Finisher, Volumen 10–20 Sätze |
-| Kraftaufbau | Unterkörper A/B, Oberkörper A/B | Grundübungen 3–6 Wdh. (Ergänzung 5–8), 2,5–3,5 min Pause, kein Finisher |
+| Muskelaufbau & Athletik | 2× Unterkörper, 2× Oberkörper | 70/30, Ausdauer-Finisher, Volumen 10–20 Sätze |
+| Kraftaufbau | 2× Unterkörper, 2× Oberkörper | Grundübungen 3–6 Wdh. (Ergänzung 5–8), 2,5–3,5 min Pause, kein Finisher |
 | Ausdauer aufbauen | 2 × Lauf, 2 × Ganzkörper | Polarisiert, Kraft mit ~65 % Volumen zum Erhalt |
 | Marathon-Vorbereitung | 3 × Lauf, 1 × Ganzkörper | Wöchentlicher langer Lauf (auch im Deload, dann kürzer), Tempo/Intervalle, Kraft kurz (~60 % Volumen); Tapering in den letzten 14 Tagen (−30 % Volumen, kein langer Lauf ab 10 Tagen, nur locker ab 3 Tagen) |
 | HYROX | 2 × Ganzkörper, 1 × Lauf, 1 × HYROX | HYROX-Einheit: 1-km-Läufe im Wechsel mit Stationen (Compromised Running), alle 8 Stationen rotieren, Kraft ~70 % Volumen, Tapering vor dem Wettkampf |
@@ -129,7 +149,7 @@ Teamtrainings und Spiele werden nachgetragen („Teamtraining“, „Spiel / Mat
 |---|---|---|
 | Vorbereitung | Unterkörper Sport, Oberkörper Sport, Speed & Spielausdauer, Oberkörper Sport | Grundübungen schwer (3–6 Wdh., 2 Wdh. Reserve), ~80 % Volumen, Sprünge/Sprints/Richtungswechsel mit vollen Pausen, wiederholte Sprints als Spielausdauer |
 | Saison | Unterkörper Sport, Oberkörper Sport, Speed & Spielausdauer, Regeneration | Erhalt: 2–3 Sätze pro Übung (~60 % Volumen), schwer, 3 Wdh. Reserve, kein Muskelversagen, kein Finisher (Teamtraining deckt Ausdauer ab). Bei 2 Tagen genügen Unter- und Oberkörper – schon 1 Krafteinheit pro Woche erhält Kraft und Sprint in der Saison (Rønnestad 2011) |
-| Saisonpause | wie Muskelaufbau (Unterkörper A/B, Oberkörper A/B), ab 5 Tagen + Speed | Hypertrophie, volles Volumen, Finisher; Prävention läuft weiter |
+| Saisonpause | wie Muskelaufbau (2× Unterkörper, 2× Oberkörper), ab 5 Tagen + Speed | Hypertrophie, volles Volumen, Finisher; Prävention läuft weiter |
 
 **Spieltag** (fester Wochentag und/oder nachgetragenes Spiel, nicht in der Saisonpause):
 - Spieltag (MD) und Tag danach (MD+1): Regeneration – am Spieltag nur Mobilität, danach locker + Mobilität.
@@ -178,7 +198,7 @@ Keine feste Reihenfolge – die App empfiehlt jedes Mal neu:
 
 1. **Erholung:** Eine Körperregion (Unter-/Oberkörper) wird frühestens nach ~48 h wieder hart trainiert – auch dann nicht, wenn eine Einheit dieser Region im Wochenplan noch fehlt (dann erholte Einheit oder locker). Nachgetragene Beinbelastung (HIIT, Joggen, Padel …) zählt für den Unterkörper mit; bei Lauf-Zielen zählt ein Lauf nur 24 h („harte Tage hart, lockere Tage locker“), beim Sportart-Ziel Teamtraining und Läufe ebenfalls 24 h (ein Spiel 48 h). Athletik-Tage belasten nur die Beine, Regenerationstage gar nicht.
 2. **Wochenplan des Ziels:** Einheiten, die diese Woche laut Ziel noch fehlen (z. B. der 3. Lauf beim Marathon), bekommen Vorrang. Bei Muskel-/Kraft-/Fitness-Zielen zählen zusätzlich Muskeln unter 10 Sätzen in den letzten 7 Tagen.
-3. **Abwechslung:** Innerhalb einer Region wechseln A- und B-Variante.
+3. **Abwechslung:** Unter- und Oberkörper (bzw. Ganzkörper) haben je zwei bis drei Varianten, z. B. Unterkörper mit Kniebeuge- oder Hüft-Schwerpunkt. In der Auswahl steht nur „Unterkörper“ bzw. „Oberkörper“; die App wählt die fällige Variante selbst.
 4. **Schlüsseleinheit:** Bei Gleichstand gewinnt die Kerneinheit des Ziels (HYROX-Einheit bzw. Lauf beim Marathon).
 5. **Alles noch müde?** Dann empfiehlt die App eine lockere Laufeinheit (aktive Erholung) bzw. den Regenerationstag.
 6. **Wettkampfwoche:** In den letzten 3 Tagen vor dem Wettkampf nur noch kurz locker laufen oder Pause.
@@ -198,7 +218,7 @@ Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:
 - **Richtwerte in kg** für jede Hantelübung:
   1. Übung schon gemacht → Fortschreibung deiner letzten Gewichte (doppelte Progression, s. o.).
   2. Neue Übung → Hochrechnung aus deinen bisherigen Leistungen: persönlicher Kraftfaktor (Median der letzten 1RM-Schätzungen im Verhältnis zu Referenzwerten, bevorzugt gleiche Körperregion) × Referenzwert der neuen Übung.
-  3. Noch keine Daten → Referenzwert × Körpergewicht × Niveau (Einsteiger 0,6 / leicht fortgeschritten 0,8 / fortgeschritten 1,0 / sehr erfahren 1,1 / Leistungssportler 1,15 / Profi/Elite 1,25) × Geschlecht. Ist das Körperfett bekannt, zählt statt des Körpergewichts die fettfreie Masse (Referenz ≈ 15 % Körperfett, Faktor 0,8–1,1).
+  3. Noch keine Daten → Referenzwert × Körpergewicht × Kraftniveau (Einsteiger 0,6 / Grundlagen 0,8 / Fortgeschritten 1,0 / Stark 1,13 / Sehr stark 1,27 / Elite 1,4 – entspricht einer Kniebeuge von ca. 0,9 / 1,2 / 1,5 / 1,7 / 1,9 / 2,1 × Körpergewicht bei Männern, Frauen ca. 30 % weniger) × Geschlecht. Ist das Körperfett bekannt, zählt statt des Körpergewichts die fettfreie Masse (Referenz ≈ 15 % Körperfett, Faktor 0,8–1,1).
   Aus dem geschätzten 1RM wird das Arbeitsgewicht für die Mitte des Wdh.-Bereichs plus Wdh. in Reserve berechnet (Epley): Muskel-/Kraft-/Fitness-Ziele 2, Ausdauer-/Marathon-/HYROX-Ziele 3 Wdh. Reserve. Kraftaufbau nutzt 3–6 Wdh. → höhere Gewichte. Deload −10 %.
 - **Eintragen:** Ein Satz zählt, sobald Wdh. (und bei Hantelübungen das Gewicht) eingetragen sind – Abhaken ist optional.
 - **Stagnation:** Bleibt das geschätzte 1RM über 3 Einheiten derselben Übung
@@ -213,6 +233,8 @@ Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:
 
 - **Rekorde:** Beim Abschließen vergleicht die App jede Übung mit allen früheren Einheiten – höheres geschätztes 1RM (Epley) oder schwerster Satz, beim Laufen längste Strecke und schnellste Pace (ab 3 km). Rekorde werden gefeiert, im Verlauf markiert und im Fortschritt gelistet.
 - **Belastung automatisch:** Aus den eingetragenen Wdh. – ≥ 50 % der Kraftsätze unter dem Wdh.-Ziel = zu schwer → nächste Einheit 1 Satz weniger pro Übung, kein Finisher, nächster Lauf locker; zweimal innerhalb kurzer Zeit → Deload-Charakter (−10 % Gewicht). ≥ 80 % am oberen Ende = zu leicht → Hauptübungen +1 Satz.
+- **Beschwerden:** Knie, Schulter, Rücken, Ellbogen, Hüfte, Sprunggelenk. Belastende Übungen werden 7 Tage lang ersetzt oder weggelassen, auch Sprint- und Sprung-Finisher. Bei Knie, Hüfte oder Sprunggelenk schlägt die App nur lockere Läufe vor oder Radfahren. Zusätzliche Übungen für die betroffene Region nimmt die App bisher nicht auf.
+- **Keine Doppelungen:** Jede Übung und jede Variante kommt höchstens einmal pro Einheit vor (z. B. nicht Liegestütze und Enge Liegestütze). Die Hauptübung wird zuerst gewählt. Auch Claude-Pläne werden so bereinigt, und Supersätze bestehen immer aus zwei verschiedenen Übungen.
 - **Kurze Umfrage:** „Hat es dir gefallen?“ (bei „nein“: nächstes Mal andere Varianten dieser Einheit, einzelne Übungen dauerhaft ausblendbar) und „Beschwerden?“ (Knie, Schulter, Rücken, Ellbogen, Hüfte → belastende Übungen 7 Tage lang ersetzt bzw. weggelassen; Hinweis auf ärztliche Abklärung bei anhaltenden Schmerzen).
 - Claude bekommt Belastung, Gefallen und Beschwerden der letzten Einheiten; ausgeblendete und schmerzauslösende Übungen sind aus seinem Übungskatalog entfernt.
 
@@ -242,11 +264,13 @@ Claude bekommt die Werte und Trends für Planung und Wochen-Check.
 - Buchheit M., Laursen P.B. (2013). High-Intensity Interval Training, Solutions to the Programming Puzzle. Part I & II. *Sports Medicine*.
 - van Dyk N., Behan F.P., Whiteley R. (2019). Including the Nordic hamstring exercise in injury prevention programmes halves the rate of hamstring injuries: a systematic review and meta-analysis of 8459 athletes. *Br J Sports Med*.
 - Foster C. et al. (2001). A New Approach to Monitoring Exercise Training. *J Strength Cond Res*.
+- Friel J. (2009). *The Triathlete's Training Bible* (Schwellenpuls-Test und -Zonen). VeloPress.
 - Harøy J. et al. (2019). The Adductor Strengthening Programme prevents groin problems among male football players: a cluster-randomised controlled trial. *Br J Sports Med*.
 - Helgerud J. et al. (2001). Aerobic endurance training improves soccer performance. *Med Sci Sports Exerc*.
 - Helgerud J. et al. (2007). Aerobic High-Intensity Intervals Improve VO₂max More Than Moderate Training. *Med Sci Sports Exerc*.
 - Hewett T.E. et al. (1999). The effect of neuromuscular training on the incidence of knee injury in female athletes. *Am J Sports Med*.
 - van der Horst N. et al. (2015). The Preventive Effect of the Nordic Hamstring Exercise on Hamstring Injuries in Amateur Soccer Players: A Randomized Controlled Trial. *Am J Sports Med*.
+- Karvonen M.J., Kentala E., Mustala O. (1957). The effects of training on heart rate; a longitudinal study. *Ann Med Exp Biol Fenn*.
 - Maeo S. et al. (2021). Greater Hamstrings Muscle Hypertrophy but Similar Damage Protection after Training at Long versus Short Muscle Lengths. *Med Sci Sports Exerc*.
 - McGuine T.A., Keene J.S. (2006). The effect of a balance training program on the risk of ankle sprains in high school athletes. *Am J Sports Med*.
 - Milanović Z., Sporiš G., Weston M. (2015). Effectiveness of High-Intensity Interval Training and Continuous Endurance Training for VO₂max Improvements. *Sports Medicine*.
@@ -268,4 +292,5 @@ Claude bekommt die Werte und Trends für Planung und Wochen-Check.
 - Soligard T. et al. (2008). Comprehensive warm-up programme to prevent injuries in young female footballers: cluster randomised controlled trial. *BMJ*.
 - Stöggl T., Sperlich B. (2014). Polarized training has greater impact on key endurance variables than threshold, high intensity, or high volume training. *Front Physiol*.
 - Suchomel T.J., Nimphius S., Stone M.H. (2016). The Importance of Muscular Strength in Athletic Performance. *Sports Medicine*.
+- Tanaka H., Monahan K.D., Seals D.R. (2001). Age-predicted maximal heart rate revisited. *J Am Coll Cardiol*.
 - Zhang X. et al. (2025). Superset Versus Traditional Resistance Training Prescriptions: A Systematic Review and Meta-analysis Exploring Acute and Chronic Effects on Mechanical, Metabolic, and Perceptual Variables. *Sports Medicine*.

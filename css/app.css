@@ -306,3 +306,12 @@ select.in { appearance: none; -webkit-appearance: none; }
 
 /* Hinweis bei Feldern, die nur Claude auswertet */
 .claude-hint { margin-top: -4px; }
+
+/* Pulszonen */
+.hr-line { font-size: 13px; color: var(--text-2); margin: 6px 0 0; }
+.hr-line b { color: var(--text); }
+.hr-table { display: grid; gap: 6px; margin: 10px 0 6px; }
+.hr-table div { display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); font-variant-numeric: tabular-nums; }
+.ivc-hr { font-size: 20px; font-weight: 650; }
+.ivc-hr b { font-size: 24px; }
+.ivc-small { font-size: 13px; color: var(--muted); }

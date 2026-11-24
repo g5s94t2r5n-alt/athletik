@@ -254,24 +254,33 @@ export const GOAL = Object.fromEntries(GOALS.map((g) => [g.id, g]));
 
 // Trainingsniveau: steuert die Start-Richtwerte (Faktor auf die Referenz-1RM eines fortgeschrittenen
 // Trainierenden) und wird Claude mitgeteilt
+// Kraftniveau (nicht Trainingsjahre): Faktor auf die Referenz-1RM eines Fortgeschrittenen
+// (Kniebeuge ≈ 1,5 × Körpergewicht bei Männern, Frauen ca. 30 % weniger)
 export const LEVELS = [
-  { id: 'einsteiger', name: 'Einsteiger', hint: 'unter 6 Monaten Training', factor: 0.6 },
-  { id: 'leicht', name: 'Leicht fortgeschritten', hint: 'bis 2 Jahre', factor: 0.8 },
-  { id: 'fortgeschritten', name: 'Fortgeschritten', hint: '2–5 Jahre', factor: 1 },
-  { id: 'erfahren', name: 'Sehr erfahren', hint: 'über 5 Jahre', factor: 1.1 },
-  { id: 'leistungssport', name: 'Leistungssportler', hint: 'Wettkampfsport', factor: 1.15 },
-  { id: 'elite', name: 'Profi / Elite', hint: 'Kaderniveau', factor: 1.25 },
+  { id: 'einsteiger', name: 'Einsteiger', factor: 0.6 },
+  { id: 'leicht', name: 'Grundlagen', factor: 0.8 },
+  { id: 'fortgeschritten', name: 'Fortgeschritten', factor: 1 },
+  { id: 'erfahren', name: 'Stark', factor: 1.13 },
+  { id: 'leistungssport', name: 'Sehr stark', factor: 1.27 },
+  { id: 'elite', name: 'Elite', factor: 1.4 },
 ];
 export const LEVEL = Object.fromEntries(LEVELS.map((l) => [l.id, l]));
+
+// Orientierung: bestes Kniebeugen-Gewicht für 1 Wdh. im Verhältnis zum Körpergewicht (KG)
+export function levelHint(level, sex) {
+  const i = LEVELS.indexOf(level);
+  const r = Math.round(1.5 * level.factor * (sex === 'weiblich' ? 0.7 : 1) * 10) / 10;
+  return `Kniebeuge ${i === 0 ? '≤' : i === LEVELS.length - 1 ? '≥' : 'ca.'} ${String(r).replace('.', ',')}× KG`;
+}
 
 // Niveau aus dem Profil – frühere Freitext-Angaben werden der passenden Stufe zugeordnet
 export function levelOf(profile) {
   const v = String((profile && profile.level) || '').trim().toLowerCase();
   if (LEVEL[v]) return LEVEL[v];
   if (/elite|profi|kader|national/.test(v)) return LEVEL.elite;
-  if (/leistung|wettkampf|athlet/.test(v)) return LEVEL.leistungssport;
-  if (/erfahren/.test(v)) return LEVEL.erfahren;
-  if (/leicht|mittel/.test(v)) return LEVEL.leicht;
+  if (/leistung|wettkampf|athlet|sehr stark/.test(v)) return LEVEL.leistungssport;
+  if (/erfahren|stark/.test(v)) return LEVEL.erfahren;
+  if (/leicht|mittel|grundlage/.test(v)) return LEVEL.leicht;
   if (/anf|einsteig|neu|beginn/.test(v)) return LEVEL.einsteiger;
   return LEVEL.fortgeschritten;
 }

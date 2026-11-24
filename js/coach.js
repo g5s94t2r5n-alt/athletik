@@ -1,9 +1,9 @@
 // Claude als Coach: erstellt Einheiten und macht den Wochen-Check.
 // Der API-Key bleibt lokal auf dem Gerät und geht nur an api.anthropic.com.
 import { EXERCISES, EX, MUSCLES, LOCATIONS, available } from './exercises.js';
-import { TEMPLATES, blockInfo, aiContext, estimateMinutes, activityAdjust, activitySummary, autoRunType, feedbackAdjust } from './engine.js';
+import { TEMPLATES, blockInfo, aiContext, estimateMinutes, activityAdjust, activitySummary, autoRunType, feedbackAdjust, hrBase, hrRange } from './engine.js';
 import { todayISO } from './store.js';
-import { goalOf, daysToRace, matchInfo, levelOf } from './goals.js';
+import { goalOf, daysToRace, matchInfo, levelOf, levelHint } from './goals.js';
 
 const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.4.0/+esm';
 export const MODEL = 'claude-opus-5-5';
@@ -34,6 +34,7 @@ Regeln (aus der Sportwissenschaft, nicht verhandelbar):
 - Körperzusammensetzung (koerperzusammensetzung, falls angegeben; Waagen-Werte schwanken – nur Trends über ≥ 3 Wochen werten): Muskelmasse sinkt → mehr Kraftreiz, kein intensiver Finisher, Hinweis auf Defizit/Protein; Körperfett steigt im Aufbau ohne Muskelzuwachs → Ausdauer-Finisher, Überschuss verringern.
 
 Ausgabe:
+- Jede Übung höchstens einmal pro Einheit, auch keine zwei Varianten derselben Übung (z. B. Liegestütze und Enge Liegestütze, Pallof Press und Pallof Press mit Band). Ein Supersatz-Paar besteht aus zwei verschiedenen Übungen, jede Übung gehört zu höchstens einem Paar.
 - Nur Übungs-IDs aus dem mitgeschickten Katalog. Gewichte rechnet die App selbst, gib keine Gewichte an.
 - Für warmup/cooldown/conditioning: sets = 0, repsLow = 0, repsHigh = 0 und eine kurze "prescription" (z. B. "45 s je Seite" oder "6 × 30 s hart / 90 s locker").
 - Für power/strength: sets, repsLow, repsHigh, restSec. "main": true nur für die 1–2 Hauptübungen.
@@ -140,10 +141,11 @@ export async function planSession(data, { templateId, equip, wish, ruleSession, 
   const ruleSummary = ruleSession.blocks.map((b) => `${b.type}: ${b.items.map((i) => `${i.exId}${i.sets.length ? ` ${i.sets.length}×${i.lo}-${i.hi}` : ''}`).join(', ')}`).join('\n');
   const user = [
     `Datum: ${todayISO()}`,
-    `Athlet: ${p.sex || "Geschlecht k. A."}, ${p.age} Jahre, ${p.weight} kg, Niveau: ${levelOf(p).name} (${levelOf(p).hint}). ${p.notes ? 'Hinweise: ' + p.notes : ''}`,
+    `Athlet: ${p.sex || "Geschlecht k. A."}, ${p.age} Jahre, ${p.weight} kg, Kraftniveau: ${levelOf(p).name} (${levelHint(levelOf(p), p.sex)}). ${p.notes ? 'Hinweise: ' + p.notes : ''}`,
     `Trainingstage pro Woche: ${p.days}. Geplante Dauer heute: ${p.duration} min.`,
     (() => { const g = goalOf(data); const dtr = daysToRace(data); return `Trainingsziel: ${g.name}. ${g.prompt}${dtr !== null ? ` Wettkampf in ${dtr} Tagen (${data.profile.goalDate})${dtr <= 14 ? ' – Tapering-Phase.' : '.'}` : ''}`; })(),
     `Heutiger Einheitstyp: ${tpl.name} (Fokus: ${tpl.focus}).`,
+    `Pulszonen des Athleten (${hrBase(p).name}): ${['recovery', 'easy', 'tempo', 'interval'].map((z) => { const r = hrRange(p, z); return `${r.name} ${r.text}`; }).join(', ')} Schläge/min – bei Ausdauer- und Lauf-Items die passende Zone in "prescription" nennen.`,
     (() => { const mi = matchInfo(data); if (!mi) return ''; const parts = []; if (mi.toMatch != null) parts.push(mi.toMatch === 0 ? 'heute ist Spieltag' : `nächstes Spiel in ${mi.toMatch} Tagen (MD-${mi.toMatch})`); if (mi.sinceMatch != null && mi.sinceMatch < 7 && mi.toMatch !== 0) parts.push(`letztes Spiel vor ${mi.sinceMatch} Tagen (MD+${mi.sinceMatch})`); return `Spieltag: ${parts.join(', ')}.`; })(),
     templateId === 'RUN' ? (() => {
       const auto = autoRunType(data);
@@ -198,7 +200,7 @@ export async function weeklyReview(data) {
   const block = blockInfo(data);
   const user = [
     `Datum: ${todayISO()}`,
-    `Athlet: ${p.sex || "Geschlecht k. A."}, ${p.age} Jahre, ${p.weight} kg, Niveau: ${levelOf(p).name} (${levelOf(p).hint}). ${p.notes ? 'Hinweise: ' + p.notes : ''}`,
+    `Athlet: ${p.sex || "Geschlecht k. A."}, ${p.age} Jahre, ${p.weight} kg, Kraftniveau: ${levelOf(p).name} (${levelHint(levelOf(p), p.sex)}). ${p.notes ? 'Hinweise: ' + p.notes : ''}`,
     (() => { const g = goalOf(data); const dtr = daysToRace(data); return `Trainingsziel: ${g.name}. ${g.prompt}${dtr !== null ? ` Wettkampf in ${dtr} Tagen.` : ''}`; })(),
     `Trainingstage pro Woche (geplant): ${p.days}. Block-Woche ${block.week} von 5${block.deload ? ' (Deload)' : ''}.`,
     `Einheiten in den letzten 7 Tagen: ${data.sessions.filter((s) => (new Date(todayISO()) - new Date(s.date)) / 86400000 < 7).length} Plan-Einheiten, dazu nachgetragen: ${(() => { const a = activitySummary(data, 7); return `${a.count} ${a.count === 1 ? 'Training' : 'Trainings'}, ${a.minutes} min, sRPE-Last ${a.load}`; })()}.`,

@@ -5,10 +5,11 @@ import {
   makeItem, estimateMinutes, bodyweightSeries, exerciseSeries, trackedExercises, weeklyVolume, isStagnating,
   activityAdjust, activitySummary, activityLoad, activityName, autoRunType,
   feedbackAdjust, sessionRecords, allRecords, PAIN_NAME, autoEffort,
-  tempoText, intervalPhases, bodyComp, bodyCompSeries, compAdjust,
+  tempoText, intervalPhases, bodyComp, bodyCompSeries, compAdjust, TEMPLATE_GROUPS, groupOf, nextVariant,
+  HR_METHODS, HR_ZONES, hrBase, hrRange, hrPlan, hrSummary,
 } from './engine.js';
 import { planSession, weeklyReview, CoachError, MODEL } from './coach.js';
-import { GOALS, GOAL, goalOf, rotationFor, daysToRace, weightStatus, SPORTS, SPORT, SEASONS, SEASON, WEEKDAYS, matchInfo, LEVELS, levelOf } from './goals.js';
+import { GOALS, GOAL, goalOf, rotationFor, daysToRace, weightStatus, SPORTS, SPORT, SEASONS, SEASON, WEEKDAYS, matchInfo, LEVELS, levelOf, levelHint } from './goals.js';
 import { lineChart, barChart } from './charts.js';
 
 const params = new URLSearchParams(location.search);
@@ -57,6 +58,8 @@ function render() {
 }
 
 // ---------- Heute (Planung) ----------
+const shortTpl = (id) => TEMPLATES[id].name.split(' – ')[0];
+
 function renderToday() {
   const b = blockInfo(data);
   const rot0 = [...new Set(rotationFor(data))];
@@ -64,7 +67,7 @@ function renderToday() {
   // Empfehlung außerhalb des Wochenplans (z. B. Aktivierung vor dem Spiel) als eigener Chip
   const rot = rot0.includes(rec.id) || rec.id === 'RUN' ? rot0 : [...rot0, rec.id];
   todayTpl = todayTpl || rec.id;
-  const others = Object.keys(TEMPLATES).filter((k) => !rot.includes(k) && k !== 'RUN');
+  const others = Object.keys(TEMPLATES).filter((k) => !rot.map(groupOf).includes(groupOf(k)) && k !== 'RUN');
   const mi = matchInfo(data);
   const goal = goalOf(data);
   const dtr = daysToRace(data);
@@ -90,10 +93,15 @@ function renderToday() {
   <section class="card">
     <div class="label">Einheit</div>
     <div class="chips">
-      ${rot.map((k) => `<button class="chip ${k === todayTpl ? 'on' : ''}" data-action="tpl" data-tpl="${k}">${esc(TEMPLATES[k].name.split(' – ')[0])}${k === rec.id ? ' ★' : ''}</button>`).join('')}
+      ${[...new Set(rot.map(groupOf))].map((g) => {
+        // Varianten (A/B/C) zusammengefasst: Klick wählt die empfohlene bzw. fällige Variante
+        const ids = TEMPLATE_GROUPS[g] ? TEMPLATE_GROUPS[g].filter((id) => rot.includes(id)) : [g];
+        const tpl = ids.includes(rec.id) ? rec.id : ids.includes(todayTpl) ? todayTpl : nextVariant(data, ids);
+        return `<button class="chip ${ids.includes(todayTpl) ? 'on' : ''}" data-action="tpl" data-tpl="${tpl}">${esc(shortTpl(tpl))}${ids.includes(rec.id) ? ' ★' : ''}</button>`;
+      }).join('')}
       ${rot.includes('RUN') ? '' : `<button class="chip ${todayTpl === 'RUN' ? 'on' : ''}" data-action="tpl" data-tpl="RUN">Laufeinheit${rec.id === 'RUN' ? ' ★' : ''}</button>`}
     </div>
-    <p class="rec"><span class="rec-star">★</span> ${todayTpl === rec.id ? `<strong>Empfohlen:</strong> ${esc(rec.why)}` : `Empfohlen wäre <button class="link" data-action="tpl" data-tpl="${rec.id}">${esc(TEMPLATES[rec.id].name.split(' – ')[0])}</button>: ${esc(rec.why)}`}</p>
+    <p class="rec"><span class="rec-star">★</span> ${todayTpl === rec.id ? `<strong>Empfohlen:</strong> ${esc(rec.why)}` : `Empfohlen wäre <button class="link" data-action="tpl" data-tpl="${rec.id}">${esc(shortTpl(rec.id))}</button>: ${esc(rec.why)}`}</p>
     <p class="muted small">${esc(TEMPLATES[todayTpl].name)}</p>
     ${todayTpl === 'RUN' ? (() => {
       // Vorschlag (★) wie bei den Einheiten: vorausgewählt, mit Begründung; andere Lauftypen frei wählbar
@@ -281,6 +289,7 @@ function renderItem(it, bi, ii, type) {
     ${it.tempo ? `<p class="tempo"><b>Tempo ${esc(it.tempo)}</b> · ${esc(tempoText(it.tempo))}</p>` : ''}
     ${partner ? `<p class="ex-note ss-note">Im Wechsel mit <b>${esc(EX[partner.exId]?.name || '')}</b> (${esc(partner.ss)}): je 1 Satz, dann ${it.rest} s Pause.</p>` : ''}
     ${it.note ? `<p class="ex-note">${esc(it.note)}</p>` : ''}
+    ${hrPlan(ex.id) ? `<p class="hr-line"><b>Zielpuls</b> ${esc(hrSummary(data.profile, ex.id))}</p>` : ''}
     ${ex.iv ? `<button class="btn small iv-btn" data-action="iv-open" data-b="${bi}" data-i="${ii}">${ICON_CLOCK} Intervall-Uhr</button>` : ''}
     ${it.run ? `
     <div class="run-log">
@@ -597,6 +606,7 @@ function ivRender() {
       <div class="ivc-cfg"><span>Runden</span><button class="chip" data-action="iv-rounds" data-d="-1" aria-label="Weniger Runden">−</button><strong>${c.rounds}</strong><button class="chip" data-action="iv-rounds" data-d="1" aria-label="Mehr Runden">+</button></div>
       ${iv.sets ? `<div class="ivc-cfg"><span>Serien</span><button class="chip" data-action="iv-sets" data-d="-1" aria-label="Weniger Serien">−</button><strong>${c.sets}</strong><button class="chip" data-action="iv-sets" data-d="1" aria-label="Mehr Serien">+</button></div>` : ''}
       <p class="ivc-sub">Dauer ca. ${Math.round(ivTotalSec(c) / 60)} min · Signalton 3-2-1 vor jedem Wechsel</p>
+      ${hrPlan(c.ex.id) ? `<p class="ivc-sub"><b>Zielpuls</b> ${esc(hrSummary(data.profile, c.ex.id))}<br><span class="ivc-small">${esc(hrBase(data.profile).name)}${hrBase(data.profile).fallback ? ' (Werte fehlen)' : ''} – ändern unter Mehr → Pulszonen</span></p>` : ''}
       <button class="btn primary" data-action="iv-start">Start</button>
       <button class="btn ghost" data-action="iv-close">Abbrechen</button>
     </div>`;
@@ -607,6 +617,7 @@ function ivRender() {
   el.innerHTML = `<div class="ivc-inner">
     <div class="ivc-title">${esc(c.ex.name)}</div>
     <div class="ivc-label">${esc(p.label)}</div>
+    ${(() => { const pl = hrPlan(c.ex.id); const z = pl && (pl[p.kind] || pl.all); const r = z && hrRange(data.profile, z); return r ? `<div class="ivc-hr">Zielpuls <b>${r.text}</b>${r.lag ? ' · Puls hinkt nach, Tempo zählt' : ''}</div>` : ''; })()}
     <div class="ivc-time" id="ivc-time">${mmss(p.sec)}</div>
     ${p.round ? `<div class="ivc-round">Runde ${p.round}/${p.rounds}${p.sets > 1 ? ` · Serie ${p.set}/${p.sets}` : ''}</div>` : '<div class="ivc-round">&nbsp;</div>'}
     <div class="ivc-bar"><div id="ivc-bar"></div></div>
@@ -736,9 +747,31 @@ function claudeHint(text = 'Wird nur von Claude berücksichtigt – dafür unter
   return hasClaude() ? '' : `<p class="muted small claude-hint">${esc(text)}</p>`;
 }
 
+// Pulszonen: Methode wählen, benötigte Werte eintragen, Bereiche ansehen
+function renderHrSettings() {
+  const p = data.profile;
+  const want = HR_METHODS.find((m) => m.id === p.hrMethod) || HR_METHODS[0];
+  const b = hrBase(p);
+  const field = (k, label, ph) => `<label class="field"><span>${label}</span><input class="in" data-prof="${k}" inputmode="numeric" placeholder="${ph}" value="${esc(p[k] || '')}"></label>`;
+  return `<section class="card">
+    <div class="label">Pulszonen</div>
+    <label class="field"><span>Berechnung</span><select class="in wide" data-prof="hrMethod">${HR_METHODS.map((m) => `<option value="${m.id}" ${want.id === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>
+    <p class="muted small">${esc(want.hint)}</p>
+    ${want.need.length ? `<div class="grid2">
+      ${want.need.includes('hrMax') ? field('hrMax', 'Max-Puls', 'z. B. 190') : ''}
+      ${want.need.includes('hrRest') ? field('hrRest', 'Ruhepuls', 'z. B. 50') : ''}
+      ${want.need.includes('hrLthr') ? field('hrLthr', 'Schwellenpuls', 'z. B. 172') : ''}
+    </div>` : ''}
+    ${b.fallback ? '<p class="muted small">Noch nicht alle Werte eingetragen – bis dahin wird aus dem Alter geschätzt.</p>' : ''}
+    <div class="hr-table">${['recovery', 'easy', 'tempo', 'interval'].map((z) => { const r = hrRange(p, z); return `<div><span>${esc(HR_ZONES[z].name)}</span><b>${r.text}</b></div>`; }).join('')}</div>
+    <p class="muted small">Gilt für Laufkarten und die Intervall-Uhr. Bei kurzen Intervallen (15/15, 30/30, Sprints) hinkt der Puls hinterher – dort zählt das Tempo.</p>
+  </section>`;
+}
+
 // Niveau-Auswahl (Dropdown); die Stufe bestimmt die Start-Richtwerte in kg
-function levelSelect(attr, cur) {
-  return `<select class="in wide" ${attr}>${LEVELS.map((l) => `<option value="${l.id}" ${cur === l.id ? 'selected' : ''}>${esc(l.name)} (${esc(l.hint)})</option>`).join('')}</select>`;
+function levelSelect(attr, cur, sex) {
+  return `<select class="in wide" ${attr}>${LEVELS.map((l) => `<option value="${l.id}" ${cur === l.id ? 'selected' : ''}>${esc(l.name)} – ${esc(levelHint(l, sex))}</option>`).join('')}</select>
+    <p class="muted small">Gemeint ist dein Kraftniveau: Wie viel schaffst du in der Kniebeuge für 1 Wiederholung im Verhältnis zum Körpergewicht (KG)? Eine grobe Einordnung reicht – sobald du Gewichte einträgst, rechnet die App mit deinen echten Leistungen.</p>`;
 }
 
 // Wochentag-Auswahl für den festen Spieltag (Werte = getDay(), Anzeige Mo–So)
@@ -786,7 +819,7 @@ function setupModal() {
     </div>
     <div class="label">Geschlecht</div>
     <div class="chips">${chips('su-sex', ['männlich', 'weiblich', 'divers'], s.sex)}</div>
-    <label class="field"><span>Niveau</span>${levelSelect('data-su="level"', s.level)}</label>
+    <label class="field"><span>Kraftniveau</span>${levelSelect('data-su="level"', s.level, s.sex)}</label>
     <div class="label">Trainingstage pro Woche</div>
     <div class="chips">${chips('su-days', [2, 3, 4, 5, 6], s.days)}</div>
     <div class="info-box"><span class="rec-star">★</span> <strong>Der Stern</strong> markiert beim Training die empfohlene Einheit für heute. Es gibt keine feste Reihenfolge: Die App schaut, welche Körperregion erholt ist (mind. 48 h), welche Muskeln diese Woche unter Zielvolumen liegen und welche Variante zuletzt dran war. Läufe und nachgetragene Trainings zählen mit. Du kannst jederzeit eine andere Einheit wählen.</div>
@@ -1187,12 +1220,13 @@ function renderSettings() {
     </div>
     ${goalOf(data).season !== 'pause' ? `<label class="field"><span>Fester Spieltag (optional)</span>${matchDaySelect('data-prof="matchDay"', p.matchDay)}</label>` : ''}` : ''}
     <label class="field"><span>Geschlecht</span><select class="in" data-prof="sex">${['', 'männlich', 'weiblich', 'divers'].map((s) => `<option value="${s}" ${p.sex === s ? 'selected' : ''}>${s || '– bitte wählen –'}</option>`).join('')}</select></label>
-    <label class="field"><span>Niveau</span>${levelSelect('data-prof="level"', levelOf(p).id)}</label>
+    <label class="field"><span>Kraftniveau</span>${levelSelect('data-prof="level"', levelOf(p).id, p.sex)}</label>
     <label class="field"><span>Verletzungen / Hinweise (optional)</span><textarea class="in wide" data-prof="notes" rows="2" placeholder="z. B. Knie links empfindlich bei tiefen Sprüngen">${esc(p.notes)}</textarea></label>
     ${claudeHint()}
     <button class="btn small" data-action="setup">Einrichtungs-Assistent öffnen</button>
-    <p class="muted small">Wochenplan bei ${p.days} Tagen (${esc(goalOf(data).name)}): ${rotationFor(data).map((k) => TEMPLATES[k].name.split(' – ')[0]).join(', ')}. Die Reihenfolge empfiehlt der Stern ★ jeden Tag neu.</p>
+    <p class="muted small">Wochenplan bei ${p.days} Tagen (${esc(goalOf(data).name)}): ${(() => { const c = new Map(); rotationFor(data).forEach((k) => c.set(shortTpl(k), (c.get(shortTpl(k)) || 0) + 1)); return [...c].map(([n, x]) => `${x > 1 ? `${x}× ` : ''}${n}`).join(', '); })()}. Die Reihenfolge empfiehlt der Stern ★ jeden Tag neu.</p>
   </section>
+  ${renderHrSettings()}
   <section class="card">
     <div class="label">Trainingsblock</div>
     <p class="muted small">Aktueller Block seit ${fmtDate(data.block.start)} · Woche ${blockInfo(data).week} von 5.</p>
@@ -1391,15 +1425,16 @@ document.addEventListener('change', async (e) => {
   if (t.id === 'use-claude') { data.settings.useClaude = t.checked; persist(); render(); }
   if (t.dataset.prof) {
     const k = t.dataset.prof;
-    const numeric = ['age', 'weight', 'days', 'duration', 'goalWeight'].includes(k);
-    const v = k === 'goalWeight' && t.value.trim() === '' ? '' : numeric ? parseFloat(t.value.replace(',', '.')) : t.value;
+    const numeric = ['age', 'weight', 'days', 'duration', 'goalWeight', 'hrMax', 'hrRest', 'hrLthr'].includes(k);
+    const optional = ['goalWeight', 'hrMax', 'hrRest', 'hrLthr'].includes(k);
+    const v = optional && t.value.trim() === '' ? '' : numeric ? parseFloat(t.value.replace(',', '.')) : t.value;
     if (numeric && v !== '' && isNaN(v)) return;
     data.profile[k] = v;
     data.profile.setup = true;
     const replan = ['days', 'goal', 'sport', 'season', 'matchDay'].includes(k);
     if (replan) todayTpl = null;
     persist();
-    if (replan) render();
+    if (replan || k.startsWith('hr') || k === 'age' || k === 'sex') render();
   }
   if (t.id === 'ex-select') { progressEx = t.value; render(); }
   if (t.id === 'import-file' && t.files[0]) {

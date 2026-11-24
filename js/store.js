@@ -17,7 +17,7 @@ export function uid() {
 function defaults() {
   return {
     version: 1,
-    profile: { age: 30, weight: 80, sex: '', level: 'fortgeschritten', days: 4, duration: 75, notes: '', setup: false, goal: 'muscle', goalDate: '', goalWeight: '', sport: 'football', season: 'saison', matchDay: '' },
+    profile: { age: 30, weight: 80, sex: '', level: 'fortgeschritten', days: 4, duration: 75, notes: '', setup: false, goal: 'muscle', goalDate: '', goalWeight: '', sport: 'football', season: 'saison', matchDay: '', hrMethod: 'age', hrMax: '', hrRest: '', hrLthr: '' },
     settings: { apiKey: '', useClaude: true, accent: 'lavender' },
     location: 'gym',
     travelEquip: ['dumbbell', 'cardio'],

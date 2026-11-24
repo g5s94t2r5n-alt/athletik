@@ -6,7 +6,7 @@ import { goalOf, rotationFor, daysToRace, matchInfo, levelOf } from './goals.js'
 // ---------- Vorlagen (Split) ----------
 export const TEMPLATES = {
   UK_A: {
-    name: 'Unterkörper A – Kniebeuge & Sprungkraft', focus: 'lower', cond: 'short',
+    name: 'Unterkörper – Kniebeuge & Sprungkraft', focus: 'lower', cond: 'short',
     slots: [
       { slot: 'power_lower', sets: 4, prio: 1, prefer: ['box_jump', 'cmj', 'db_jump_squat'] },
       { slot: 'squat', sets: 3, main: true, prio: 1, prefer: ['back_squat', 'hack_squat', 'front_squat', 'leg_press', 'goblet_squat', 'kb_goblet_squat', 'tempo_squat_bw'] },
@@ -18,7 +18,7 @@ export const TEMPLATES = {
     ],
   },
   OK_A: {
-    name: 'Oberkörper A – Drücken & Wurfkraft', focus: 'upper', cond: null,
+    name: 'Oberkörper – Drücken & Wurfkraft', focus: 'upper', cond: null,
     slots: [
       { slot: 'power_upper', sets: 3, prio: 2, prefer: ['mb_chest_pass', 'plyo_pushup', 'db_push_press', 'band_punch'] },
       { slot: 'hpush', sets: 4, main: true, prio: 1, prefer: ['bench_press', 'db_bench', 'chest_press', 'dips', 'band_pushup', 'pushup'] },
@@ -31,7 +31,7 @@ export const TEMPLATES = {
     ],
   },
   UK_B: {
-    name: 'Unterkörper B – Hüfte & Explosivität', focus: 'lower', cond: null,
+    name: 'Unterkörper – Hüfte & Explosivität', focus: 'lower', cond: null,
     slots: [
       { slot: 'power_lower', sets: 4, prio: 1, prefer: ['broad_jump', 'kb_swing', 'hang_power_clean', 'lateral_bound'] },
       { slot: 'hinge', sets: 3, main: true, prio: 1, prefer: ['deadlift', 'hip_thrust', 'rdl', 'db_rdl', 'kb_rdl', 'glute_bridge_sl'] },
@@ -43,7 +43,7 @@ export const TEMPLATES = {
     ],
   },
   OK_B: {
-    name: 'Oberkörper B – Ziehen & Schulter', focus: 'upper', cond: 'short',
+    name: 'Oberkörper – Ziehen & Schulter', focus: 'upper', cond: 'short',
     slots: [
       { slot: 'power_upper', sets: 3, prio: 2, prefer: ['mb_slam', 'mb_rot_throw', 'band_punch', 'plyo_pushup'] },
       { slot: 'vpull', sets: 3, main: true, prio: 1, prefer: ['chinup', 'pullup', 'lat_pulldown', 'sa_pulldown', 'band_pulldown', 'towel_row_door'] },
@@ -56,7 +56,7 @@ export const TEMPLATES = {
     ],
   },
   FB_A: {
-    name: 'Ganzkörper A', focus: 'full', cond: 'short',
+    name: 'Ganzkörper – Kniebeuge & Drücken', focus: 'full', cond: 'short',
     slots: [
       { slot: 'power_lower', sets: 3, prio: 1, prefer: ['box_jump', 'cmj', 'db_jump_squat'] },
       { slot: 'squat', sets: 4, main: true, prio: 1, prefer: ['back_squat', 'hack_squat', 'leg_press', 'goblet_squat', 'kb_goblet_squat', 'tempo_squat_bw'] },
@@ -69,7 +69,7 @@ export const TEMPLATES = {
     ],
   },
   FB_B: {
-    name: 'Ganzkörper B', focus: 'full', cond: 'long',
+    name: 'Ganzkörper – Hüfte & Ziehen', focus: 'full', cond: 'long',
     slots: [
       { slot: 'power_upper', sets: 3, prio: 2, prefer: ['mb_slam', 'mb_chest_pass', 'plyo_pushup', 'db_push_press'] },
       { slot: 'hinge', sets: 3, main: true, prio: 1, prefer: ['deadlift', 'rdl', 'db_rdl', 'kb_rdl', 'sl_rdl_bw'] },
@@ -82,7 +82,7 @@ export const TEMPLATES = {
     ],
   },
   FB_C: {
-    name: 'Ganzkörper C', focus: 'full', cond: null,
+    name: 'Ganzkörper – Beine & Oberkörper-Mix', focus: 'full', cond: null,
     slots: [
       { slot: 'power_lower', sets: 3, prio: 1, prefer: ['broad_jump', 'kb_swing', 'lateral_bound'] },
       { slot: 'squat', sets: 3, main: true, prio: 1, prefer: ['front_squat', 'leg_press', 'hack_squat', 'goblet_squat', 'kb_goblet_squat', 'tempo_squat_bw'] },
@@ -159,6 +159,16 @@ export const TEMPLATES = {
     ],
   },
 };
+
+// Varianten einer Einheit: in der Auswahl nur „Unterkörper“, „Oberkörper“, „Ganzkörper“ –
+// die App wechselt die Varianten (z. B. Kniebeuge- bzw. Hüft-Schwerpunkt) selbst ab
+export const TEMPLATE_GROUPS = { UK: ['UK_A', 'UK_B'], OK: ['OK_A', 'OK_B'], FB: ['FB_A', 'FB_B', 'FB_C'] };
+export const groupOf = (id) => Object.keys(TEMPLATE_GROUPS).find((g) => TEMPLATE_GROUPS[g].includes(id)) || id;
+// Fällige Variante: die am längsten nicht gemachte (bei Gleichstand die erste)
+export function nextVariant(data, ids) {
+  const last = (id) => data.sessions.filter((s) => s.template === id).map((s) => s.date).sort().pop() || '';
+  return [...ids].sort((a, b) => last(a).localeCompare(last(b)))[0];
+}
 
 export const ROTATIONS = {
   2: ['FB_A', 'FB_B'],
@@ -524,13 +534,27 @@ export function candidates(slot, equip, exclude = []) {
   return EXERCISES.filter((e) => e.slot === slot && available(e, equip) && !exclude.includes(e.id));
 }
 
+// Varianten derselben Übung: höchstens eine pro Einheit (z. B. Liegestütze + Enge Liegestütze)
+const FAMILY = {
+  pushup: 'pushup', band_pushup: 'pushup', diamond_pushup: 'pushup', plyo_pushup: 'pushup',
+  inverted_row: 'bwrow', table_row: 'bwrow',
+  pallof: 'pallof', band_pallof: 'pallof',
+  rdl: 'rdl', db_rdl: 'rdl', kb_rdl: 'rdl', sl_rdl_bw: 'rdl',
+  bss_db: 'bss', bss_bw: 'bss',
+  goblet_squat: 'goblet', kb_goblet_squat: 'goblet',
+};
+const familyOf = (id) => FAMILY[id] || id;
+// Schließt alle Übungen aus, deren Familie in der Einheit schon vorkommt
+const familyBlocked = (used) => { const f = new Set(used.map(familyOf)); return EXERCISES.filter((e) => f.has(familyOf(e.id))).map((e) => e.id); };
+
 function pick(data, key, slotDef, equip, used, opts = {}) {
   const coachAvoid = (data.coach && data.coach.avoid) || [];
   // Ausgeblendete Übungen meiden (notfalls doch nehmen); bei Beschwerden belastende Übungen nie –
-  // dann entfällt der Platz lieber
+  // dann entfällt der Platz lieber. Keine zweite Variante einer schon gewählten Übung.
   const pain = opts.pain || [];
-  let pool = candidates(slotDef.slot, equip, [...used, ...coachAvoid, ...pain, ...(opts.avoid || [])]);
-  if (!pool.length) pool = candidates(slotDef.slot, equip, [...used, ...coachAvoid, ...pain]);
+  const fam = familyBlocked(used);
+  let pool = candidates(slotDef.slot, equip, [...fam, ...coachAvoid, ...pain, ...(opts.avoid || [])]);
+  if (!pool.length) pool = candidates(slotDef.slot, equip, [...fam, ...coachAvoid, ...pain]);
   if (!pool.length) return null;
   const order = slotDef.prefer || [];
   const sorted = [...pool].sort((a, b) => {
@@ -552,7 +576,8 @@ function pick(data, key, slotDef, equip, used, opts = {}) {
 export function alternatives(exId, equip, usedIds) {
   const ex = EX[exId];
   if (!ex) return [];
-  return candidates(ex.slot, equip, usedIds.filter((x) => x !== exId)).filter((e) => e.id !== exId);
+  const others = usedIds.filter((x) => x !== exId);
+  return candidates(ex.slot, equip, [...others, ...familyBlocked(others)]).filter((e) => e.id !== exId);
 }
 
 function setsFor(slotDef, week, deload, adj) {
@@ -591,6 +616,62 @@ export function tempoFor(data, ex, lo, hi, week, deload) {
   if (hi <= 6 || inSeason) return week <= 2 && !inSeason && !['hinge'].includes(ex.slot) ? '2-1-X' : '2-0-X';
   if (iso) return week <= 2 ? '3-1-1' : '2-1-1';
   return week <= 2 ? '3-1-1' : '2-0-X';
+}
+
+// ---------- Pulszonen ----------
+// Vier Berechnungswege; alle liefern dieselben Trainingsbereiche in Schlägen pro Minute.
+export const HR_METHODS = [
+  { id: 'age', name: 'Aus dem Alter geschätzt', need: [], hint: 'Max-Puls ≈ 208 − 0,7 × Alter (Tanaka 2001). Einfach, aber ungenau: Abweichungen von ±10 Schlägen sind normal.' },
+  { id: 'max', name: 'Gemessener Max-Puls', need: ['hrMax'], hint: 'Prozent vom Max-Puls. Max-Puls messen: nach gutem Aufwärmen 3 min zügig, dann 1–2 min so schnell wie möglich (am besten bergauf) – der höchste Wert der Uhr/des Brustgurts.' },
+  { id: 'hrr', name: 'Herzfrequenzreserve (Karvonen)', need: ['hrMax', 'hrRest'], hint: 'Ruhepuls + Prozent × (Max-Puls − Ruhepuls). Berücksichtigt deine Grundfitness. Ruhepuls morgens im Liegen messen, Mittel aus 3 Tagen.' },
+  { id: 'lthr', name: 'Schwellenpuls (Laktatschwelle)', need: ['hrLthr'], hint: 'Prozent vom Schwellenpuls – am genauesten für Tempo- und Intervalltraining. Test: 30 min so schnell wie gleichmäßig möglich laufen, Ø-Puls der letzten 20 min (Friel).' },
+];
+// Bereiche je Methode: Anteil vom Max-Puls, von der Herzfrequenzreserve bzw. vom Schwellenpuls
+export const HR_ZONES = {
+  recovery: { name: 'Erholung', max: [0.6, 0.7], hrr: [0.5, 0.6], lthr: [0.7, 0.8] },
+  easy: { name: 'Locker (Zone 2)', max: [0.65, 0.75], hrr: [0.6, 0.7], lthr: [0.78, 0.87] },
+  tempo: { name: 'Schwelle', max: [0.85, 0.9], hrr: [0.8, 0.87], lthr: [0.95, 1.0] },
+  interval: { name: 'Intervall (VO₂max)', max: [0.9, 0.95], hrr: [0.87, 0.93], lthr: [1.0, 1.06] },
+  short: { name: 'Kurz & schnell', max: [0.85, 0.95], hrr: [0.8, 0.93], lthr: [0.95, 1.06], lag: true },
+};
+const pnum = (v) => { const n = parseFloat(String(v ?? '').replace(',', '.')); return n > 0 ? n : null; };
+export function hrBase(profile) {
+  const want = HR_METHODS.find((m) => m.id === profile.hrMethod) || HR_METHODS[0];
+  const ok = want.need.every((k) => { const v = pnum(profile[k]); return v && v > 30 && v < 230; }) && (want.id !== 'hrr' || pnum(profile.hrRest) < pnum(profile.hrMax));
+  const m = ok ? want : HR_METHODS[0];
+  const age = Number(profile.age) || 30;
+  return {
+    method: m.id, name: m.name, fallback: !ok,
+    max: m.id === 'age' ? Math.round(208 - 0.7 * age) : pnum(profile.hrMax),
+    rest: pnum(profile.hrRest), lthr: pnum(profile.hrLthr),
+  };
+}
+export function hrRange(profile, zone) {
+  const z = HR_ZONES[zone];
+  if (!z) return null;
+  const b = hrBase(profile);
+  const calc = (f) => Math.round(b.method === 'hrr' ? b.rest + f * (b.max - b.rest) : b.method === 'lthr' ? f * b.lthr : f * b.max);
+  const [lo, hi] = (b.method === 'hrr' ? z.hrr : b.method === 'lthr' ? z.lthr : z.max).map(calc);
+  return { lo, hi, text: `${lo}–${hi}`, zone, name: z.name, lag: !!z.lag };
+}
+// Welche Zone gilt in welcher Phase einer Übung?
+const HR_SHORT = ['run_3030', 'run_1515', 'run_rsa', 'run_shuttle', 'run_sprints', 'bike_sprints', 'sprints', 'shuttle_runs', 'rsa_sprints', 'bw_circuit', 'kb_emom', 'row_2k'];
+export function hrPlan(exId) {
+  if (['run_easy', 'run_long', 'zone2_cardio', 'zone2_run'].includes(exId)) return { all: 'easy' };
+  if (exId === 'run_fartlek') return { all: 'easy', surge: 'tempo' };
+  if (exId === 'run_tempo') return { warm: 'easy', work: 'tempo', rest: 'recovery', cool: 'recovery' };
+  if (['run_4x4', 'interval_4x4', 'run_intervals'].includes(exId)) return { warm: 'easy', work: 'interval', rest: 'recovery', cool: 'recovery' };
+  if (HR_SHORT.includes(exId)) return { warm: 'easy', work: 'short', rest: 'recovery', cool: 'recovery' };
+  return null;
+}
+// Kurztext für die Übungskarte
+export function hrSummary(profile, exId) {
+  const pl = hrPlan(exId);
+  if (!pl) return '';
+  const r = (z) => hrRange(profile, z);
+  if (pl.all) return `${r(pl.all).text} (${r(pl.all).name})${pl.surge ? ` · Tempowechsel bis ${r(pl.surge).text}` : ''}`;
+  const w = r(pl.work);
+  return `Belastung ${w.text}${w.lag ? ' (Puls hinkt nach – nach Tempo laufen)' : ''} · Pause ${r(pl.rest).text}`;
 }
 
 // ---------- Intervall-Uhr ----------
@@ -732,14 +813,15 @@ export function compAdjust(data, date = todayISO()) {
 }
 
 // ---------- Rückmeldungen nach dem Training ----------
-export const PAIN_NAME = { knie: 'Knie', schulter: 'Schulter', ruecken: 'Rücken', ellbogen: 'Ellbogen', huefte: 'Hüfte' };
+export const PAIN_NAME = { knie: 'Knie', schulter: 'Schulter', ruecken: 'Rücken', ellbogen: 'Ellbogen', huefte: 'Hüfte', sprunggelenk: 'Sprunggelenk' };
 // Übungen, die die jeweilige Region stark belasten → 7 Tage lang ersetzen
 const PAIN_AVOID = {
-  knie: ['box_jump', 'cmj', 'broad_jump', 'lateral_bound', 'db_jump_squat', 'sissy_squat', 'bss_db', 'bss_bw', 'walking_lunge', 'reverse_lunge_bb', 'step_up', 'leg_extension', 'front_squat', 'hack_squat', 'tempo_squat_bw', 'hx_bbj', 'hx_lunges', 'hx_wallballs', 'depth_jump', 'approach_jump', 'cod_505', 'lateral_shuffle', 'sl_landing', 'ankle_hops'],
+  knie: ['box_jump', 'cmj', 'broad_jump', 'lateral_bound', 'db_jump_squat', 'sissy_squat', 'bss_db', 'bss_bw', 'walking_lunge', 'reverse_lunge_bb', 'step_up', 'leg_extension', 'front_squat', 'hack_squat', 'tempo_squat_bw', 'hx_bbj', 'hx_lunges', 'hx_wallballs', 'depth_jump', 'approach_jump', 'cod_505', 'lateral_shuffle', 'sl_landing', 'ankle_hops', 'sprints', 'shuttle_runs', 'rsa_sprints', 'bw_circuit'],
   schulter: ['ohp', 'db_shoulder_press', 'db_shoulder_press_st', 'machine_shoulder', 'kb_press', 'dips', 'plyo_pushup', 'db_push_press', 'pike_pushup', 'skullcrusher', 'incline_bench', 'mb_slam', 'hx_wallballs', 'hx_skierg', 'mb_overhead_throw'],
   ruecken: ['deadlift', 'back_squat', 'bb_row', 'rdl', 'kb_swing', 'hang_power_clean', 'reverse_lunge_bb', 'farmer_walk', 'hx_sled_pull', 'hx_farmers'],
   ellbogen: ['skullcrusher', 'oh_cable_ext', 'db_oh_ext', 'chinup', 'bb_curl', 'dips', 'diamond_pushup', 'pushdown'],
   huefte: ['deadlift', 'hip_thrust', 'bss_db', 'bss_bw', 'walking_lunge', 'lateral_bound', 'broad_jump', 'copenhagen', 'hx_lunges', 'cod_505'],
+  sprunggelenk: ['box_jump', 'cmj', 'broad_jump', 'lateral_bound', 'db_jump_squat', 'depth_jump', 'approach_jump', 'ankle_hops', 'sl_landing', 'acceleration_10m', 'wall_drill', 'cod_505', 'lateral_shuffle', 'bw_calf', 'db_calf', 'walking_lunge', 'hx_bbj', 'hx_lunges', 'sprints', 'shuttle_runs', 'rsa_sprints', 'run_intervals', 'zone2_run', 'bw_circuit'],
 };
 
 // Anstrengung automatisch aus den Wiederholungen: viele Sätze unter dem Ziel = zu schwer,
@@ -759,6 +841,11 @@ export function autoEffort(session) {
   return 'right';
 }
 export const effortOf = (s) => (s.feedback && s.feedback.effort) || s.autoEffort || '';
+
+// Beschwerden aus den Rückmeldungen der letzten 7 Tage
+export function feedbackPain(data, date = todayISO()) {
+  return [...new Set(data.sessions.filter((s) => s.feedback && daysBetween(s.date, date) >= 0 && daysBetween(s.date, date) < 7).flatMap((s) => s.feedback.pain || []))];
+}
 
 export function feedbackAdjust(data, templateId, date = todayISO()) {
   const out = { setDelta: 0, mainDelta: 0, deload: false, dropCond: false, vary: false, avoid: [...(data.dislikes || [])], pain: [], notes: [] };
@@ -885,6 +972,8 @@ export function autoRunType(data) {
   const hadLongWeek = runsAll.some((r) => r.runType === 'run_long' && daysBetween(r.date, todayISO()) < 6);
   const lastHard = [...data.sessions].reverse().find((x) => daysBetween(x.date, todayISO()) < 2 && effortOf(x) === 'too_hard');
   if (lastHard) return { id: 'run_easy', why: 'Locker, weil bei deiner letzten Einheit viele Sätze unter dem Wdh.-Ziel lagen.' };
+  const legPain = feedbackPain(data).filter((p) => ['knie', 'sprunggelenk', 'huefte'].includes(p));
+  if (legPain.length) return { id: 'run_easy', why: `Beschwerden (${legPain.map((p) => PAIN_NAME[p]).join(', ')}): nur locker und nur schmerzfrei – oder aufs Rad ausweichen. Bei anhaltenden Schmerzen bitte ärztlich abklären.` };
   if (goal.id === 'sport') return sportRunType(data, goal, deload);
   if (deload) {
     if (goal.longRun && !hadLongWeek && !(dtr !== null && dtr <= 10)) return { id: 'run_long', why: 'Deload-Woche: langer Lauf etwas kürzer (ca. 45–60 min), ganz locker.' };
@@ -1055,7 +1144,10 @@ export function buildSession(data, { templateId, equip, runType }) {
   const adjUsed = new Set();
   const used = [];
   const power = []; const strength = [];
-  tpl.slots.forEach((sd0, idx) => {
+  // Auswahl-Reihenfolge: Hauptübungen zuerst, dann nach Priorität – so hat z. B. Liegestütze als Hauptübung
+  // Vorrang vor plyometrischen Liegestützen. Angezeigt wird danach wieder in der Reihenfolge der Vorlage.
+  const order = tpl.slots.map((sd0, idx) => ({ sd0, idx })).sort((a, b) => (b.sd0.main ? 1 : 0) - (a.sd0.main ? 1 : 0) || (a.sd0.prio || 9) - (b.sd0.prio || 9) || a.idx - b.idx);
+  order.forEach(({ sd0, idx }) => {
     const { sd, tag } = sportSlot(goal, tpl, sd0);
     const key = `${templateId}:${idx}${tag}`;
     const ex = pick(data, key, sd, equip, used, { avoid: fb.avoid, pain: fb.pain, vary: fb.vary });
@@ -1077,8 +1169,10 @@ export function buildSession(data, { templateId, equip, runType }) {
     const item = makeItem(data, ex, n, { main: sd.main, deload: deload || fb.deload, ...(heavy ? { lo: sd.main ? 3 : 5, hi: sd.main ? 6 : 8, rest: sd.main ? 210 : 150 } : {}), ...primeReps });
     item.prio = sd.prio;
     item.slotKey = key;
+    item.pos = idx;
     (ex.cat === 'power' ? power : strength).push(item);
   });
+  [power, strength].forEach((arr) => { arr.sort((a, b) => a.pos - b.pos); arr.forEach((it) => delete it.pos); });
 
   const blocks = [];
   blocks.push({ type: 'warmup', title: 'Aufwärmen & Mobilität', items: mobilityBlock('warmup', tpl.focus, equip).map((id) => makeItem(data, EX[id], 0)) });
@@ -1089,7 +1183,7 @@ export function buildSession(data, { templateId, equip, runType }) {
   if (strengthBlock && !tpl.condMain) blocks.push(strengthBlock);
   const matchDay = mi && (mi.toMatch === 0 || mi.sinceMatch === 0);
   if (tpl.cond && !((actAdj.dropCond || fb.dropCond || ca.dropCond) && tpl.cond !== 'zone2') && (goal.finisher || ca.addCond || tpl.cond === 'zone2' || tpl.condMain) && !(matchDay && templateId === 'REG')) {
-    const c = COND[tpl.cond].map((id) => EX[id]).find((e) => available(e, equip));
+    const c = COND[tpl.cond].map((id) => EX[id]).find((e) => available(e, equip) && !fb.pain.includes(e.id));
     if (c) blocks.push({ type: 'conditioning', title: tpl.cond === 'zone2' ? 'Ausdauer – locker' : tpl.condMain ? 'Spielausdauer – wiederholte Sprints' : 'Ausdauer-Finisher', items: [makeItem(data, c, 0)] });
   }
   if (strengthBlock && tpl.condMain) blocks.push(strengthBlock);
@@ -1184,12 +1278,16 @@ function fitDuration(session, minutes, equip, keepCond = false, superset = false
 export function sessionFromPlan(data, plan, { templateId, equip }) {
   const { week, deload } = blockInfo(data);
   const blocks = [];
+  const seen = new Set(); // jede Übung (und Variante) nur einmal pro Einheit
   for (const b of plan.blocks || []) {
     if (templateId === 'RUN' && !['warmup', 'run', 'cooldown'].includes(b.type)) continue;
     const items = [];
     for (const it of b.items || []) {
       const ex = EX[it.exId];
       if (!ex || !available(ex, equip)) continue;
+      const fk = ['strength', 'power'].includes(ex.cat) ? familyOf(ex.id) : ex.id;
+      if (seen.has(fk)) continue;
+      seen.add(fk);
       const lo = Number(it.repsLow) > 0 ? Math.round(it.repsLow) : undefined;
       const hi = Number(it.repsHigh) >= (lo || 1) ? Math.round(it.repsHigh) : undefined;
       const sets = Math.min(8, Math.max(1, Math.round(Number(it.sets) || 3)));
@@ -1203,11 +1301,28 @@ export function sessionFromPlan(data, plan, { templateId, equip }) {
     }
     if (items.length) blocks.push({ type: b.type, title: b.title || '', items });
   }
+  fixSupersets(blocks);
   return {
     id: uid(), date: todayISO(), template: templateId, title: plan.title || TEMPLATES[templateId].name,
     week, deload, source: 'claude', equipment: [...equip], status: 'active', startedAt: Date.now(),
     note: plan.note || '', blocks,
   };
+}
+
+// Supersätze aufräumen: nur vollständige Paare aus zwei verschiedenen Übungen, jede Übung in höchstens
+// einem Paar, Partner direkt hintereinander
+export function fixSupersets(blocks) {
+  for (const b of blocks) {
+    const groups = {};
+    b.items.forEach((it) => { if (it.ss) (groups[it.ss[0]] = groups[it.ss[0]] || []).push(it); });
+    Object.values(groups).forEach((g) => {
+      const a = g.find((x) => x.ss.endsWith('1')); const c = g.find((x) => x.ss.endsWith('2'));
+      g.forEach((x) => { if (x !== a && x !== c) delete x.ss; });
+      if (!a || !c || a.exId === c.exId) { g.forEach((x) => delete x.ss); return; }
+      b.items.splice(b.items.indexOf(c), 1);
+      b.items.splice(b.items.indexOf(a) + 1, 0, c);
+    });
+  }
 }
 
 export function rememberSlots(data, session) {

@@ -59,7 +59,7 @@ function render() {
 
 // ---------- Heute (Planung) ----------
 const shortTpl = (id) => TEMPLATES[id].name.split(' – ')[0];
-const FEELS = [['fit', 'Fit'], ['normal', 'Normal'], ['tired', 'Müde / schlecht geschlafen']];
+const FEELS = [['fit', 'Fit'], ['normal', 'Normal'], ['tired', 'Müde']];
 const feelToday = () => (data.today && data.today.date === todayISO() ? data.today.feel : 'normal');
 
 function renderToday() {
@@ -80,7 +80,7 @@ function renderToday() {
   return `
   <header class="page-head">
     <h1>Heute</h1>
-    <span class="pill ${b.deload ? 'warn' : ''}">${b.deload ? 'Deload-Woche' : `Block-Woche ${b.week}/4`}</span>
+    <span class="pill ${b.deload ? 'warn' : ''}">${b.deload ? 'Deload-Woche' : `Woche ${b.week}/4`}</span>
   </header>
   <p class="goal-line">Ziel: <strong>${esc(goal.name)}</strong>${dtr !== null ? ` · noch ${dtr} ${dtr === 1 ? 'Tag' : 'Tage'} bis zum Wettkampf` : ''}${mi ? ` · ${mi.toMatch === 0 || mi.sinceMatch === 0 ? 'heute Spiel' : mi.toMatch === 1 ? 'morgen Spiel' : mi.toMatch != null ? `Spiel in ${mi.toMatch} Tagen` : mi.sinceMatch === 1 ? 'gestern Spiel' : `letztes Spiel vor ${mi.sinceMatch} Tagen`}` : ''}${(() => {
     if (!goal.weightGoal) return '';
@@ -90,11 +90,14 @@ function renderToday() {
   })()}</p>
   ${!data.profile.setup ? `<button class="banner" data-action="setup">Profil & Home-Gym einrichten →</button>` : ''}
   ${reviewDue ? `<button class="banner" data-action="goto" data-to="coach">Wochen-Check fällig – Plan für die nächste Woche anpassen →</button>` : ''}
-  ${data.coach && data.coach.focus ? `<div class="card soft"><div class="label">Fokus diese Woche</div><p>${esc(data.coach.focus)}</p></div>` : ''}
 
-  <section class="card">
-    <div class="label">Einheit</div>
-    <div class="chips">
+  <section class="card hero">
+    <div class="hero-kicker">${todayTpl === rec.id ? '★ Empfehlung für heute' : 'Deine Wahl für heute'}</div>
+    <h2 class="hero-title">${esc(shortTpl(todayTpl))}</h2>
+    ${TEMPLATES[todayTpl].name.includes(' – ') ? `<p class="hero-sub">${esc(TEMPLATES[todayTpl].name.split(' – ').slice(1).join(' – '))}</p>` : ''}
+    <p class="hero-why">${todayTpl === rec.id ? esc(rec.why) : `Empfohlen wäre <button class="link" data-action="tpl" data-tpl="${rec.id}">${esc(shortTpl(rec.id))}</button>: ${esc(rec.why)}`}</p>
+    ${data.coach && data.coach.focus ? `<p class="hero-focus"><b>Fokus der Woche</b> ${esc(data.coach.focus)}</p>` : ''}
+    <div class="chips hero-chips">
       ${[...new Set(rot.map(groupOf))].map((g) => {
         // Varianten (A/B/C) zusammengefasst: Klick wählt die empfohlene bzw. fällige Variante
         const ids = TEMPLATE_GROUPS[g] ? TEMPLATE_GROUPS[g].filter((id) => rot.includes(id)) : [g];
@@ -103,8 +106,6 @@ function renderToday() {
       }).join('')}
       ${rot.includes('RUN') ? '' : `<button class="chip ${todayTpl === 'RUN' ? 'on' : ''}" data-action="tpl" data-tpl="RUN">Laufeinheit${rec.id === 'RUN' ? ' ★' : ''}</button>`}
     </div>
-    <p class="rec"><span class="rec-star">★</span> ${todayTpl === rec.id ? `<strong>Empfohlen:</strong> ${esc(rec.why)}` : `Empfohlen wäre <button class="link" data-action="tpl" data-tpl="${rec.id}">${esc(shortTpl(rec.id))}</button>: ${esc(rec.why)}`}</p>
-    <p class="muted small">${esc(TEMPLATES[todayTpl].name)}</p>
     ${todayTpl === 'RUN' ? (() => {
       // Vorschlag (★) wie bei den Einheiten: vorausgewählt, mit Begründung; andere Lauftypen frei wählbar
       const auto = autoRunType(data);
@@ -125,30 +126,29 @@ function renderToday() {
     </details>
   </section>
 
-  ${todayTpl === 'RUN' ? '' : `<section class="card">
-    <div class="label">Wo trainierst du heute?</div>
-    <div class="chips">
-      ${LOCATIONS.map((l) => `<button class="chip ${loc === l.id ? 'on' : ''}" data-action="loc" data-id="${l.id}">${esc(l.name)}${l.id === 'home' && !data.homeGym ? ' +' : ''}</button>`).join('')}
-    </div>
-    ${loc === 'travel' ? `
-      <p class="muted small">Was ist verfügbar? Körpergewicht-Übungen gehen immer.</p>
+  <section class="card opts">
+    ${todayTpl === 'RUN' ? '' : `<div class="opt">
+      <div class="opt-label">Ort</div>
       <div class="chips">
-        ${EQUIPMENT.map((e) => `<button class="chip ${(data.travelEquip || []).includes(e.id) ? 'on' : ''}" data-action="equip" data-id="${e.id}">${esc(e.name)}</button>`).join('')}
-      </div>` : `<p class="muted small">${locationSummary(loc)}</p>`}
-  </section>`}
-
-  <section class="card">
-    <div class="label">Wie fühlst du dich heute?</div>
-    <div class="chips">${FEELS.map(([k, l]) => `<button class="chip ${feelToday() === k ? 'on' : ''}" data-action="feel" data-v="${k}">${l}</button>`).join('')}</div>
-    <p class="muted small">${feelToday() === 'tired' ? 'Heute 1 Satz weniger pro Übung, weniger Sprünge, kein Finisher, Lauf nur locker.' : feelToday() === 'fit' ? 'Heute 1 Satz mehr bei den Hauptübungen (nicht im Deload).' : 'Normaler Plan.'}</p>
-    <div class="chips"><button class="chip ${soreActive(data) ? 'on' : ''}" data-action="sore-toggle">Muskelkater</button></div>
-    ${soreActive(data) ? `<div class="chips">${Object.entries(MUSCLE_NAME).map(([k, l]) => `<button class="chip small ${soreMuscles(data).includes(k) ? 'on' : ''}" data-action="sore-muscle" data-id="${k}">${l}</button>`).join('')}</div>
-    <p class="muted small">${soreMuscles(data).length ? 'Bis morgen: 1 Satz weniger und ruhiges Ablassen bei Übungen für diese Muskeln, die Empfehlung ★ meidet sie.' : 'Wo hast du Muskelkater?'}</p>` : ''}
-  </section>
-
-  <section class="card">
-    <div class="label">Zeit heute</div>
-    <div class="chips">${[30, 45, 60, 75, 90, 105].map((m) => `<button class="chip ${data.profile.duration === m ? 'on' : ''}" data-action="dur" data-min="${m}">${m} min</button>`).join('')}</div>
+        ${LOCATIONS.map((l) => `<button class="chip small ${loc === l.id ? 'on' : ''}" data-action="loc" data-id="${l.id}">${esc(l.name)}${l.id === 'home' && !data.homeGym ? ' +' : ''}</button>`).join('')}
+      </div>
+      ${loc === 'travel' ? `
+        <p class="muted small">Was ist verfügbar? Körpergewicht-Übungen gehen immer.</p>
+        <div class="chips">
+          ${EQUIPMENT.map((e) => `<button class="chip small ${(data.travelEquip || []).includes(e.id) ? 'on' : ''}" data-action="equip" data-id="${e.id}">${esc(e.name)}</button>`).join('')}
+        </div>` : `<p class="muted small">${locationSummary(loc)}</p>`}
+    </div>`}
+    <div class="opt">
+      <div class="opt-label"><span>Wie fühlst du dich?</span><button class="chip small ${soreActive(data) ? 'on' : ''}" data-action="sore-toggle">${soreActive(data) ? 'Muskelkater ✓' : '+ Muskelkater'}</button></div>
+      <div class="seg">${FEELS.map(([k, l]) => `<button class="${feelToday() === k ? 'on' : ''}" data-action="feel" data-v="${k}">${l}</button>`).join('')}</div>
+      ${feelToday() === 'normal' ? '' : `<p class="muted small">${feelToday() === 'tired' ? 'Müde oder schlecht geschlafen: 1 Satz weniger pro Übung, weniger Sprünge, kein Finisher, Lauf nur locker.' : '1 Satz mehr bei den Hauptübungen (nicht im Deload).'}</p>`}
+      ${soreActive(data) ? `<p class="muted small">${soreMuscles(data).length ? 'Bis morgen: 1 Satz weniger und ruhiges Ablassen für diese Muskeln, die Empfehlung ★ meidet sie.' : 'Wo hast du Muskelkater?'}</p>
+      <div class="chips">${Object.entries(MUSCLE_NAME).map(([k, l]) => `<button class="chip small ${soreMuscles(data).includes(k) ? 'on' : ''}" data-action="sore-muscle" data-id="${k}">${l}</button>`).join('')}</div>` : ''}
+    </div>
+    <div class="opt">
+      <div class="opt-label"><span>Zeit heute <span class="muted">in Minuten</span></span></div>
+      <div class="seg">${[30, 45, 60, 75, 90, 105].map((m) => `<button class="${data.profile.duration === m ? 'on' : ''}" data-action="dur" data-min="${m}">${m}</button>`).join('')}</div>
+    </div>
   </section>
 
   ${(() => { const pf = painFocus(data); return pf.length ? `<div class="card soft"><div class="label">Ausgleich bei Beschwerden</div>
@@ -165,9 +165,9 @@ function renderToday() {
   })()}
   ${(() => { const n = [...(todayTpl === 'REG' ? [] : activityAdjust(data, TEMPLATES[todayTpl].focus).notes), ...(todayTpl === 'RUN' ? [] : feedbackAdjust(data, todayTpl).notes), ...(TEMPLATES[todayTpl].slots.length ? compAdjust(data).notes : [])]; return n.length ? `<div class="card soft"><div class="label">Berücksichtigt</div><p>${n.map(esc).join('<br>')}</p></div>` : ''; })()}
 
+  <div class="cta-bar"><button class="btn primary" data-action="plan-rule" ${busy ? 'disabled' : ''}>Training erstellen<small>${todayTpl === 'RUN' ? esc(EX[runType === 'auto' ? autoRunType(data).id : runType]?.name || 'Laufeinheit') : `${esc(shortTpl(todayTpl))} · ${data.profile.duration} min`}</small></button></div>
   <div class="actions">
-    <button class="btn primary" data-action="plan-rule" ${busy ? 'disabled' : ''}>Training erstellen</button>
-    <button class="btn ghost" data-action="act-new">+ Anderes Training nachtragen</button>
+    <button class="btn" data-action="act-new">+ Anderes Training nachtragen</button>
     <p class="muted small center">z. B. HIIT, Joggen, Yoga, CrossFit, Padel – fließt in die Planung ein.</p>
   </div>
 
@@ -250,7 +250,7 @@ function renderSession() {
     </div>
   </header>
   ${s.note ? `<div class="card soft"><p>${esc(s.note)}</p></div>` : ''}
-  <div class="progress-line"><div style="width:${allSets ? (doneSets / allSets) * 100 : 0}%"></div></div>
+  <div class="prog"><div class="progress-line"><div style="width:${allSets ? (doneSets / allSets) * 100 : 0}%"></div></div><span>${doneSets}/${allSets} Sätze</span></div>
   ${s.blocks.map((b, bi) => `
     <section class="block">
       <h2 class="block-title"><span class="tag t-${b.type}">${b.strain ? 'Zerrung' : BLOCK_ICON[b.type] || ''}</span> ${esc(b.title)}${b.type === 'stability' ? ` <button class="link small" data-action="guide" data-sec="${b.strain ? 'muskel' : 'ausgleich'}">Erklärung</button>` : ''}</h2>
@@ -266,7 +266,8 @@ function renderItem(it, bi, ii, type) {
   const ex = EX[it.exId];
   if (!ex) return '';
   const tracked = it.sets.length > 0;
-  const showW = ex.load === 'kg' || (ex.load === 'bw' && ex.cat === 'strength' && !['rehab', 'prev_lower'].includes(ex.slot));
+  // Zusatzgewicht nur bei Körpergewicht-Übungen ohne Band (beim Band zählt der Widerstand, nicht kg)
+  const showW = ex.load === 'kg' || (ex.load === 'bw' && ex.cat === 'strength' && !['rehab', 'prev_lower'].includes(ex.slot) && !ex.equip.includes('band'));
   const allDone = tracked ? it.sets.every((x) => x.done) : it.done;
   const partner = it.ss ? data.active.blocks[bi].items.find((x) => x !== it && x.ss && x.ss[0] === it.ss[0]) : null;
   return `
@@ -275,10 +276,11 @@ function renderItem(it, bi, ii, type) {
       ${!tracked ? `<button class="check ${it.done ? 'on' : ''}" data-action="item-done" data-b="${bi}" data-i="${ii}" aria-label="Erledigt"></button>` : ''}
       <div class="ex-name">
         <strong>${esc(ex.name)}</strong>${it.ss ? ` <span class="ss-tag">Supersatz ${esc(it.ss)}</span>` : ''}
-        <div class="muted small">${tracked ? `${it.sets.length} × ${it.lo}–${it.hi} ${ex.unit === 's' ? 's' : 'Wdh.'}${showW && Number(it.sets[0]?.tw) > 0 ? ` · <b class="rw">Richtwert ${ex.load === 'bw' ? '+' : ''}${fmtW(it.sets[0].tw)} kg</b>` : ''}${showW && ex.load === 'bw' ? ' · kg = Zusatzgewicht' : ''} · Pause&nbsp;${it.rest < 120 ? `${it.rest}&nbsp;s` : `${num(it.rest / 60)}&nbsp;min`}` : esc(it.presc || ex.presc)}</div>
+        ${tracked ? '' : `<div class="muted small">${esc(it.presc || ex.presc)}</div>`}
       </div>
       <button class="icon-btn" data-action="video" data-ex="${ex.id}" aria-label="Video">${ICON_PLAY}</button>
     </div>
+    ${tracked ? `<div class="meta">${showW && Number(it.sets[0]?.tw) > 0 ? `<span class="mc rw">Richtwert ${ex.load === 'bw' ? '+' : ''}${fmtW(it.sets[0].tw)} kg</span>` : ''}<span class="mc">${it.sets.length} × ${it.lo}–${it.hi} ${ex.unit === 's' ? 's' : 'Wdh.'}</span><span class="mc">Pause ${it.rest < 120 ? `${it.rest} s` : `${num(it.rest / 60)} min`}</span></div>` : ''}
     ${it.tempo ? `<p class="tempo" title="Tempo ${esc(it.tempo)}"><b>Tempo</b> ${esc(tempoText(it.tempo))}</p>` : ''}
     ${partner ? `<p class="ex-note ss-note">Im Wechsel mit <b>${esc(EX[partner.exId]?.name || '')}</b> (${esc(partner.ss)}): je 1 Satz, dann ${it.rest} s Pause. <button class="link" data-action="guide" data-sec="supersatz">Ablauf</button></p>` : ''}
     ${it.note ? `<p class="ex-note">${esc(it.note)}</p>` : ''}
@@ -292,26 +294,27 @@ function renderItem(it, bi, ii, type) {
     </div>` : ''}
     ${tracked ? `
     <div class="sets">
-      <div class="set-row head"><span>Satz</span>${showW ? '<span>kg</span>' : '<span></span>'}<span>${ex.unit === 's' ? 'Sek.' : 'Wdh.'}</span><span></span></div>
+      <div class="set-row head"><span>Satz</span>${showW ? `<span>${ex.load === 'bw' ? 'Zusatz-kg' : 'kg'}</span>` : '<span></span>'}<span>${ex.unit === 's' ? 'Sek.' : 'Wdh.'}</span><span></span></div>
       ${it.sets.map((st, si) => `
       <div class="set-row ${st.done ? 'done' : ''}">
         <span class="set-n">${si + 1}</span>
-        ${showW ? `<input inputmode="decimal" class="in" data-field="w" data-b="${bi}" data-i="${ii}" data-s="${si}" value="${esc(fmtW(st.w))}" placeholder="${st.tw != null && st.tw !== '' ? esc(fmtW(st.tw)) : 'kg'}">` : '<span></span>'}
+        ${showW ? `<input inputmode="decimal" class="in" data-field="w" data-b="${bi}" data-i="${ii}" data-s="${si}" value="${ex.load === 'bw' && Number(st.w) === 0 ? '' : esc(fmtW(st.w))}" placeholder="${ex.load === 'bw' ? '0' : st.tw != null && st.tw !== '' ? esc(fmtW(st.tw)) : 'kg'}">` : '<span></span>'}
         <input inputmode="numeric" class="in" data-field="r" data-b="${bi}" data-i="${ii}" data-s="${si}" value="${esc(st.r)}" placeholder="${it.lo}–${it.hi}">
         <button class="check ${st.done ? 'on' : ''}" data-action="set-done" data-b="${bi}" data-i="${ii}" data-s="${si}" aria-label="Satz erledigt"></button>
       </div>`).join('')}
     </div>` : ''}
     <div class="ex-tools">
-      <button class="link" data-action="cues" data-ex="${ex.id}" data-uid="${it.uid}">Technik</button>
-      ${type === 'strength' || type === 'power' || ex.slot === 'hyrox_station' ? `<button class="link" data-action="swap" data-b="${bi}" data-i="${ii}">Tauschen</button>` : ''}
-      ${tracked ? `<button class="link" data-action="add-set" data-b="${bi}" data-i="${ii}">+ Satz</button>` : ''}
-      <button class="link danger" data-action="remove" data-b="${bi}" data-i="${ii}">Entfernen</button>
+      <button class="tool" data-action="cues" data-ex="${ex.id}" data-uid="${it.uid}">Technik</button>
+      ${type === 'strength' || type === 'power' || ex.slot === 'hyrox_station' ? `<button class="tool" data-action="swap" data-b="${bi}" data-i="${ii}">Tauschen</button>` : ''}
+      ${tracked ? `<button class="tool" data-action="add-set" data-b="${bi}" data-i="${ii}">+ Satz</button>` : ''}
+      <button class="tool icon" data-action="remove" data-b="${bi}" data-i="${ii}" aria-label="Übung entfernen" title="Übung entfernen">${ICON_TRASH}</button>
     </div>
     <ul class="cues" id="cues-${it.uid}" hidden>${ex.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
   </article>`;
 }
 
 const ICON_CLOCK = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 9v4.2l2.6 1.6M9.5 2.8h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+const ICON_TRASH = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4.5 7h15M10 11v6M14 11v6M6.5 7l1 12.5h9l1-12.5M9.5 7V4.5h5V7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ICON_PLAY = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 8.2v7.6l6-3.8z" fill="currentColor"/></svg>';
 
 let lastAuto = { key: '', at: 0 };
@@ -809,16 +812,18 @@ function renderHrSettings() {
   return `<section class="card">
     <div class="label">Pulszonen</div>
     <div class="grid2">${field('hrMax', 'Max-Puls', `geschätzt ${Math.round(208 - 0.7 * (Number(p.age) || 30))}`)}${field('hrRest', 'Ruhepuls (optional)', 'z. B. 50')}</div>
-    <p class="muted small"><b>Max-Puls messen:</b> nach gutem Aufwärmen 3 min zügig, dann 1–2 min so schnell wie möglich (am besten bergauf) – der höchste Wert von Uhr oder Brustgurt. <b>Ruhepuls:</b> morgens nach dem Aufwachen im Liegen, Mittel aus 3 Tagen.</p>
     <div class="hr-table">${['recovery', 'easy', 'tempo', 'interval'].map((z) => { const r = hrRange(p, z); return `<div><span>${esc(HR_ZONES[z].name)}</span><b>${r.text}</b></div>`; }).join('')}</div>
-    <p class="muted small">Berechnung: ${esc(b.name)}${b.estimated ? ' – trag deinen Max-Puls ein, das ist genauer (±10 Schläge Abweichung bei der Schätzung).' : '.'} Bei kurzen Intervallen (15/15, 30/30, Sprints) hinkt der Puls hinterher – dort zählt das Tempo.</p>
+    <p class="muted small">${b.estimated ? 'Max-Puls aus dem Alter geschätzt (±10 Schläge) – gemessen ist genauer.' : `Berechnung: ${esc(b.name)}.`} Bei kurzen Intervallen zählt das Tempo, der Puls hinkt hinterher.</p>
+    <details class="more"><summary>So misst du Max- und Ruhepuls</summary>
+      <p class="muted small"><b>Max-Puls:</b> nach gutem Aufwärmen 3 min zügig, dann 1–2 min so schnell wie möglich (am besten bergauf) – der höchste Wert von Uhr oder Brustgurt. <b>Ruhepuls:</b> morgens nach dem Aufwachen im Liegen, Mittel aus 3 Tagen.</p>
+    </details>
   </section>`;
 }
 
 // Niveau-Auswahl (Dropdown); die Stufe bestimmt die Start-Richtwerte in kg
 function levelSelect(attr, cur, sex) {
   return `<select class="in wide" ${attr}>${LEVELS.map((l) => `<option value="${l.id}" ${cur === l.id ? 'selected' : ''}>${esc(l.name)} – ${esc(levelHint(l, sex))}</option>`).join('')}</select>
-    <p class="muted small">Gemeint ist dein Kraftniveau: Wie viel schaffst du in der Kniebeuge für 1 Wiederholung im Verhältnis zum Körpergewicht (KG)? Eine grobe Einordnung reicht – sobald du Gewichte einträgst, rechnet die App mit deinen echten Leistungen.</p>`;
+    <p class="muted small">1 Wiederholung Kniebeuge im Verhältnis zum Körpergewicht (KG). Grob reicht – danach rechnet die App mit deinen eingetragenen Gewichten.</p>`;
 }
 
 // Wochentag-Auswahl für den festen Spieltag (Werte = getDay(), Anzeige Mo–So)
@@ -949,7 +954,8 @@ function activityModal() {
     ${def.dist ? `<label class="field"><span>Strecke in km (optional)</span><input class="in" id="act-km" inputmode="decimal" value="${esc(a.km || '')}"></label>` : ''}
     <label class="field"><span>${a.type === 'course' ? 'Welcher Kurs?' : 'Notiz (optional)'}</span><textarea class="in wide" id="act-note" rows="2" placeholder="${a.type === 'course' ? 'z. B. Spinning, Bodypump, Pilates, Zumba' : 'z. B. 6 × 400 m Intervalle, Knie ok'}">${esc(a.note || '')}</textarea></label>
     <button class="btn primary" data-action="act-save">Speichern</button>
-    <button class="btn ghost" data-action="close">Abbrechen</button>`);
+    <button class="btn ghost" data-action="close">Abbrechen</button>
+    ${editing ? `<button class="btn ghost danger" data-action="act-del" data-id="${a.id}">Training löschen</button>` : ''}`);
 }
 
 function saveActivity() {
@@ -975,16 +981,13 @@ function renderActivityCard(a) {
   const def = ACT[a.type] || { name: a.type };
   return `
     <article class="card hist">
-      <div class="hist-head static">
-        <div><strong>${esc(def.name)}</strong>
-          <div class="muted small">${fmtDate(a.date)} · ${a.minutes} min · ${esc(a.intensity)}${a.km ? ` · ${num(a.km)} km` : ''} · Last ${activityLoad(a)}</div>
+      <button class="hist-head" data-action="act-edit" data-id="${a.id}">
+        <div><strong><i class="kdot k-act"></i>${esc(def.name)}</strong>
+          <div class="muted small">${fmtDate(a.date)} · ${a.minutes} min · ${esc(a.intensity)}${a.km ? ` · ${num(a.km)} km` : ''} · nachgetragen</div>
           ${a.note ? `<div class="small mt-s">${esc(a.note)}</div>` : ''}
         </div>
-        <div class="col-actions">
-          <button class="link" data-action="act-edit" data-id="${a.id}">Bearbeiten</button>
-          <button class="link danger" data-action="act-del" data-id="${a.id}">Löschen</button>
-        </div>
-      </div>
+        <span class="chev">›</span>
+      </button>
     </article>`;
 }
 
@@ -1038,7 +1041,7 @@ function renderSessionCard(s) {
   return `
     <article class="card hist ${openHistory === s.id ? 'open' : ''}">
       <button class="hist-head" data-action="hist" data-id="${s.id}">
-        <div><strong>${esc(s.title)}</strong>${(s.records || []).length ? ' <span class="tag t-pr">Rekord</span>' : ''}<div class="muted small">${fmtDate(s.date)} · ${sessionSummary(s)}${s.source === 'claude' ? ' · Claude' : ''}</div></div>
+        <div><strong><i class="kdot ${s.template === 'RUN' || s.template === 'HYX' ? 'k-run' : TEMPLATES[s.template]?.focus === 'lower' ? 'k-lower' : TEMPLATES[s.template]?.focus === 'upper' ? 'k-upper' : 'k-full'}"></i>${esc(s.title)}</strong>${(s.records || []).length ? ' <span class="tag t-pr">Rekord</span>' : ''}<div class="muted small">${fmtDate(s.date)} · ${sessionSummary(s)}${s.source === 'claude' ? ' · Claude' : ''}</div></div>
         <span class="chev">›</span>
       </button>
       ${openHistory === s.id ? `<div class="hist-body">
@@ -1072,10 +1075,10 @@ function renderProgress() {
   return `
   <header class="page-head"><h1>Fortschritt</h1></header>
   <div class="tiles">
-    <div class="tile"><div class="tile-label">Einheiten (7 Tage)</div><div class="tile-val">${thisWeek}<span class="muted small"> / ${data.profile.days}</span></div>
+    <div class="tile"><div class="tile-label">Einheiten · 7 Tage</div><div class="tile-val">${thisWeek}<span class="muted small"> / ${data.profile.days}</span></div>
       <div class="tile-delta">${planWeek} Plan · ${actWeek} nachgetragen</div></div>
 
-    <div class="tile"><div class="tile-label">Körpergewicht Ø 7 Tage</div><div class="tile-val">${bwLast ? num(bwLast.avg) : '–'}<span class="muted small"> kg</span></div>
+    <div class="tile"><div class="tile-label">Gewicht · Ø 7 Tage</div><div class="tile-val">${bwLast ? num(bwLast.avg) : '–'}<span class="muted small"> kg</span></div>
       ${bwLast && bwOld ? `<div class="tile-delta">${bwLast.avg - bwOld.avg >= 0 ? '+' : '−'}${num(Math.abs(bwLast.avg - bwOld.avg))} kg vs. vor 4 Wochen</div>` : ''}</div>
     ${goalOf(data).weightGoal ? (() => {
       const ws = weightStatus(data, bw);
@@ -1087,21 +1090,21 @@ function renderProgress() {
     ${bc ? `<div class="tile"><div class="tile-label">Körperzusammensetzung</div><div class="tile-val">${bc.cur.fat ? num(bc.cur.fat) : '–'}<span class="muted small"> % Fett</span></div>
       <div class="tile-delta">${bc.cur.muscle ? `${num(bc.cur.muscle)} kg Muskel` : ''}${bc.old ? `${bc.cur.muscle ? ' · ' : ''}${[bc.dFat != null ? sgn(bc.dFat, '%-P.') : '', bc.dMuscle != null ? sgn(bc.dMuscle, 'kg Muskel') : ''].filter(Boolean).join(', ')} in ${bc.weeks} Wo.` : ''}</div></div>` : ''}
     ${(() => { const a = activitySummary(data, 7); const prev = activitySummary(data, 14).load - a.load; return `
-    <div class="tile"><div class="tile-label">Ausdauer & Sport (7 Tage)</div><div class="tile-val">${a.minutes}<span class="muted small"> min</span></div>
+    <div class="tile"><div class="tile-label">Sport · 7 Tage</div><div class="tile-val">${a.minutes}<span class="muted small"> min</span></div>
       <div class="tile-delta">${a.count} ${a.count === 1 ? 'Einheit' : 'Einheiten'}${a.km ? ` · ${num(a.km)} km gelaufen` : ''}</div></div>
-    <div class="tile"><div class="tile-label">Zusatz-Last (sRPE)</div><div class="tile-val">${a.load}</div>
-      <div class="tile-delta">Vorwoche: ${prev}</div></div>`; })()}
+    <div class="tile"><div class="tile-label">Sport-Belastung</div><div class="tile-val">${a.load}</div>
+      <div class="tile-delta">Minuten × Anstrengung<br>Vorwoche ${prev}</div></div>`; })()}
   </div>
 
   <section class="card">
-    <div class="label">Körpergewicht heute eintragen</div>
+    <div class="label">Körpergewicht heute</div>
     <div class="grid3">
       <label class="field"><span>Gewicht kg</span><input id="bw-in" class="in" inputmode="decimal" placeholder="kg" value="${todayBw ? esc(fmtW(todayBw.kg)) : ''}"></label>
       <label class="field"><span>Muskel kg</span><input id="bw-muscle" class="in" inputmode="decimal" placeholder="optional" value="${todayBw && todayBw.muscle ? esc(fmtW(todayBw.muscle)) : ''}"></label>
       <label class="field"><span>Fett %</span><input id="bw-fat" class="in" inputmode="decimal" placeholder="optional" value="${todayBw && todayBw.fat ? esc(fmtW(todayBw.fat)) : ''}"></label>
     </div>
     <button class="btn small primary" data-action="save-bw">Speichern</button>
-    <p class="muted small">Am besten morgens nüchtern, gleiche Bedingungen. Muskelmasse und Körperfett (z. B. von einer Körperanalyse-Waage) sind optional – der Plan reagiert nur auf Trends über mehrere Wochen.</p>
+    <p class="muted small">Morgens nüchtern messen. Muskel und Fett nur, wenn deine Waage sie misst – der Plan reagiert auf Trends über Wochen.</p>
   </section>
   <div id="chart-bw"></div>
   <div id="chart-muscle"></div>
@@ -1110,10 +1113,13 @@ function renderProgress() {
   ${(() => {
     const rec = allRecords(data);
     if (!rec.lifts.length && !rec.longest) return '';
-    return `<section class="card"><div class="label">🏆 Deine Rekorde</div>
-      ${rec.lifts.slice(0, 8).map((r) => `<div class="pr-row"><b>${esc(r.name)}</b><span>1RM ca. ${kgTxt(r.e1rm)} kg · ${r.bw ? '+' : ''}${kgTxt(r.w)} × ${r.r} · ${fmtDate(r.date)}</span></div>`).join('')}
-      ${rec.longest ? `<div class="pr-row"><b>Längster Lauf</b><span>${kgTxt(rec.longest.km)} km · ${fmtDate(rec.longest.date)}</span></div>` : ''}
-      ${rec.fastest ? `<div class="pr-row"><b>Schnellste Pace (ab 3 km)</b><span>${paceTxt(rec.fastest.min / rec.fastest.km)} · ${fmtDate(rec.fastest.date)}</span></div>` : ''}
+    const row = (name, sub, val, unit) => `<div class="rec-item"><div class="rec-name"><b>${esc(name)}</b><span>${sub}</span></div><div class="rec-val">${val}<small>${unit}</small></div></div>`;
+    return `<section class="card"><div class="label">Deine Rekorde</div><p class="muted small rec-hint">Geschätztes 1RM aus deinem besten Satz</p>
+      <div class="rec-list">
+      ${rec.lifts.slice(0, 8).map((r) => row(r.name, `${r.bw ? '+' : ''}${kgTxt(r.w)} kg × ${r.r} · ${fmtDate(r.date)}`, Math.round(r.e1rm), ' kg')).join('')}
+      ${rec.longest ? row('Längster Lauf', fmtDate(rec.longest.date), kgTxt(rec.longest.km), ' km') : ''}
+      ${rec.fastest ? row('Schnellste Pace', `ab 3 km · ${fmtDate(rec.fastest.date)}`, paceTxt(rec.fastest.min / rec.fastest.km).replace(' min/km', ''), ' /km') : ''}
+      </div>
     </section>`;
   })()}
 
@@ -1167,10 +1173,12 @@ function drawCharts() {
     });
   }
   const vol = weeklyVolume(data, 7);
+  const volColor = (v) => cssVar(v < 10 ? '--peach' : v > 20 ? '--butter' : '--mint') || blue;
   barChart($('#chart-vol'), {
-    title: 'Wochenvolumen pro Muskel', sub: 'Harte Sätze, letzte 7 Tage · Zielbereich 10–20',
-    items: Object.entries(MUSCLES).map(([k, label]) => ({ label, value: vol[k] })),
+    title: 'Wochenvolumen pro Muskel', sub: 'Harte Sätze, letzte 7 Tage · Ziel 10–20',
+    items: Object.entries(MUSCLES).map(([k, label]) => ({ label, value: vol[k], color: volColor(vol[k]) })),
     color: blue,
+    legend: [['im Ziel', cssVar('--mint') || blue], ['zu wenig', cssVar('--peach') || blue], ['viel', cssVar('--butter') || blue]],
   });
 }
 
@@ -1183,11 +1191,13 @@ function renderCoach() {
   <header class="page-head"><h1>Coach</h1></header>
   <section class="card">
     <div class="label">Wochen-Check</div>
-    <p>Wertet deine letzten zwei Wochen aus – Einheiten, Sätze pro Muskel, Kraftentwicklung, Ermüdung, Belastung, Läufe, Körpergewicht – und passt den Plan für die nächste Woche an. Läuft ohne KI, auch offline.</p>
-    <button class="btn primary" data-action="review-rule">Wochen-Check starten</button>
-    ${hasKey ? `<button class="btn" data-action="review" ${busy ? 'disabled' : ''}>${busy === 'review' ? '<span class="spinner"></span> Claude analysiert …' : 'KI-Wochen-Check mit Claude'}</button>
-      <p class="muted small">Claude bewertet zusätzlich frei formuliert und berücksichtigt deine Notizen nach dem Training (ca. 5–10 Cent).</p>`
-      : '<p class="muted small">Optional: Mit einem Claude-API-Key (Mehr → Claude) gibt es zusätzlich einen KI-Wochen-Check.</p>'}
+    <p>Wertet deine letzten zwei Wochen aus und passt den Plan für die nächste Woche an – Sätze pro Muskel, Kraft, Ermüdung, Läufe, Gewicht. Ohne KI, auch offline.</p>
+    <div class="actions">
+      <button class="btn primary" data-action="review-rule">Wochen-Check starten</button>
+      ${hasKey ? `<button class="btn" data-action="review" ${busy ? 'disabled' : ''}>${busy === 'review' ? '<span class="spinner"></span> Claude analysiert …' : 'KI-Wochen-Check mit Claude'}</button>
+      <p class="muted small center">Claude bewertet zusätzlich frei formuliert und liest deine Notizen (ca. 5–10 Cent).</p>`
+      : '<p class="muted small center">Optional: Mit einem Claude-API-Key (Mehr → Claude) gibt es zusätzlich einen KI-Check.</p>'}
+    </div>
   </section>
   ${c ? `
   <section class="card">
@@ -1249,31 +1259,9 @@ async function runReview() {
 function renderSettings() {
   const p = data.profile;
   return `
-  <header class="page-head"><h1>Einstellungen</h1></header>
+  <header class="page-head"><h1>Mehr</h1></header>
   <section class="card">
-    <div class="label">Anleitung</div>
-    <button class="btn small" data-action="guide">Trainingseinheiten erklärt</button>
-    <p class="muted small">Aufbau, Tempo, Pausen, Supersätze, Ausgleich, Fortschritt.</p>
-  </section>
-  <section class="card">
-    <div class="label">Farbe</div>
-    <div class="swatches">${ACCENTS.map((c) => `<div class="swatch-wrap"><button class="swatch ${(data.settings.accent || 'lavender') === c.id ? 'on' : ''}" style="background:linear-gradient(135deg, ${c.a}, ${c.b})" data-action="accent" data-v="${c.id}" aria-label="${c.name}"></button><span class="swatch-label">${c.name}</span></div>`).join('')}</div>
-  </section>
-  <section class="card">
-    <div class="label">Mein Home-Gym</div>
-    <div class="chips">${EQUIPMENT.map((e) => `<button class="chip ${(data.homeGym || []).includes(e.id) ? 'on' : ''}" data-action="home-equip" data-id="${e.id}">${esc(e.name)}</button>`).join('')}</div>
-    ${(data.homeGym || []).includes('dumbbell') ? `<label class="field"><span>Schwerste Kurzhantel (kg pro Hand, optional)</span><input class="in" data-prof="homeMaxDb" inputmode="decimal" placeholder="z. B. 24" value="${esc(data.profile.homeMaxDb || '')}"></label>
-    <p class="muted small">Zu Hause werden Richtwerte darauf begrenzt – stattdessen mehr Wiederholungen.</p>` : ''}
-    <p class="muted small">Wird mit „Home-Gym“ beim Training übernommen.</p>
-  </section>
-  <section class="card">
-    <div class="label">Claude</div>
-    <label class="field"><span>API-Key</span><input id="api-key" class="in wide" type="password" autocomplete="off" placeholder="sk-ant-…" value="${esc(data.settings.apiKey)}"></label>
-    <label class="switch"><input type="checkbox" id="use-claude" ${data.settings.useClaude ? 'checked' : ''}> Claude für den KI-Wochen-Check nutzen</label>
-    <p class="muted small">Optional – die App plant komplett ohne KI. Der Key wird nur für den Wochen-Check mit Claude im Coach-Tab genutzt, bleibt nur auf diesem Gerät und geht ausschließlich an api.anthropic.com. Modell: ${MODEL}. Kosten ca. 5–10 Cent pro Check.</p>
-  </section>
-  <section class="card">
-    <div class="label">Profil</div>
+    <div class="label">Profil & Ziel</div>
     <div class="grid2">
       <label class="field"><span>Alter</span><input class="in" data-prof="age" inputmode="numeric" value="${esc(p.age)}"></label>
       <label class="field"><span>Gewicht (kg)</span><input class="in" data-prof="weight" inputmode="decimal" value="${esc(p.weight)}"></label>
@@ -1294,14 +1282,20 @@ function renderSettings() {
     <label class="field"><span>Kraftniveau</span>${levelSelect('data-prof="level"', levelOf(p).id, p.sex)}</label>
     <div class="label mt">Dauerhafte Problemzonen</div>
     <div class="chips">${Object.entries(PAIN_NAME).map(([k, l]) => `<button class="chip small ${(p.zones || []).includes(k) ? 'on' : ''}" data-action="prof-zone" data-id="${k}">${l}</button>`).join('')}</div>
-    <p class="muted small">Für diese Regionen enthält jede Einheit dauerhaft Stabilisations-, Mobilitäts- und Dehnübungen.</p>
+    <p class="muted small">Jede Einheit enthält dafür dauerhaft Ausgleichsübungen.</p>
     <button class="btn small" data-action="setup">Einrichtungs-Assistent öffnen</button>
     <p class="muted small">Wochenplan bei ${p.days} Tagen (${esc(goalOf(data).name)}): ${(() => { const c = new Map(); rotationFor(data).forEach((k) => c.set(shortTpl(k), (c.get(shortTpl(k)) || 0) + 1)); return [...c].map(([n, x]) => `${x > 1 ? `${x}× ` : ''}${n}`).join(', '); })()}. Die Reihenfolge empfiehlt der Stern ★ jeden Tag neu.</p>
+  </section>
+  <section class="card">
+    <div class="label">Mein Home-Gym</div>
+    <div class="chips">${EQUIPMENT.map((e) => `<button class="chip ${(data.homeGym || []).includes(e.id) ? 'on' : ''}" data-action="home-equip" data-id="${e.id}">${esc(e.name)}</button>`).join('')}</div>
+    ${(data.homeGym || []).includes('dumbbell') ? `<label class="field"><span>Schwerste Kurzhantel (kg pro Hand, optional)</span><input class="in" data-prof="homeMaxDb" inputmode="decimal" placeholder="z. B. 24" value="${esc(data.profile.homeMaxDb || '')}"></label>
+    <p class="muted small">Zu Hause werden Richtwerte darauf begrenzt, dafür mehr Wiederholungen.</p>` : ''}
   </section>
   ${renderHrSettings()}
   <section class="card">
     <div class="label">Trainingsblock</div>
-    <p class="muted small">Aktueller Block seit ${fmtDate(data.block.start)} · Woche ${blockInfo(data).week} von 5.</p>
+    <p class="muted small">${blockInfo(data).deload ? 'Deload-Woche – danach startet ein neuer Block.' : `Woche ${blockInfo(data).week} von 4, danach 1 Deload-Woche.`} Block läuft seit ${fmtDate(data.block.start)}</p>
     <button class="btn small" data-action="new-block">Neuen Block starten</button>
   </section>
   ${(data.dislikes || []).length ? `<section class="card">
@@ -1310,21 +1304,32 @@ function renderSettings() {
     <div class="chips">${data.dislikes.map((id) => `<button class="chip small" data-action="undislike" data-id="${id}">${esc(EX[id]?.name || id)} ✕</button>`).join('')}</div>
   </section>` : ''}
   <section class="card">
-    <div class="label">Über die App</div>
-    <button class="btn small" data-action="intro">▶ Intro-Trailer ansehen</button>
-    <p class="muted small mt"><span id="app-version">Version …</span> · Neue Versionen lädt die App automatisch.</p>
-    <button class="btn small ghost" data-action="force-update">Update erzwingen</button>
+    <div class="label">Claude (optional)</div>
+    <label class="field"><span>API-Key</span><input id="api-key" class="in wide" type="password" autocomplete="off" placeholder="sk-ant-…" value="${esc(data.settings.apiKey)}"></label>
+    <label class="switch"><input type="checkbox" id="use-claude" ${data.settings.useClaude ? 'checked' : ''}> Claude für den KI-Wochen-Check nutzen</label>
+    <p class="muted small">Die App plant komplett ohne KI. Der Key bleibt auf diesem Gerät und geht nur an api.anthropic.com (${MODEL}, ca. 5–10 Cent pro Check).</p>
+  </section>
+  <section class="card">
+    <div class="label">Hilfe</div>
+    <div class="row wrap">
+      <button class="btn small" data-action="guide">Trainingseinheiten erklärt</button>
+      <button class="btn small" data-action="intro">▶ Intro-Trailer</button>
+    </div>
+  </section>
+  <section class="card">
+    <div class="label">Akzentfarbe</div>
+    <div class="swatches">${ACCENTS.map((c) => `<div class="swatch-wrap"><button class="swatch ${(data.settings.accent || 'lavender') === c.id ? 'on' : ''}" style="background:linear-gradient(135deg, ${c.a}, ${c.b})" data-action="accent" data-v="${c.id}" aria-label="${c.name}"></button><span class="swatch-label">${c.name}</span></div>`).join('')}</div>
   </section>
   <section class="card">
     <div class="label">Daten</div>
-    <p class="muted small">Alle Daten liegen lokal auf dem iPhone. Exportiere regelmäßig ein Backup (z. B. in iCloud Drive).</p>
+    <p class="muted small">Alles liegt nur auf diesem iPhone. Sichere regelmäßig ein Backup, z. B. in iCloud Drive.</p>
     <div class="row wrap">
       <button class="btn small" data-action="export">Backup exportieren</button>
       <label class="btn small">Backup importieren<input type="file" id="import-file" accept="application/json" hidden></label>
       <button class="btn small ghost danger" data-action="wipe">Alles löschen</button>
     </div>
   </section>
-  <p class="muted small center">Athletik · Regelwerk siehe REGELWERK.md</p>`;
+  <p class="muted small center foot"><span id="app-version">Version …</span> · Updates kommen automatisch · <button class="link small" data-action="force-update">Update erzwingen</button></p>`;
 }
 
 // ---------- Events ----------
@@ -1442,7 +1447,7 @@ document.addEventListener('click', async (e) => {
     case 'act-int': actDraft.intensity = t.dataset.k; activityModal(); break;
     case 'act-save': saveActivity(); break;
     case 'act-edit': { const a = data.activities.find((x) => x.id === t.dataset.id); if (a) { actDraft = { ...a }; activityModal(); } break; }
-    case 'act-del': if (confirm('Dieses Training löschen?')) { data.activities = data.activities.filter((x) => x.id !== t.dataset.id); persist(); render(); } break;
+    case 'act-del': if (confirm('Dieses Training löschen?')) { data.activities = data.activities.filter((x) => x.id !== t.dataset.id); persist(); closeModal(); actDraft = null; render(); } break;
     case 'finish': finishSession(); break;
     case 'discard': if (confirm('Einheit verwerfen? Eingetragene Sätze gehen verloren.')) { data.active = null; stopTimer(); keepAwake(false); persist(); render(); } break;
     case 'timer-minus': if (timer) { timer.end -= 15000; tick(); } break;

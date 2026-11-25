@@ -186,7 +186,9 @@ select.in { appearance: none; -webkit-appearance: none; }
 .ex-name strong { font-size: 16px; }
 .ex-note { font-size: 14px; color: var(--text-2); margin-top: 6px; }
 .icon-btn { border: 0; background: var(--surface-2); color: var(--accent); width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: none; }
-.ex-tools { display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
+.ex-tools { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.tool { border: 1px solid var(--line); background: transparent; color: var(--text-2); font-size: 13px; font-weight: 650; padding: 6px 12px; border-radius: 999px; }
+.tool.icon { margin-left: auto; padding: 5px 9px; color: var(--muted); display: grid; place-items: center; }
 .cues { margin: 8px 0 0; padding-left: 18px; color: var(--text-2); font-size: 14px; }
 .cues li { margin-bottom: 4px; }
 
@@ -340,3 +342,60 @@ select.in { appearance: none; -webkit-appearance: none; }
 .findings .f-good span { color: var(--good); }
 .findings .f-warn span { color: var(--warn); }
 .findings .f-info span { color: var(--muted); }
+
+/* Heute: Empfehlung, Optionen in einer Karte, fester Start-Knopf */
+.hero { padding: 18px 18px 14px; }
+.hero-kicker { font-size: 13px; font-weight: 750; color: var(--accent); margin-bottom: 4px; }
+.hero-title { font-size: 28px; font-weight: 850; letter-spacing: -0.02em; line-height: 1.1; }
+.hero-sub { font-size: 15px; color: var(--text-2); margin-top: 3px; font-weight: 600; }
+.hero-why { font-size: 14px; color: var(--text-2); margin: 10px 0 12px; line-height: 1.45; }
+.hero-why .link { padding: 0; color: var(--accent); font-size: 14px; text-decoration: underline; }
+.hero-focus { font-size: 14px; color: var(--text-2); background: var(--accent-soft); border-radius: 12px; padding: 8px 10px; margin: -2px 0 12px; line-height: 1.4; }
+.hero-focus b { color: var(--accent); margin-right: 4px; }
+.hero .chips { margin-bottom: 4px; }
+.opts { padding: 2px 16px; }
+.opt { padding: 13px 0; }
+.opt + .opt { border-top: 1px solid var(--line); }
+.opt-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 700; margin-bottom: 10px; min-height: 28px; }
+.opt-label .muted { font-weight: 500; font-size: 13px; }
+.opt .chips { margin-bottom: 0; }
+.opt p.muted { margin-top: 8px; }
+.opt p.muted + .chips { margin-top: 8px; }
+.seg { display: flex; background: var(--surface-2); border-radius: 14px; padding: 3px; gap: 2px; }
+.seg button { flex: 1; min-width: 0; border: 0; background: none; color: var(--text-2); font-size: 15px; font-weight: 650; padding: 9px 0; border-radius: 11px; }
+.seg button.on { background: var(--accent); color: var(--accent-ink); }
+.cta-bar { position: fixed; left: 0; right: 0; bottom: calc(var(--safe-b) + 62px); z-index: 19; padding: 14px 16px 8px; background: linear-gradient(to top, var(--bg) 60%, transparent); pointer-events: none; }
+.cta-bar .btn { pointer-events: auto; width: 100%; max-width: 608px; margin: 0 auto; display: flex; flex-direction: column; gap: 0; padding: 10px 16px; line-height: 1.25; }
+.cta-bar .btn small { font-size: 12.5px; font-weight: 650; opacity: 0.7; }
+
+/* Einheit: Fortschritt mit Zähler, Eckdaten als Kärtchen */
+.prog { display: flex; align-items: center; gap: 10px; margin: 4px 0 18px; }
+.prog .progress-line { flex: 1; margin: 0; }
+.prog span { font-size: 12px; color: var(--muted); font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.mc { font-size: 12px; font-weight: 650; color: var(--text-2); background: var(--surface-2); border-radius: 8px; padding: 3px 7px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mc.rw { background: var(--accent-soft); color: var(--accent); }
+
+/* Verlauf: Farbpunkt je Art */
+.kdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: 2px; background: var(--muted); }
+.k-upper { background: var(--lav, var(--tag-warmup)); }
+.k-lower { background: var(--sky, var(--tag-strength)); }
+.k-full { background: var(--butter, var(--tag-cooldown)); }
+.k-run { background: var(--mint, var(--tag-conditioning)); }
+.k-act { background: var(--pink, var(--tag-activity)); }
+
+/* Fortschritt: Rekorde */
+.rec-hint { margin: -4px 0 4px; }
+.rec-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; }
+.rec-item + .rec-item { border-top: 1px solid var(--line); }
+.rec-name { min-width: 0; display: grid; gap: 1px; }
+.rec-name b { font-size: 15px; font-weight: 700; line-height: 1.3; }
+.rec-name span { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rec-val { font-size: 22px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rec-val small { font-size: 13px; font-weight: 650; color: var(--text-2); }
+
+/* Coach, Mehr */
+.card .actions { margin: 14px 0 2px; }
+.foot { margin-top: 4px; }
+.card > p.muted + .btn, .card > p.muted + .row { margin-top: 10px; }
+.foot .link { font-size: 13px; color: var(--accent); padding: 0; }

@@ -172,7 +172,7 @@ export function lineChart(container, { title, sub, rows, series, unit = 'kg', ta
 
 // Horizontale Balken mit Zielbereich (z. B. 10–20 Sätze)
 // band = Zielbereich (z. B. [10, 20]) oder null; unit/labelHeader für Tooltip und Tabelle
-export function barChart(container, { title, sub, items, band = [10, 20], color, unit = 'Sätze', labelHeader = 'Muskel', suffix = '' }) {
+export function barChart(container, { title, sub, items, band = [10, 20], color, unit = 'Sätze', labelHeader = 'Muskel', suffix = '', legend = null }) {
   const body = frame(container, {
     title, sub,
     table: () => tableView([...items].reverse().map((i) => [i.label, fmtNum(i.value)]), [labelHeader, unit]),
@@ -194,10 +194,15 @@ export function barChart(container, { title, sub, items, band = [10, 20], color,
     const y = i * rowH + 6;
     const lt = el('text', { x: 0, y: y + 11, class: 'axis-label' }, svg); lt.textContent = it.label;
     const w = Math.max(0, X(it.value) - labelW);
-    if (w > 0) el('rect', { x: labelW, y, width: w, height: 14, rx: 4, fill: color, class: 'bar' }, svg);
+    if (w > 0) el('rect', { x: labelW, y, width: w, height: 14, rx: 4, fill: it.color || color, class: 'bar' }, svg);
     const vt = el('text', { x: labelW + w + 6, y: y + 11, class: 'end-label' }, svg); vt.textContent = fmtNum(it.value) + suffix;
     const g = el('rect', { x: 0, y: y - 6, width: W, height: rowH, fill: 'transparent' }, svg);
     const tt = el('title', {}, g); tt.textContent = `${it.label}: ${fmtNum(it.value)} ${unit}`;
   });
+  if (legend) {
+    const lg = document.createElement('div'); lg.className = 'legend';
+    lg.innerHTML = legend.map(([n, col]) => `<span class="legend-item"><i class="key-dot" style="background:${col}"></i>${n}</span>`).join('');
+    body.appendChild(lg);
+  }
   body.appendChild(svg);
 }

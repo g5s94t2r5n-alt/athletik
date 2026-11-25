@@ -24,7 +24,7 @@ Berücksichtige die Rückmeldungen nach den Einheiten (aus den Wiederholungen ge
 
 let sdkPromise = null;
 async function getClient(apiKey) {
-  if (!apiKey) throw new CoachError('Kein API-Key hinterlegt (Einstellungen).');
+  if (!apiKey) throw new CoachError('Kein API-Key hinterlegt (Mehr → Claude).');
   sdkPromise = sdkPromise || import(SDK_URL);
   let mod;
   try { mod = await sdkPromise; } catch (e) { sdkPromise = null; throw new CoachError('Claude-SDK konnte nicht geladen werden (offline?).'); }

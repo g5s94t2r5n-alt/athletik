@@ -257,6 +257,16 @@ export function recommendTemplate(data, date = todayISO()) {
     ? runs.filter((a) => a.runType !== 'hx_runs' && daysBetween(a.date, date) < 7).length
     : sessions.filter((s) => s.template === id && daysBetween(s.date, date) < 7).length);
 
+  // Muskelkater (heute/gestern angegeben) und Zerrung in Woche 1: betroffene Körperregion lieber nicht
+  const regionOfMuscle = (m) => (isLegMuscle(m) ? 'lower' : REGION_MUSCLES.upper.includes(m) ? 'upper' : null);
+  const soreNow = soreMuscles(data, date); const strainNow = strainFocus(data, date).filter((f) => f.phase === 1).map((f) => f.muscle);
+  const issue = { lower: [], upper: [] };
+  [...strainNow, ...soreNow].forEach((m) => { const r = regionOfMuscle(m); if (r && !issue[r].includes(m)) issue[r].push(m); });
+  const issueText = (ms) => [
+    ms.some((m) => strainNow.includes(m)) ? `Zerrung (${ms.filter((m) => strainNow.includes(m)).map((m) => MUSCLE_NAME[m]).join(', ')})` : '',
+    ms.some((m) => !strainNow.includes(m)) ? `Muskelkater (${ms.filter((m) => !strainNow.includes(m)).map((m) => MUSCLE_NAME[m]).join(', ')})` : '',
+  ].filter(Boolean).join(' und ');
+
   const scored = ids.map((id) => {
     const tpl = TEMPLATES[id];
     const dTpl = since(lastOf((s) => s.template === id));
@@ -298,6 +308,11 @@ export function recommendTemplate(data, date = todayISO()) {
       if (tgt > 1 || ['endurance', 'marathon', 'hyrox'].includes(goal.id)) reasons.push(`Kraft diese Woche: ${sessions.filter((s) => ['FB_A', 'FB_B', 'FB_C'].includes(s.template) && daysBetween(s.date, date) < 7).length}×.`);
     }
     if (goal.key === id && missing > 0) score += 6; // Schlüsseleinheit des Ziels bei Gleichstand bevorzugen
+    const hitMs = ['REG', 'PRIME'].includes(id) ? [] : id === 'RUN' ? issue.lower : ['lower', 'upper'].includes(tpl.focus) ? issue[tpl.focus] : [...issue.lower, ...issue.upper];
+    if (hitMs.length) {
+      score -= id === 'RUN' ? 10 : ['lower', 'upper'].includes(tpl.focus) ? 35 : 12;
+      reasons.push(`${issueText(hitMs)} – ${id === 'RUN' ? 'heute nur locker' : 'heute lieber eine andere Einheit'}.`);
+    }
     // 3–4 Tage vor dem Spiel ist das letzte Fenster für schwere Beine (MD-2/MD-1 gesperrt) → fällige
     // Beineinheit vorziehen, wenn sie länger her ist als die letzte Oberkörper-Einheit
     if (mi && (mi.toMatch === 3 || mi.toMatch === 4) && tpl.focus === 'lower' && missing > 0 && d >= 2 && dTpl >= dRegion.upper) {
@@ -355,7 +370,7 @@ export function performances(data, exId) {
       for (const it of b.items) {
         if (it.exId !== exId) continue;
         const sets = (it.sets || []).filter((x) => x.done && Number(x.r) > 0).map((x) => ({ w: Number(x.w) || 0, r: Number(x.r) }));
-        if (sets.length) out.push({ date: s.date, lo: it.lo, hi: it.hi, deload: !!s.deload, sets });
+        if (sets.length) out.push({ date: s.date, lo: it.lo, hi: it.hi, deload: !!s.deload || !!it.reduced, sets });
       }
     }
   }
@@ -985,6 +1000,125 @@ export function feedbackAdjust(data, templateId, date = todayISO()) {
   return out;
 }
 
+// ---------- Muskelbeschwerden: Zerrung (nach dem Training) und Muskelkater (vor dem Training) ----------
+// Zerrung: Woche 1 belastende Übungen ersetzen, nicht dehnen, sanfte Halteübung; Woche 2 Übungen mit −30 %
+// zurück; Sprints/Sprünge erst ab Woche 3. Früher Reha-Beginn verkürzt die Pause (Bayer 2017), Schmerz bis
+// 4/10 ist dabei so wirksam wie schmerzfrei (Hickey 2020). Muskelkater: harmlos, lockere Bewegung lindert
+// (Cheung 2003) – nur 1 Satz weniger und ruhiges Ablassen.
+export const MUSCLE_NAME = {
+  brust: 'Brust', ruecken: 'oberer Rücken', schultern: 'Schultern', bizeps: 'Bizeps', trizeps: 'Trizeps',
+  quadrizeps: 'Oberschenkel vorne', beinbeuger: 'Beinbeuger', gesaess: 'Gesäß', waden: 'Waden', adduktoren: 'Adduktoren/Leiste', bauch: 'Bauch',
+};
+export const STRAIN_DAYS = 28;
+const LEG_MUSCLES = ['quadrizeps', 'beinbeuger', 'gesaess', 'waden', 'adduktoren'];
+const ADDUCTOR_EX = ['copenhagen', 'copenhagen_short', 'adductor_squeeze', 'lateral_lunge', 'cossack_squat', 'lateral_bound', 'sl_lateral_hop'];
+// Sprints, Sprünge und schnelle Wechsel – bei Zerrungen im Bein bis Ende Woche 2 tabu
+const FAST_LEG_COND = ['sprints', 'shuttle_runs', 'rsa_sprints', 'stair_intervals', 'tabata_bw', 'sled_intervals', 'run_intervals', 'kb_emom', 'db_complex'];
+const fastLegs = (ex) => ex.slot === 'power_lower' || ['sprint_short', 'cod'].includes(ex.slot) || ex.id === 'sl_landing' || FAST_LEG_COND.includes(ex.id);
+// Ausdauer-Formen, die den Oberkörper stark fordern
+const UPPER_COND = { ruecken: ['row_2k', 'skierg_intervals', 'db_complex'], schultern: ['skierg_intervals', 'db_complex'], trizeps: ['skierg_intervals', 'db_complex'], bizeps: ['row_2k', 'db_complex'], brust: ['db_complex'] };
+// Maximal exzentrische Übungen erst ab Woche 3
+const MAX_ECC = ['nordic_curl', 'reverse_nordic', 'neg_pullup'];
+const STRAIN_STRETCH = { beinbeuger: ['ham_stretch'], waden: ['calf_stretch'], adduktoren: ['adductor_stretch'], quadrizeps: ['couch_stretch'], gesaess: ['pigeon'], brust: ['doorway_stretch'], ruecken: ['lat_stretch'], schultern: ['sleeper_stretch'] };
+const STRAIN_HOLD = {
+  beinbeuger: 'iso_ham_bridge', waden: 'iso_calf_hold', quadrizeps: 'wall_sit', adduktoren: 'adductor_squeeze', gesaess: 'iso_glute_bridge',
+  brust: 'iso_palm_press', ruecken: 'iso_row_hold', schultern: 'iso_shoulder_wall', bizeps: 'iso_curl_hold', trizeps: 'iso_triceps_press', bauch: 'iso_brace',
+};
+export const isLegMuscle = (m) => LEG_MUSCLES.includes(m);
+// Belastet die Übung den Muskel hauptsächlich? (Hauptmuskel; bei Würfen/Sprüngen die beteiligten Muskeln)
+export const loadsMuscle = (ex, m) => (m === 'adduktoren' ? ADDUCTOR_EX.includes(ex.id) : ex.prim.includes(m) || (ex.cat === 'power' && ex.sec.includes(m)));
+const plusDays = (iso, n) => todayISO(new Date(new Date(iso + 'T12:00:00').getTime() + n * 86400000));
+
+// Gemeldete Zerrungen der letzten 4 Wochen (bis „wieder gut“); phase 1 = Woche 1, 2 = Woche 2, 3 = ab Woche 3
+export function strainFocus(data, date = todayISO()) {
+  const last = {};
+  for (const s of data.sessions) {
+    const list = (s.feedback && s.feedback.strain) || [];
+    const d = daysBetween(s.date, date);
+    if (!list.length || d < 0 || d >= STRAIN_DAYS) continue;
+    list.forEach((m) => { if (MUSCLE_NAME[m] && (!last[m] || s.date > last[m])) last[m] = s.date; });
+  }
+  const cleared = data.strainCleared || {};
+  return Object.entries(last).filter(([m, d]) => !(cleared[m] && cleared[m] >= d)).map(([muscle, since]) => {
+    const day = daysBetween(since, date);
+    return { muscle, since, day, phase: day < 7 ? 1 : day < 14 ? 2 : 3, until: plusDays(since, STRAIN_DAYS) };
+  });
+}
+
+// Muskelkater gilt am Tag der Angabe und am Folgetag
+export const soreActive = (data, date = todayISO()) => !!(data.sore && data.sore.date && daysBetween(data.sore.date, date) >= 0 && daysBetween(data.sore.date, date) <= 1);
+export const soreMuscles = (data, date = todayISO()) => (soreActive(data, date) ? (data.sore.muscles || []).filter((m) => MUSCLE_NAME[m]) : []);
+
+// Übungen, die wegen einer Zerrung heute nicht vorkommen dürfen
+export function strainAvoid(data, date = todayISO()) {
+  const out = new Set();
+  for (const f of strainFocus(data, date)) {
+    if (f.phase === 3) continue;
+    for (const ex of Object.values(EX)) {
+      if (ex.slot === 'rehab' || ex.cat === 'mobility') continue;
+      if (isLegMuscle(f.muscle) && fastLegs(ex)) out.add(ex.id);
+      else if ((UPPER_COND[f.muscle] || []).includes(ex.id)) out.add(ex.id);
+      else if (loadsMuscle(ex, f.muscle) && (f.phase === 1 || ex.cat === 'power' || MAX_ECC.includes(ex.id))) out.add(ex.id);
+    }
+  }
+  return [...out];
+}
+
+// Lauf-Hinweis bei Beschwerden im Bein (Zerrung Woche 1–2 oder Muskelkater) – sonst ''
+export function legComplaint(data, date = todayISO()) {
+  const st = strainFocus(data, date).find((f) => f.phase < 3 && isLegMuscle(f.muscle));
+  if (st) return `Zerrung (${MUSCLE_NAME[st.muscle]}, Woche ${st.phase}) – nur locker und schmerzfrei laufen, keine Sprints.`;
+  const so = soreMuscles(data, date).filter(isLegMuscle);
+  if (so.length) return `Muskelkater (${so.map((m) => MUSCLE_NAME[m]).join(', ')}) – heute nur locker laufen.`;
+  return '';
+}
+
+// Wendet Zerrung und Muskelkater auf eine fertige Einheit an (vor der Zeitkürzung)
+export function applyMuscleCare(data, session, equip) {
+  const strains = strainFocus(data).filter((f) => f.phase < 3);
+  const sore = soreMuscles(data);
+  if (strains.length) {
+    // Woche 1: den gezerrten Muskel nicht dehnen
+    const noStretch = new Set(strains.filter((f) => f.phase === 1).flatMap((f) => STRAIN_STRETCH[f.muscle] || []));
+    session.blocks.forEach((b) => { if (['warmup', 'cooldown'].includes(b.type)) b.items = b.items.filter((it) => !noStretch.has(it.exId)); });
+    // Woche 2: Übungen für den Muskel kommen mit −30 % Gewicht zurück
+    const p2 = strains.filter((f) => f.phase === 2).map((f) => f.muscle);
+    session.blocks.forEach((b) => b.items.forEach((it) => {
+      const ex = EX[it.exId];
+      if (!ex || ex.cat !== 'strength' || ex.slot === 'rehab' || !p2.some((m) => loadsMuscle(ex, m))) return;
+      it.reduced = true;
+      let cut = false;
+      it.sets.forEach((x) => { const w = Number(x.tw); if (w > 0) { const v = roundTo(w * 0.7, ex.inc || 1); x.tw = v; x.w = v; cut = true; } });
+      it.note = `Nach Zerrung: ${cut ? '−30 % Gewicht' : 'ruhig und kontrolliert, notfalls weniger Wdh.'} – Schmerz bis 4/10 ist okay.`;
+    }));
+    // Woche 1–2: sanfte Halteübung für den Muskel, direkt nach dem Aufwärmen
+    const inSession = new Set(session.blocks.flatMap((b) => b.items.map((i) => i.exId)));
+    const holds = [...new Set(strains.map((f) => STRAIN_HOLD[f.muscle]))].filter((id) => EX[id] && available(EX[id], equip) && !inSession.has(id));
+    if (holds.length) {
+      const items = holds.map((id) => { const it = makeItem(data, EX[id], 3, { rest: 45 }); it.prio = 1; it.note = 'Nur so fest, dass es höchstens leicht zieht (bis 4/10).'; return it; });
+      const at = session.blocks.findIndex((b) => b.type !== 'warmup');
+      const names = strains.map((f) => `${MUSCLE_NAME[f.muscle]} · Woche\u00a0${f.phase}`).join(', ');
+      session.blocks.splice(at < 0 ? session.blocks.length : at, 0, { type: 'stability', strain: true, title: names, items });
+    }
+    if (session.template === 'HYX' && strains.some((f) => isLegMuscle(f.muscle))) {
+      session.note = [session.note, 'Zerrung im Bein: Läufe nur locker, Stationen weglassen, die schmerzen.'].filter(Boolean).join(' ');
+    }
+  }
+  if (sore.length) {
+    let hit = 0;
+    session.blocks.forEach((b) => b.items.forEach((it) => {
+      const ex = EX[it.exId];
+      if (!ex || !['strength', 'power'].includes(ex.cat) || ex.slot === 'rehab' || !it.sets.length) return;
+      if (!sore.some((m) => loadsMuscle(ex, m) || (isLegMuscle(m) && ex.slot === 'power_lower'))) return;
+      if (it.sets.length > 2) it.sets.pop();
+      if (it.tempo && it.tempo !== '4-0-X') { const [e, p, c] = it.tempo.split('-'); if (Number(e) > 2) it.tempo = `2-${p}-${c}`; }
+      hit += 1;
+    }));
+    if (hit) session.note = [session.note, `Muskelkater (${sore.map((m) => MUSCLE_NAME[m]).join(', ')}): 1 Satz weniger und ruhiges Ablassen bei diesen Übungen – lockere Bewegung lindert den Kater.`].join(' ').trim();
+  }
+  return session;
+}
+
 // ---------- Persönliche Rekorde ----------
 const num = (v) => parseFloat(String(v ?? '').replace(',', '.')) || 0;
 function runEntries(data, exclude) {
@@ -1081,6 +1215,8 @@ export function autoRunType(data) {
   const { deload } = blockInfo(data);
   const dtr = daysToRace(data);
   if (dtr !== null && dtr <= 3) return { id: 'run_easy', why: `Noch ${dtr} Tage bis zum Wettkampf – nur kurz und locker.` };
+  const leg = legComplaint(data);
+  if (leg) return { id: 'run_easy', why: leg };
   const runsAll = runActivities(data);
   const hadLongWeek = runsAll.some((r) => r.runType === 'run_long' && daysBetween(r.date, todayISO()) < 6);
   const lastHard = [...data.sessions].reverse().find((x) => daysBetween(x.date, todayISO()) < 2 && effortOf(x) === 'too_hard');
@@ -1157,11 +1293,13 @@ export function buildRunSession(data, { equip, runType }) {
   ];
   // Keine Kraftübungen nach dem Lauf – Kraft kommt aus den Ganzkörper-Einheiten des Wochenplans
   blocks.push({ type: 'cooldown', title: 'Cool-down & Beweglichkeit', items: COOLDOWN.run.map((c) => makeItem(data, EX[c], 0)) });
-  return addRegionWork(data, {
+  const leg = legComplaint(data);
+  const hardPick = leg && id !== auto.id && RUN_INTENSITY[id] !== 'leicht';
+  return applyMuscleCare(data, addRegionWork(data, {
     id: uid(), date: todayISO(), template: 'RUN', title: `Laufeinheit – ${ex.name}`, week, deload,
     source: 'regel', equipment: [...equip], status: 'active', startedAt: Date.now(),
-    note: [taper ? `Tapering: noch ${dtr} Tage bis zum Wettkampf – Umfang runter, Frische zählt.` : '', 'Draußen oder auf dem Laufband. Trag danach Dauer und Strecke ein.'].filter(Boolean).join(' '), blocks,
-  }, equip, { full: false });
+    note: [taper ? `Tapering: noch ${dtr} Tage bis zum Wettkampf – Umfang runter, Frische zählt.` : '', hardPick ? `Achtung: ${leg}` : '', 'Draußen oder auf dem Laufband. Trag danach Dauer und Strecke ein.'].filter(Boolean).join(' '), blocks,
+  }, equip, { full: false }), equip);
 }
 // Je Station das Original, sonst ein Ersatz mit gleichem Bewegungsmuster (Home-Gym, unterwegs)
 const HX_STATIONS = [
@@ -1185,7 +1323,7 @@ export function buildHyroxSession(data, { equip }) {
     { type: 'conditioning', title: 'Stationen (im Wechsel mit den Läufen)', items: stations.map((id) => makeItem(data, EX[id], 0)) },
     { type: 'cooldown', title: 'Cool-down & Beweglichkeit', items: COOLDOWN.full.slice(0, 4).map((c) => makeItem(data, EX[c], 0)) },
   ];
-  return addRegionWork(data, {
+  const hx = addRegionWork(data, {
     id: uid(), date: todayISO(), template: 'HYX', title: 'HYROX – Lauf & Stationen', week, deload,
     source: 'regel', equipment: [...equip], status: 'active', startedAt: Date.now(),
     note: [
@@ -1195,6 +1333,7 @@ export function buildHyroxSession(data, { equip }) {
     ].filter(Boolean).join(' '),
     blocks,
   }, equip, { full: false });
+  return applyMuscleCare(data, hx, equip);
 }
 
 export const activityName = (a) => (a.fromPlan ? a.note : a.type === 'course' && a.note ? `Kurs „${a.note.split(/[,\n]/)[0].trim()}“` : ACT[a.type]?.name || a.type);
@@ -1268,6 +1407,7 @@ export function buildSession(data, { templateId, equip, runType }) {
   if (feel === 'tired') { fb.setDelta = Math.min(fb.setDelta, -1); fb.dropCond = true; fb.notes.push('Heute müde: 1 Satz weniger pro Übung, weniger Sprünge, kein Finisher – Technik sauber, nicht bis ans Limit.'); }
   if (feel === 'fit' && !deload) { fb.mainDelta = Math.max(fb.mainDelta, 1); fb.notes.push('Heute fit: 1 Satz mehr bei den Hauptübungen.'); }
   const ca = compAdjust(data);
+  const strainIds = strainAvoid(data);
   const adj = muscleAdjustments(data);
   const adjUsed = new Set();
   const used = [];
@@ -1278,7 +1418,7 @@ export function buildSession(data, { templateId, equip, runType }) {
   order.forEach(({ sd0, idx }) => {
     const { sd, tag } = sportSlot(goal, tpl, sd0);
     const key = `${templateId}:${idx}${tag}`;
-    const ex = pick(data, key, sd, equip, used, { avoid: fb.avoid, pain: fb.pain, vary: fb.vary, rotate, block, strength: goal.id === 'strength' });
+    const ex = pick(data, key, sd, equip, used, { avoid: fb.avoid, pain: [...fb.pain, ...strainIds], vary: fb.vary, rotate, block, strength: goal.id === 'strength' });
     if (!ex) return;
     used.push(ex.id);
     let a = 0;
@@ -1297,6 +1437,8 @@ export function buildSession(data, { templateId, equip, runType }) {
     const item = makeItem(data, ex, n, { main: sd.main, deload: deload || fb.deload, ...(heavy ? { lo: sd.main ? 3 : 5, hi: sd.main ? 6 : 8, rest: sd.main ? 210 : 150 } : {}), ...primeReps });
     item.prio = sd.prio;
     item.slotKey = key;
+    // Ersatz nur wegen Zerrung → danach wieder die gewohnte Übung
+    if (strainIds.includes(data.slotMemory[key]) && ex.id !== data.slotMemory[key]) item.tempSub = true;
     item.pos = idx;
     capDumbbell(data, ex, item, equip);
     if (sd.keep || ['prev_lower', 'prev_shoulder'].includes(ex.slot)) item.keep = true; // Prävention bleibt auch in Kurzeinheiten
@@ -1314,7 +1456,7 @@ export function buildSession(data, { templateId, equip, runType }) {
   const matchDay = mi && (mi.toMatch === 0 || mi.sinceMatch === 0);
   if (tpl.cond && !((actAdj.dropCond || fb.dropCond || ca.dropCond) && tpl.cond !== 'zone2') && (goal.finisher || ca.addCond || tpl.cond === 'zone2' || tpl.condMain) && !(matchDay && templateId === 'REG')) {
     // Finisher wechselt (bei Zielen mit Abwechslung) reihum zwischen den drei passendsten Formen
-    const cands = COND[tpl.cond].map((id) => EX[id]).filter((e) => available(e, equip));
+    const cands = COND[tpl.cond].map((id) => EX[id]).filter((e) => available(e, equip) && !strainIds.includes(e.id));
     const prevCond = rotate && ['short', 'long'].includes(tpl.cond) ? data.sessions.filter((s) => s.template === templateId && s.blocks.some((b) => b.type === 'conditioning')).length : 0;
     const c = cands.length ? cands[prevCond % Math.min(ROTATE_TOP, cands.length)] : null;
     if (c) blocks.push({ type: 'conditioning', title: tpl.cond === 'zone2' ? 'Ausdauer – locker' : tpl.condMain ? 'Spielausdauer – wiederholte Sprints' : 'Ausdauer-Finisher', items: [makeItem(data, c, 0)] });
@@ -1342,6 +1484,7 @@ export function buildSession(data, { templateId, equip, runType }) {
     blocks,
   };
   addRegionWork(data, session, equip, { full: !tpl.light });
+  applyMuscleCare(data, session, equip);
   // Zone-2-Teil der Regeneration und Spielausdauer sind Hauptinhalt und werden nicht gestrichen
   fitDuration(session, data.profile.duration, equip, !!tpl.condMain || tpl.cond === 'zone2', goal.reps !== 'strength' && !tpl.light);
   const isoItems = strength.filter((it) => ISOLATION.includes(EX[it.exId].slot) && !it.ss);
@@ -1441,7 +1584,7 @@ export function rememberSlots(data, session) {
   data.slotSince = data.slotSince || {};
   const { block } = blockInfo(data, session.date);
   for (const b of session.blocks) for (const it of b.items) {
-    if (!it.slotKey) continue;
+    if (!it.slotKey || it.tempSub) continue;
     const prev = data.slotMemory[it.slotKey];
     if (prev !== it.exId) data.slotSince[it.slotKey] = { b: block, d: session.date };
     else if (!data.slotSince[it.slotKey]) data.slotSince[it.slotKey] = { b: block, d: '' };
@@ -1591,6 +1734,8 @@ export function ruleReview(data, date = todayISO()) {
   compAdjust(data, date).notes.forEach((n) => add('info', n));
   const pf = painFocus(data, date);
   if (pf.length) add('info', `Ausgleich läuft für: ${pf.map((f) => PAIN_NAME[f.region]).join(', ')}.`);
+  const sf = strainFocus(data, date);
+  if (sf.length) add('info', `Zerrung: ${sf.map((f) => `${MUSCLE_NAME[f.muscle]} (${f.phase === 3 ? 'ab Woche 3, wieder normal' : `Woche ${f.phase}`})`).join(', ')}.`);
 
   // Fokus & Zusammenfassung
   const focus = deloadNow ? 'Erholen: Deload-Woche mit weniger Sätzen und −10 % Gewicht.'
@@ -1644,7 +1789,7 @@ export function aiContext(data) {
     })(),
     rueckmeldungen_letzte_einheiten: data.sessions.filter((x) => (x.feedback || x.autoEffort) && daysBetween(x.date, todayISO()) < 21).slice(-6).map((x) => ({
       datum: x.date, einheit: x.title, anstrengung_aus_wdh: effortOf(x) || null,
-      ...(x.feedback ? { gefallen: x.feedback.liked || null, beschwerden: (x.feedback.pain || []).map((p) => PAIN_NAME[p]), ...(x.feedback.note ? { notiz: x.feedback.note } : {}) } : {}),
+      ...(x.feedback ? { gefallen: x.feedback.liked || null, beschwerden: (x.feedback.pain || []).map((p) => PAIN_NAME[p]), zerrung: (x.feedback.strain || []).map((m) => MUSCLE_NAME[m]), ...(x.feedback.note ? { notiz: x.feedback.note } : {}) } : {}),
     })),
     nicht_gemochte_uebungen: (data.dislikes || []).map((id) => EX[id]?.name || id),
     weitere_aktivitaeten_14_tage: recentActivities(data, 14).map((a) => ({

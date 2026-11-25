@@ -24,7 +24,7 @@ export function simulate({ goal, days = 4, weeks = 8, raceInDays = null, duratio
   window.Date = FakeDate; offset = 0;
   try {
     const d = st.load();
-    Object.assign(d, { sessions: [], activities: [], bodyweight: [], slotMemory: {}, slotSince: {}, coach: null, active: null, location: 'gym', today: null, dislikes: [], painCleared: {} });
+    Object.assign(d, { sessions: [], activities: [], bodyweight: [], slotMemory: {}, slotSince: {}, coach: null, active: null, location: 'gym', today: null, dislikes: [], painCleared: {}, strainCleared: {}, sore: null });
     const wd0 = new Date().getDay();
     d.profile = { ...d.profile, goal, days, duration, setup: true, age: 32, weight: 90, goalDate: raceInDays != null ? st.todayISO(new Date(RealDate.now() + raceInDays * 86400000)) : '', sport, season, matchDay: matchRel != null ? String((wd0 + matchRel) % 7) : '' };
     const evening = (type, min) => d.activities.push({ id: st.uid(), type, date: st.todayISO(), minutes: min, intensity: 'hart' });
@@ -324,7 +324,7 @@ export function equipmentBattery() {
   const goals = ['muscle', 'strength', 'fitness', 'lose', 'endurance', 'marathon', 'hyrox', 'sport'];
   for (const goal of goals) {
     const d = st.load();
-    Object.assign(d, { sessions: [], activities: [], bodyweight: [], slotMemory: {}, slotSince: {}, coach: null, active: null, today: null, dislikes: [], painCleared: {} });
+    Object.assign(d, { sessions: [], activities: [], bodyweight: [], slotMemory: {}, slotSince: {}, coach: null, active: null, today: null, dislikes: [], painCleared: {}, strainCleared: {}, sore: null });
     d.profile = { ...d.profile, goal, days: 4, duration: 75, setup: true, age: 32, weight: 90, sport: 'football', season: 'vorbereitung', matchDay: '', zones: [] };
     d.block = { start: st.todayISO() };
     const g = goalOf(d);
@@ -345,6 +345,88 @@ export function equipmentBattery() {
       }
       out.push({ ok: probs.length === 0, text: `${g.name} · ${where}: ${probs.length ? probs.join('; ') : 'ok'}` });
     }
+  }
+  return out;
+}
+
+// Muskelbeschwerden: Zerrung je Muskel in Woche 1/2/3 und Muskelkater – für jedes Ziel und jede Vorlage
+const STRETCH_OF = { beinbeuger: 'ham_stretch', waden: 'calf_stretch', adduktoren: 'adductor_stretch', quadrizeps: 'couch_stretch', gesaess: 'pigeon', brust: 'doorway_stretch', ruecken: 'lat_stretch', schultern: 'sleeper_stretch' };
+const FAST_SLOTS = ['power_lower', 'sprint_short', 'cod'];
+export function complaintBattery() {
+  const out = [];
+  const ago = (n) => st.todayISO(new RealDate(RealDate.now() - n * 86400000));
+  const muscles = Object.keys(eng.MUSCLE_NAME);
+  for (const goal of ['muscle', 'strength', 'fitness', 'endurance', 'hyrox', 'sport']) {
+    const base = st.load();
+    Object.assign(base, { activities: [], bodyweight: [], slotMemory: {}, slotSince: {}, coach: null, active: null, today: null, dislikes: [], painCleared: {}, strainCleared: {}, sore: null });
+    base.profile = { ...base.profile, goal, days: 4, duration: 75, setup: true, age: 32, weight: 90, sport: 'football', season: 'vorbereitung', matchDay: '', zones: [] };
+    base.block = { start: st.todayISO() };
+    const g = goalOf(base);
+    const tpls = [...new Set(Object.values(g.rot).flat())].filter((t) => t !== 'REG');
+    const probs = []; let n = 0;
+    const work = (s) => s.blocks.filter((b) => ['power', 'strength', 'conditioning'].includes(b.type)).flatMap((b) => b.items);
+    for (const m of muscles) {
+      const leg = eng.isLegMuscle(m);
+      for (const [phase, days] of [[1, 2], [2, 9], [3, 16]]) {
+        const d = { ...base, sessions: [{ id: 'strain', date: ago(days), template: 'X', blocks: [], feedback: { strain: [m] } }] };
+        for (const t of tpls) {
+          const s = eng.buildSession(d, { templateId: t, equip: t === 'RUN' ? [] : ALL, runType: 'auto' });
+          n += 1;
+          const w = work(s);
+          const hold = s.blocks.some((b) => b.strain);
+          const tag = `${eng.MUSCLE_NAME[m]} W${phase} ${t}`;
+          if (phase === 1) {
+            const bad = w.filter((i) => eng.loadsMuscle(EX[i.exId], m)).map((i) => i.exId);
+            if (bad.length) probs.push(`${tag}: belastet noch ${bad.join(',')}`);
+            if (STRETCH_OF[m] && s.blocks.some((b) => b.items.some((i) => i.exId === STRETCH_OF[m]))) probs.push(`${tag}: Dehnung ${STRETCH_OF[m]}`);
+          }
+          if (phase < 3) {
+            if (leg && w.some((i) => FAST_SLOTS.includes(EX[i.exId].slot) || ['sprints', 'shuttle_runs', 'rsa_sprints'].includes(i.exId))) probs.push(`${tag}: Sprints/Sprünge`);
+            if (!hold) probs.push(`${tag}: keine Halteübung`);
+            if (t === 'RUN' && leg) { const r = s.blocks.flatMap((b) => b.items).find((i) => i.run); if (r && r.exId !== 'run_easy') probs.push(`${tag}: Lauf ${r.exId}`); }
+          }
+          if (phase === 2) {
+            const unred = w.filter((i) => EX[i.exId].cat === 'strength' && eng.loadsMuscle(EX[i.exId], m) && i.sets.some((x) => Number(x.tw) > 0) && !i.reduced).map((i) => i.exId);
+            if (unred.length) probs.push(`${tag}: nicht reduziert ${unred.join(',')}`);
+            const ecc = w.filter((i) => ['nordic_curl', 'reverse_nordic', 'neg_pullup'].includes(i.exId) && eng.loadsMuscle(EX[i.exId], m)).map((i) => i.exId);
+            if (ecc.length) probs.push(`${tag}: maximal exzentrisch ${ecc.join(',')}`);
+          }
+          if (phase === 3 && (hold || w.some((i) => i.reduced))) probs.push(`${tag}: Anpassung noch aktiv`);
+        }
+      }
+      // Ersatz wegen Zerrung wird nicht gemerkt
+      const d0 = { ...base, sessions: [], slotMemory: {} };
+      const s0 = eng.buildSession(d0, { templateId: tpls[0], equip: ALL, runType: 'auto' }); eng.rememberSlots(d0, s0);
+      const mem = { ...d0.slotMemory };
+      const d1 = { ...d0, slotMemory: { ...mem }, sessions: [{ id: 'strain', date: ago(1), template: 'X', blocks: [], feedback: { strain: [m] } }] };
+      const s1 = eng.buildSession(d1, { templateId: tpls[0], equip: ALL, runType: 'auto' }); s1.date = st.todayISO(); eng.rememberSlots(d1, s1);
+      const changed = Object.keys(mem).filter((k) => d1.slotMemory[k] !== mem[k]);
+      if (changed.length) probs.push(`${eng.MUSCLE_NAME[m]}: Übungs-Erinnerung geändert (${changed.join(',')})`);
+      // Muskelkater: 1 Satz weniger, ruhiges Ablassen
+      const dn = { ...base, sessions: [] };
+      const ds = { ...base, sessions: [], sore: { date: st.todayISO(), muscles: [m] } };
+      for (const t of tpls.filter((x) => !['RUN', 'HYX'].includes(x))) {
+        const a = work(eng.buildSession(dn, { templateId: t, equip: ALL, runType: 'auto' }));
+        const b = work(eng.buildSession(ds, { templateId: t, equip: ALL, runType: 'auto' }));
+        n += 1;
+        for (const it of b) {
+          const ex = EX[it.exId];
+          if (!eng.loadsMuscle(ex, m) || !it.sets.length) continue;
+          const ref = a.find((x) => x.exId === it.exId);
+          if (ref && ref.sets.length > 2 && it.sets.length >= ref.sets.length) probs.push(`Muskelkater ${eng.MUSCLE_NAME[m]} ${t}: ${it.exId} nicht reduziert`);
+          if (it.tempo && it.tempo !== '4-0-X' && Number(it.tempo.split('-')[0]) > 2) probs.push(`Muskelkater ${eng.MUSCLE_NAME[m]} ${t}: ${it.exId} Tempo ${it.tempo}`);
+        }
+      }
+    }
+    // Empfehlung meidet die Region mit Muskelkater
+    const hist = tpls.map((t, i) => ({ id: `h${i}`, date: ago(10 + i), template: t, blocks: [] }));
+    for (const [m, region] of [['beinbeuger', 'lower'], ['brust', 'upper']]) {
+      const rec = eng.recommendTemplate({ ...base, sessions: hist, sore: { date: st.todayISO(), muscles: [m] } });
+      const alt = tpls.some((t) => eng.TEMPLATES[t].focus !== region && !['RUN', 'HYX', 'REG'].includes(t));
+      n += 1;
+      if (alt && eng.TEMPLATES[rec.id].focus === region) probs.push(`Empfehlung trotz Muskelkater ${eng.MUSCLE_NAME[m]}: ${rec.id}`);
+    }
+    out.push({ ok: probs.length === 0, text: `${g.name}: ${n} Fälle – ${probs.length ? probs.slice(0, 6).join('; ') + (probs.length > 6 ? ` … (+${probs.length - 6})` : '') : 'ok'}` });
   }
   return out;
 }

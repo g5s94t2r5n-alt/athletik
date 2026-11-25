@@ -65,7 +65,7 @@ Die Übungen hängen von dem Equipment ab, das du vor dem Training auswählst.
 
 ### Übungsdatenbank & Abwechslung
 
-Die Datenbank umfasst 277 Übungen. Jeder Platz einer Einheit (z. B. „horizontal ziehen“, „Waden“) hat Varianten für Studio, Home-Gym, unterwegs (Band) und reines Körpergewicht. Gewählt wird jeweils die beste verfügbare Variante: im Studio z. B. Rudern am Kabel, zu Hause vorgebeugtes Kurzhantelrudern ohne Bank, unterwegs Tischrudern.
+Die Datenbank umfasst 286 Übungen. Jeder Platz einer Einheit (z. B. „horizontal ziehen“, „Waden“) hat Varianten für Studio, Home-Gym, unterwegs (Band) und reines Körpergewicht. Gewählt wird jeweils die beste verfügbare Variante: im Studio z. B. Rudern am Kabel, zu Hause vorgebeugtes Kurzhantelrudern ohne Bank, unterwegs Tischrudern.
 
 **Wo mehr Übungen etwas bringen – und wo nicht:**
 
@@ -274,9 +274,11 @@ Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:
 
 - **Rekorde:** Beim Abschließen vergleicht die App jede Übung mit allen früheren Einheiten – höheres geschätztes 1RM (Epley) oder schwerster Satz, beim Laufen längste Strecke und schnellste Pace (ab 3 km). Rekorde werden gefeiert, im Verlauf markiert und im Fortschritt gelistet.
 - **Belastung automatisch:** Aus den eingetragenen Wdh. – ≥ 50 % der Kraftsätze unter dem Wdh.-Ziel = zu schwer → nächste Einheit 1 Satz weniger pro Übung, kein Finisher, nächster Lauf locker; zweimal innerhalb kurzer Zeit → Deload-Charakter (−10 % Gewicht). ≥ 80 % am oberen Ende = zu leicht → Hauptübungen +1 Satz.
-- **Beschwerden:** Knie, Schulter, Rücken, Ellbogen, Hüfte, Sprunggelenk. Keine Schonung, sondern 4 Wochen lang Ausgleichsübungen für die Region (s. Abschnitt 6), bis du sie als „wieder gut“ markierst. Dauerhafte Problemzonen lassen sich im Profil auswählen; für sie gibt es den Ausgleich in jeder Einheit.
+- **Beschwerden:** erst „Gelenk“ oder „Muskel“ wählen.
+  - **Gelenk** (Knie, Schulter, Rücken, Ellbogen, Hüfte, Sprunggelenk): keine Schonung, sondern 4 Wochen lang Ausgleichsübungen für die Region (s. Abschnitt 6), bis du sie als „wieder gut“ markierst. Dauerhafte Problemzonen lassen sich im Profil auswählen; für sie gibt es den Ausgleich in jeder Einheit.
+  - **Muskel** (Zerrung, also plötzliches Ziehen oder Stechen): stufenweise Rückkehr über 3 Wochen (s. Abschnitt 6a). Muskelkater kommt erst 1–2 Tage später und wird deshalb vor dem Training unter „Wie fühlst du dich heute?“ angegeben.
 - **Keine Doppelungen:** Jede Übung und jede Variante kommt höchstens einmal pro Einheit vor (z. B. nicht Liegestütze und Enge Liegestütze). Die Hauptübung wird zuerst gewählt, und Supersätze bestehen immer aus zwei verschiedenen Übungen.
-- **Kurze Umfrage:** „Hat es dir gefallen?“ (bei „nein“: nächstes Mal andere Varianten dieser Einheit, einzelne Übungen dauerhaft ausblendbar), „Beschwerden?“ (→ Ausgleich, s. Abschnitt 6) und eine optionale Notiz (Tagebuch im Verlauf).
+- **Kurze Umfrage:** „Hat es dir gefallen?“ (bei „nein“: nächstes Mal andere Varianten dieser Einheit, einzelne Übungen dauerhaft ausblendbar), „Beschwerden?“ (Gelenk → Ausgleich, s. Abschnitt 6; Muskel → Zerrung, s. Abschnitt 6a) und eine optionale Notiz (Tagebuch im Verlauf).
 - Der optionale KI-Wochen-Check mit Claude bekommt Belastung, Gefallen, Beschwerden und Notizen der letzten Einheiten.
 
 ## 6. Ausgleich bei Beschwerden
@@ -300,6 +302,27 @@ Diese Erklärung steht nicht in jeder Einheit, sondern unter Mehr → „Trainin
 | Ellbogen (Tennisarm) | mäßig: exzentrische Kräftigung der Handgelenkstrecker lindert Schmerz, kleine Effekte (Chen & Baker 2021) | Handgelenkstrecker exzentrisch bzw. isometrisch | Armkreisen, Unterarm-Dehnung |
 | Hüfte / Leiste | gut: aktives Adduktorentraining bei Leistenschmerz deutlich wirksamer als passive Therapie (Hölmich 1999); Copenhagen senkt Leistenprobleme (Harøy 2019) | Adduktoren-Drücken bzw. Copenhagen; Clamshell bzw. Seitstütz | Hüftrotation 90/90, Adduktoren-Dehnung, Taube |
 
+## 6a. Muskelbeschwerden: Zerrung und Muskelkater
+
+**Zerrung** – nach dem Training unter „Beschwerden? → Muskel“ melden (Brust, oberer Rücken, Schultern, Bizeps, Trizeps, Oberschenkel vorne, Beinbeuger, Gesäß, Waden, Adduktoren/Leiste, Bauch):
+
+| Zeitraum | Was die App macht |
+|---|---|
+| Woche 1 | Übungen, die den Muskel hauptsächlich belasten, werden ersetzt oder fallen weg. Bei Beinmuskeln keine Sprints, Sprünge und Richtungswechsel, Läufe nur locker. Keine Dehnung des Muskels. Dafür direkt nach dem Aufwärmen eine sanfte Halteübung (isometrisch, 3 × 20–45 s, z. B. Fersen-Brücke für die Beinbeuger). Die Empfehlung ★ meidet die betroffene Körperregion. |
+| Woche 2 | Die Übungen kommen mit −30 % Gewicht zurück und steigen danach normal. Noch keine Sprints, Sprünge und maximal exzentrischen Übungen (Nordic Curls, Reverse Nordics, negative Klimmzüge). Die Halteübung bleibt. |
+| ab Woche 3 | Alles wieder normal. Die Anpassung endet mit „wieder gut“, spätestens nach 4 Wochen. |
+
+- Ersatzübungen gelten nur für die Zeit der Zerrung; danach kommt die gewohnte Übung zurück. Einheiten mit −30 % zählen nicht als Stagnation.
+- **Schmerz-Regel:** bis 4 von 10 ist in Ordnung, wenn es am nächsten Tag nicht schlimmer ist. Rehabilitation bis zur Schmerzgrenze war in einer Studie zu Zerrungen im hinteren Oberschenkel genauso wirksam wie komplett schmerzfreie (Hickey 2020).
+- **Früh beginnen:** Reha-Beginn nach 2 statt 9 Tagen brachte Sportler mit Muskelverletzungen etwa 3 Wochen früher zurück, ohne mehr Rückfälle (Bayer 2017).
+- **Warnzeichen:** Bluterguss, Delle im Muskel oder Schmerzen beim normalen Gehen ärztlich abklären.
+
+**Muskelkater** – vor dem Training unter „Wie fühlst du dich heute?“ angeben. Gilt am Tag der Angabe und am Folgetag:
+- Übungen für diese Muskeln: 1 Satz weniger (mindestens 2), ruhiges Ablassen (höchstens 2 s statt 3 s).
+- Sprünge mit 1 Satz weniger bei Muskelkater in den Beinen, Läufe nur locker.
+- Die Empfehlung ★ meidet die betroffene Körperregion.
+- Muskelkater ist harmlos. Lockere Bewegung lindert ihn kurzfristig, Training ist trotzdem möglich (Cheung 2003).
+
 ## 7. Körperzusammensetzung (optional)
 
 Zum Gewicht können **Muskelmasse (kg)** und **Körperfett (%)** eingetragen werden, z. B. von einer Körperanalyse-Waage. Solche Waagen schwanken von Tag zu Tag deutlich. Die App wertet deshalb nur Mittelwerte und Trends aus: die Messungen der letzten 10 Tage gegen die von vor 3–8 Wochen. Messungen, die älter als 3 Wochen sind, ändern den Plan nicht.
@@ -322,12 +345,14 @@ Der Wochen-Check (Regel-Logik und optional Claude) bewertet die Werte und Trends
 - Andersson S.H. et al. (2017). Preventing overuse shoulder injuries among throwing athletes: a cluster-randomised controlled trial in 660 elite handball players. *Br J Sports Med*.
 - Balsalobre-Fernández C., Santos-Concejero J., Grivas G.V. (2016). Effects of Strength Training on Running Economy in Highly Trained Runners: A Systematic Review With Meta-Analysis of Controlled Trials. *J Strength Cond Res*.
 - Barnes K.R. et al. (2013). Effects of different uphill interval-training programs on running economy and performance. *Int J Sports Physiol Perform*.
+- Bayer M.L., Magnusson S.P., Kjaer M. (2017). Early versus Delayed Rehabilitation after Acute Muscle Injury. *N Engl J Med*.
 - Behm D.G. et al. (2016). Acute effects of muscle stretching on physical performance, range of motion, and injury incidence. *Appl Physiol Nutr Metab*.
 - Bell L. et al. (2023). Integrating Deloading into Strength and Physique Sports Training Programmes: An International Delphi Consensus Approach. *Sports Medicine – Open*.
 - Bishop D., Girard O., Mendez-Villanueva A. (2011). Repeated-Sprint Ability – Part II: Recommendations for Training. *Sports Medicine*.
 - Blagrove R.C., Howatson G., Hayes P.R. (2018). Effects of Strength Training on the Physiological Determinants of Middle- and Long-Distance Running Performance: A Systematic Review. *Sports Medicine*.
 - Buchheit M., Laursen P.B. (2013). High-Intensity Interval Training, Solutions to the Programming Puzzle. Part I & II. *Sports Medicine*.
 - Chen Z., Baker N.A. (2021). Effectiveness of eccentric strengthening in the treatment of lateral elbow tendinopathy: A systematic review with meta-analysis. *J Hand Ther*.
+- Cheung K., Hume P.A., Maxwell L. (2003). Delayed Onset Muscle Soreness: Treatment Strategies and Performance Factors. *Sports Medicine*.
 - Crossley K.M. et al. (2016). 2016 Patellofemoral pain consensus statement from the 4th International Patellofemoral Pain Research Retreat, Manchester. Part 2: recommended physical interventions. *Br J Sports Med*.
 - Dos'Santos T. et al. (2019). Effects of a 6-Week Change of Direction Speed and Technique Modification Training Programme on Cutting Performance and Movement Quality in Male Athletes. *Sports (Basel)*.
 - van Dyk N., Behan F.P., Whiteley R. (2019). Including the Nordic hamstring exercise in injury prevention programmes halves the rate of hamstring injuries: a systematic review and meta-analysis of 8459 athletes. *Br J Sports Med*.
@@ -338,6 +363,7 @@ Der Wochen-Check (Regel-Logik und optional Claude) bewertet die Werte und Trends
 - Helgerud J. et al. (2001). Aerobic endurance training improves soccer performance. *Med Sci Sports Exerc*.
 - Helgerud J. et al. (2007). Aerobic High-Intensity Intervals Improve VO₂max More Than Moderate Training. *Med Sci Sports Exerc*.
 - Hewett T.E. et al. (1999). The effect of neuromuscular training on the incidence of knee injury in female athletes. *Am J Sports Med*.
+- Hickey J.T. et al. (2020). Pain-Free Versus Pain-Threshold Rehabilitation Following Acute Hamstring Strain Injury: A Randomized Controlled Trial. *J Orthop Sports Phys Ther*.
 - Hölmich P. et al. (1999). Effectiveness of active physical training as treatment for long-standing adductor-related groin pain in athletes: randomised trial. *Lancet*.
 - van der Horst N. et al. (2015). The Preventive Effect of the Nordic Hamstring Exercise on Hamstring Injuries in Amateur Soccer Players: A Randomized Controlled Trial. *Am J Sports Med*.
 - Karvonen M.J., Kentala E., Mustala O. (1957). The effects of training on heart rate; a longitudinal study. *Ann Med Exp Biol Fenn*.

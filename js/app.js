@@ -7,6 +7,7 @@ import {
   feedbackAdjust, sessionRecords, allRecords, PAIN_NAME, autoEffort,
   tempoText, intervalPhases, bodyComp, bodyCompSeries, compAdjust, TEMPLATE_GROUPS, groupOf, nextVariant,
   HR_ZONES, hrBase, hrRange, hrPlan, hrSummary, painFocus, ruleReview, defaultRest, goalRir,
+  MUSCLE_NAME, strainFocus, soreActive, soreMuscles,
 } from './engine.js';
 import { weeklyReview, CoachError, MODEL } from './coach.js';
 import { GOALS, GOAL, goalOf, rotationFor, daysToRace, weightStatus, SPORTS, SPORT, SEASONS, SEASON, WEEKDAYS, matchInfo, LEVELS, levelOf, levelHint } from './goals.js';
@@ -140,6 +141,9 @@ function renderToday() {
     <div class="label">Wie fühlst du dich heute?</div>
     <div class="chips">${FEELS.map(([k, l]) => `<button class="chip ${feelToday() === k ? 'on' : ''}" data-action="feel" data-v="${k}">${l}</button>`).join('')}</div>
     <p class="muted small">${feelToday() === 'tired' ? 'Heute 1 Satz weniger pro Übung, weniger Sprünge, kein Finisher, Lauf nur locker.' : feelToday() === 'fit' ? 'Heute 1 Satz mehr bei den Hauptübungen (nicht im Deload).' : 'Normaler Plan.'}</p>
+    <div class="chips"><button class="chip ${soreActive(data) ? 'on' : ''}" data-action="sore-toggle">Muskelkater</button></div>
+    ${soreActive(data) ? `<div class="chips">${Object.entries(MUSCLE_NAME).map(([k, l]) => `<button class="chip small ${soreMuscles(data).includes(k) ? 'on' : ''}" data-action="sore-muscle" data-id="${k}">${l}</button>`).join('')}</div>
+    <p class="muted small">${soreMuscles(data).length ? 'Bis morgen: 1 Satz weniger und ruhiges Ablassen bei Übungen für diese Muskeln, die Empfehlung ★ meidet sie.' : 'Wo hast du Muskelkater?'}</p>` : ''}
   </section>
 
   <section class="card">
@@ -150,6 +154,15 @@ function renderToday() {
   ${(() => { const pf = painFocus(data); return pf.length ? `<div class="card soft"><div class="label">Ausgleich bei Beschwerden</div>
     <p>Jede Einheit enthält zusätzlich Stabilisations-, Mobilitäts- und Dehnübungen für ${pf.map((f) => `<b>${esc(PAIN_NAME[f.region])}</b> (${f.permanent ? 'dauerhaft, Profil' : `bis ${fmtDate(f.until)}`})`).join(', ')}. <button class="link" data-action="guide" data-sec="ausgleich">Erklärung &amp; Schmerz-Regel</button></p>
     ${pf.some((f) => !f.permanent) ? `<div class="chips">${pf.filter((f) => !f.permanent).map((f) => `<button class="chip small" data-action="pain-clear" data-region="${f.region}">${esc(PAIN_NAME[f.region])} wieder gut ✓</button>`).join('')}</div>` : ''}</div>` : ''; })()}
+  ${(() => {
+    const sf = strainFocus(data);
+    if (!sf.length) return '';
+    const what = (f) => (f.phase === 1 ? 'Woche 1: belastende Übungen ersetzt, nicht dehnen, sanfte Halteübung' : f.phase === 2 ? 'Woche 2: Übungen mit −30 % Gewicht zurück' : 'ab Woche 3: wieder normal, Schmerz bis 4/10 ist okay');
+    const fast = (f) => (f.phase < 3 && ['quadrizeps', 'beinbeuger', 'gesaess', 'waden', 'adduktoren'].includes(f.muscle) ? ', noch keine Sprints und Sprünge' : '');
+    return `<div class="card soft"><div class="label">Zerrung</div>
+    <p>${sf.map((f) => `<b>${esc(MUSCLE_NAME[f.muscle])}</b> – ${what(f)}${fast(f)} (bis ${fmtDate(f.until)}).`).join('<br>')} <button class="link" data-action="guide" data-sec="muskel">Erklärung</button></p>
+    <div class="chips">${sf.map((f) => `<button class="chip small" data-action="strain-clear" data-m="${f.muscle}">${esc(MUSCLE_NAME[f.muscle])} wieder gut ✓</button>`).join('')}</div></div>`;
+  })()}
   ${(() => { const n = [...(todayTpl === 'REG' ? [] : activityAdjust(data, TEMPLATES[todayTpl].focus).notes), ...(todayTpl === 'RUN' ? [] : feedbackAdjust(data, todayTpl).notes), ...(TEMPLATES[todayTpl].slots.length ? compAdjust(data).notes : [])]; return n.length ? `<div class="card soft"><div class="label">Berücksichtigt</div><p>${n.map(esc).join('<br>')}</p></div>` : ''; })()}
 
   <div class="actions">
@@ -240,7 +253,7 @@ function renderSession() {
   <div class="progress-line"><div style="width:${allSets ? (doneSets / allSets) * 100 : 0}%"></div></div>
   ${s.blocks.map((b, bi) => `
     <section class="block">
-      <h2 class="block-title"><span class="tag t-${b.type}">${BLOCK_ICON[b.type] || ''}</span> ${esc(b.title)}${b.type === 'stability' ? ' <button class="link small" data-action="guide" data-sec="ausgleich">Erklärung</button>' : ''}</h2>
+      <h2 class="block-title"><span class="tag t-${b.type}">${b.strain ? 'Zerrung' : BLOCK_ICON[b.type] || ''}</span> ${esc(b.title)}${b.type === 'stability' ? ` <button class="link small" data-action="guide" data-sec="${b.strain ? 'muskel' : 'ausgleich'}">Erklärung</button>` : ''}</h2>
       ${b.items.map((it, ii) => renderItem(it, bi, ii, b.type)).join('')}
     </section>`).join('')}
   <div class="actions">
@@ -262,7 +275,7 @@ function renderItem(it, bi, ii, type) {
       ${!tracked ? `<button class="check ${it.done ? 'on' : ''}" data-action="item-done" data-b="${bi}" data-i="${ii}" aria-label="Erledigt"></button>` : ''}
       <div class="ex-name">
         <strong>${esc(ex.name)}</strong>${it.ss ? ` <span class="ss-tag">Supersatz ${esc(it.ss)}</span>` : ''}
-        <div class="muted small">${tracked ? `${it.sets.length} × ${it.lo}–${it.hi} Wdh.${showW && Number(it.sets[0]?.tw) > 0 ? ` · <b class="rw">Richtwert ${ex.load === 'bw' ? '+' : ''}${fmtW(it.sets[0].tw)} kg</b>` : ''}${showW && ex.load === 'bw' ? ' · kg = Zusatzgewicht' : ''} · Pause&nbsp;${it.rest < 120 ? `${it.rest}&nbsp;s` : `${num(it.rest / 60)}&nbsp;min`}` : esc(it.presc || ex.presc)}</div>
+        <div class="muted small">${tracked ? `${it.sets.length} × ${it.lo}–${it.hi} ${ex.unit === 's' ? 's' : 'Wdh.'}${showW && Number(it.sets[0]?.tw) > 0 ? ` · <b class="rw">Richtwert ${ex.load === 'bw' ? '+' : ''}${fmtW(it.sets[0].tw)} kg</b>` : ''}${showW && ex.load === 'bw' ? ' · kg = Zusatzgewicht' : ''} · Pause&nbsp;${it.rest < 120 ? `${it.rest}&nbsp;s` : `${num(it.rest / 60)}&nbsp;min`}` : esc(it.presc || ex.presc)}</div>
       </div>
       <button class="icon-btn" data-action="video" data-ex="${ex.id}" aria-label="Video">${ICON_PLAY}</button>
     </div>
@@ -279,7 +292,7 @@ function renderItem(it, bi, ii, type) {
     </div>` : ''}
     ${tracked ? `
     <div class="sets">
-      <div class="set-row head"><span>Satz</span>${showW ? '<span>kg</span>' : '<span></span>'}<span>Wdh.</span><span></span></div>
+      <div class="set-row head"><span>Satz</span>${showW ? '<span>kg</span>' : '<span></span>'}<span>${ex.unit === 's' ? 'Sek.' : 'Wdh.'}</span><span></span></div>
       ${it.sets.map((st, si) => `
       <div class="set-row ${st.done ? 'done' : ''}">
         <span class="set-n">${si + 1}</span>
@@ -410,7 +423,7 @@ function recordText(r) {
 
 let fbDraft = null;
 function openFeedback(s) {
-  fbDraft = { sid: s.id, liked: '', pain: [], dislikes: [], note: '' };
+  fbDraft = { sid: s.id, liked: '', pain: [], strain: [], joint: false, muscle: false, dislikes: [], note: '' };
   feedbackModal();
 }
 
@@ -431,7 +444,16 @@ function feedbackModal() {
     ${(f.liked === 'no' || f.liked === 'meh') && exs.length ? `<div class="label">Welche Übungen magst du nicht? <span class="muted small">(werden künftig ersetzt)</span></div>
       <div class="chips">${exs.map((id) => `<button class="chip small ${f.dislikes.includes(id) ? 'on' : ''}" data-action="fb-dislike" data-id="${id}">${esc(EX[id]?.name || id)}</button>`).join('')}</div>` : ''}
     <div class="label">Beschwerden?</div>
-    <div class="chips"><button class="chip ${!f.pain.length ? 'on' : ''}" data-action="fb-pain" data-id="none">Keine</button>${Object.entries(PAIN_NAME).map(([k, l]) => `<button class="chip ${f.pain.includes(k) ? 'on' : ''}" data-action="fb-pain" data-id="${k}">${l}</button>`).join('')}</div>
+    <div class="chips">
+      <button class="chip ${!f.joint && !f.muscle ? 'on' : ''}" data-action="fb-pain" data-id="none">Keine</button>
+      <button class="chip ${f.joint ? 'on' : ''}" data-action="fb-kind" data-k="joint">Gelenk</button>
+      <button class="chip ${f.muscle ? 'on' : ''}" data-action="fb-kind" data-k="muscle">Muskel</button>
+    </div>
+    ${f.joint ? `<div class="label">Welches Gelenk?</div>
+    <div class="chips">${Object.entries(PAIN_NAME).map(([k, l]) => `<button class="chip small ${f.pain.includes(k) ? 'on' : ''}" data-action="fb-pain" data-id="${k}">${l}</button>`).join('')}</div>` : ''}
+    ${f.muscle ? `<div class="label">Welcher Muskel?</div>
+    <div class="chips">${Object.entries(MUSCLE_NAME).map(([k, l]) => `<button class="chip small ${f.strain.includes(k) ? 'on' : ''}" data-action="fb-strain" data-id="${k}">${l}</button>`).join('')}</div>
+    <p class="muted small">Für plötzliches Ziehen oder Stechen, z. B. eine Zerrung. Muskelkater gibst du vor dem nächsten Training unter „Wie fühlst du dich heute?“ an.</p>` : ''}
     <label class="field"><span>Notiz (optional)</span><textarea class="in wide" id="fb-note" rows="2" placeholder="z. B. Kniebeuge lief super, Schulter zwickt bei Überkopf">${esc(f.note)}</textarea></label>
     ${claudeHint('Steht im Verlauf als Tagebuch; beim Wochen-Check mit Claude wird sie zusätzlich berücksichtigt.')}
     <button class="btn primary" data-action="fb-save">Speichern</button>
@@ -441,8 +463,8 @@ function feedbackModal() {
 function saveFeedback() {
   const s = data.sessions.find((x) => x.id === fbDraft.sid);
   if (s) {
-    const { liked, pain, dislikes, note } = fbDraft;
-    s.feedback = { liked, pain: [...pain], dislikes: [...dislikes], note: note.trim(), at: todayISO() };
+    const { liked, pain, strain, joint, muscle, dislikes, note } = fbDraft;
+    s.feedback = { liked, pain: joint ? [...pain] : [], strain: muscle ? [...strain] : [], dislikes: [...dislikes], note: note.trim(), at: todayISO() };
     data.dislikes = [...new Set([...(data.dislikes || []), ...dislikes])];
     persist();
   }
@@ -649,6 +671,7 @@ function videoModal(exId) {
 // Erklärung der Trainingseinheiten (Mehr → Trainingseinheiten erklärt); sec öffnet einen Abschnitt direkt
 function guideModal(sec = 'aufbau') {
   const pf = painFocus(data);
+  const sfNow = strainFocus(data);
   const rir = goalRir(data);
   const part = (id, title, body) => `<details class="guide" data-sec="${id}" ${id === sec ? 'open' : ''}><summary>${title}</summary><div class="guide-body">${body}</div></details>`;
   openModal(`
@@ -671,10 +694,20 @@ function guideModal(sec = 'aufbau') {
       <p><b>Gleicher Buchstabe = ein Paar.</b> Im Wechsel:</p>
       <p class="guide-now">A1 → Pause → A2 → Pause → A1 … bis alle Sätze fertig sind. Dann B1/B2.</p>
       <p>Ein Muskel erholt sich, während der Gegenspieler arbeitet: gleiche Wirkung, weniger Zeit. Nie bei Beinen, Sprüngen oder schweren Kraftsätzen.</p>`)}
-    ${part('ausgleich', 'Ausgleich bei Beschwerden', `
+    ${part('ausgleich', 'Gelenkbeschwerden', `
       ${pf.length ? `<p class="guide-now">Aktuell: ${pf.map((f) => `<b>${esc(PAIN_NAME[f.region])}</b> (${f.permanent ? 'dauerhaft' : `bis ${fmtDate(f.until)}`})`).join(', ')}</p>` : ''}
       <p>Nach gemeldeten Beschwerden 4 Wochen lang (oder bis „wieder gut“), bei Problemzonen im Profil immer: Stabilisation vor dem Krafttraining, Mobilität im Aufwärmen, Dehnen im Cool-down.</p>
       <p><b>Schmerz-Regel:</b> Bis 3–5 von 10 ist okay, wenn es bis zum nächsten Morgen abklingt. Sonst Gewicht reduzieren oder Übung tauschen. Bei anhaltenden oder starken Schmerzen zum Arzt.</p>`)}
+    ${part('muskel', 'Zerrung &amp; Muskelkater', `
+      ${sfNow.length ? `<p class="guide-now">Aktuell: ${sfNow.map((f) => `<b>${esc(MUSCLE_NAME[f.muscle])}</b> (${f.phase < 3 ? `Woche ${f.phase}` : 'ab Woche 3'})`).join(', ')}</p>` : ''}
+      <p><b>Zerrung</b> (plötzliches Ziehen oder Stechen) – nach dem Training unter „Muskel“ melden:</p>
+      <ul>
+        <li><b>Woche 1:</b> Übungen für den Muskel werden ersetzt, nicht dehnen, dafür eine sanfte Halteübung.</li>
+        <li><b>Woche 2:</b> die Übungen kommen mit −30&nbsp;% Gewicht zurück.</li>
+        <li><b>Ab Woche 3:</b> wieder normal – erst jetzt auch Sprints, Sprünge und Nordic Curls.</li>
+      </ul>
+      <p>Schmerz bis 4 von 10 ist okay. Bluterguss, Delle im Muskel oder Schmerzen beim Gehen: zum Arzt.</p>
+      <p><b>Muskelkater</b> – vor dem Training unter „Wie fühlst du dich heute?“ angeben: bis morgen 1 Satz weniger und ruhiges Ablassen für diese Muskeln. Lockere Bewegung hilft.</p>`)}
     ${part('fortschritt', 'Gewicht &amp; Fortschritt', `
       <ul>
         <li><b>3 × 8–12 Wdh.</b> = 3 Sätze à 8–12 Wiederholungen. <b>Richtwert</b> = vorgeschlagenes Gewicht (Medizinball: Ballgewicht).</li>
@@ -1014,7 +1047,7 @@ function renderSessionCard(s) {
           <span class="muted">${it.sets.length ? it.sets.filter((x) => x.done).map((x) => `${x.w !== '' && x.w != null && EX[it.exId]?.load !== 'none' ? `${num(Number(x.w))}×` : ''}${x.r}`).join(' · ') : '✓'}</span></div>`).join('')}
         ${(s.records || []).length ? `<div class="pr-box small">${s.records.map((r) => { const t = recordText(r); return `<div class="pr-row"><b>${esc(t.name)}</b><span>${esc(t.text)}</span></div>`; }).join('')}</div>` : ''}
         ${s.autoEffort ? `<p class="muted small mt-s">Belastung laut Wdh.: ${({ easy: 'eher zu leicht', right: 'passend', too_hard: 'eher zu schwer' })[s.autoEffort]}</p>` : ''}
-        ${s.feedback ? `<p class="muted small mt-s">Rückmeldung: ${esc([s.feedback.liked ? ({ yes: 'gefallen', meh: 'geht so', no: 'nicht gefallen' })[s.feedback.liked] : '', ...(s.feedback.pain || []).map((p) => PAIN_NAME[p])].filter(Boolean).join(' · ') || '–')}${s.feedback.note ? ` – „${esc(s.feedback.note)}“` : ''}</p>` : `<button class="link mt" data-action="fb-later" data-id="${s.id}">Rückmeldung geben</button>`}
+        ${s.feedback ? `<p class="muted small mt-s">Rückmeldung: ${esc([s.feedback.liked ? ({ yes: 'gefallen', meh: 'geht so', no: 'nicht gefallen' })[s.feedback.liked] : '', ...(s.feedback.pain || []).map((p) => PAIN_NAME[p]), ...(s.feedback.strain || []).map((m) => `Zerrung ${MUSCLE_NAME[m]}`)].filter(Boolean).join(' · ') || '–')}${s.feedback.note ? ` – „${esc(s.feedback.note)}“` : ''}</p>` : `<button class="link mt" data-action="fb-later" data-id="${s.id}">Rückmeldung geben</button>`}
         <div class="hist-actions">
           ${s.blocks.some((b) => b.items.length) ? `<button class="btn small" data-action="repeat" data-id="${s.id}">Nochmal machen</button>` : ''}
           <button class="link danger" data-action="del-session" data-id="${s.id}">Einheit löschen</button>
@@ -1317,7 +1350,21 @@ document.addEventListener('click', async (e) => {
     case 'guide': guideModal(t.dataset.sec); break;
     case 'force-update': forceUpdate(); break;
     case 'fb': fbDraft[t.dataset.k] = fbDraft[t.dataset.k] === t.dataset.v ? '' : t.dataset.v; feedbackModal(); break;
-    case 'fb-pain': { const id = t.dataset.id; fbDraft.pain = id === 'none' ? [] : fbDraft.pain.includes(id) ? fbDraft.pain.filter((x) => x !== id) : [...fbDraft.pain, id]; feedbackModal(); break; }
+    case 'fb-pain': {
+      const id = t.dataset.id;
+      if (id === 'none') Object.assign(fbDraft, { pain: [], strain: [], joint: false, muscle: false });
+      else fbDraft.pain = fbDraft.pain.includes(id) ? fbDraft.pain.filter((x) => x !== id) : [...fbDraft.pain, id];
+      feedbackModal(); break;
+    }
+    case 'fb-kind': fbDraft[t.dataset.k] = !fbDraft[t.dataset.k]; feedbackModal(); break;
+    case 'fb-strain': { const id = t.dataset.id; fbDraft.strain = fbDraft.strain.includes(id) ? fbDraft.strain.filter((x) => x !== id) : [...fbDraft.strain, id]; feedbackModal(); break; }
+    case 'strain-clear': data.strainCleared = { ...(data.strainCleared || {}), [t.dataset.m]: todayISO() }; persist(); render(); toast('Schön! Die Zerrungs-Anpassung endet.'); break;
+    case 'sore-toggle': data.sore = soreActive(data) ? null : { date: todayISO(), muscles: [] }; persist(); render(); break;
+    case 'sore-muscle': {
+      const ms = soreMuscles(data); const id = t.dataset.id;
+      data.sore = { date: todayISO(), muscles: ms.includes(id) ? ms.filter((x) => x !== id) : [...ms, id] };
+      persist(); render(); break;
+    }
     case 'fb-dislike': { const id = t.dataset.id; fbDraft.dislikes = fbDraft.dislikes.includes(id) ? fbDraft.dislikes.filter((x) => x !== id) : [...fbDraft.dislikes, id]; feedbackModal(); break; }
     case 'fb-save': saveFeedback(); break;
     case 'fb-skip': fbDraft = null; closeModal(); toast('Okay – du kannst die Rückmeldung im Verlauf nachholen.'); break;

@@ -1064,23 +1064,20 @@ function renderProgress() {
   const tracked = trackedExercises(data);
   if (!progressEx || !tracked.some((e) => e.id === progressEx)) progressEx = tracked[0]?.id || null;
   const bw = bodyweightSeries(data);
-  const planWeek = data.sessions.filter((s) => daysBetween(s.date, todayISO()) < 7).length;
-  const actWeek = (data.activities || []).filter((a) => { const d = daysBetween(a.date, todayISO()); return d >= 0 && d < 7; }).length;
+  // Kalenderwoche Mo–So statt der letzten 7 Tage
+  const now = new Date();
+  const monday = todayISO(new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7)));
+  const sunday = todayISO(new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7) + 6));
+  const inWeek = (d) => d >= monday && d <= sunday;
+  const planWeek = data.sessions.filter((s) => inWeek(s.date)).length;
+  const actWeek = (data.activities || []).filter((a) => inWeek(a.date)).length;
   const thisWeek = planWeek + actWeek;
   const todayBw = data.bodyweight.find((e) => e.date === todayISO());
   return `
   <header class="page-head"><h1>Fortschritt</h1></header>
   <div class="tiles">
-    <div class="tile"><div class="tile-label">Einheiten · letzte 7 Tage</div><div class="tile-val">${thisWeek}<span class="muted small"> / ${data.profile.days}</span></div>
+    <div class="tile"><div class="tile-label">Einheiten diese Woche · ${fmtDate(monday)} – ${fmtDate(sunday)}</div><div class="tile-val">${thisWeek}<span class="muted small"> / ${data.profile.days}</span></div>
       <div class="tile-delta">${planWeek} aus dem Plan · ${actWeek} nachgetragen</div></div>
-
-    ${goalOf(data).weightGoal ? (() => {
-      const ws = weightStatus(data, bw);
-      if (ws.perWeek == null) return '<div class="tile"><div class="tile-label">Abnehm-Tempo</div><div class="tile-val">–</div><div class="tile-delta">Ab 1 Woche Messungen sichtbar</div></div>';
-      const pct = -ws.pctWeek;
-      const verdict = pct < 0.25 ? 'langsam – Defizit prüfen' : pct <= 1 ? 'im Zielbereich 0,5–1 %' : 'schnell – Muskeln schützen';
-      return `<div class="tile"><div class="tile-label">Abnehm-Tempo</div><div class="tile-val">${ws.perWeek <= 0 ? '−' : '+'}${num(Math.abs(ws.perWeek))}<span class="muted small"> kg/Woche</span></div><div class="tile-delta">${num(Math.abs(ws.pctWeek))} % · ${verdict}</div></div>`;
-    })() : ''}
   </div>
 
   <section class="card">

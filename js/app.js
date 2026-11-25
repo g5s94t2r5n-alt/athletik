@@ -654,72 +654,33 @@ function guideModal(sec = 'aufbau') {
   openModal(`
     <h2>Trainingseinheiten erklärt</h2>
     ${part('aufbau', 'Aufbau einer Einheit', `
-      <p>Die Blöcke kommen immer in dieser Reihenfolge:</p>
-      <ul>
-        <li><b>Aufwärmen &amp; Mobilität</b> – Puls hoch, Gelenke beweglich. Einfach abhaken.</li>
-        <li><b>Schnellkraft</b> – Sprünge, Würfe, Sprints. Ganz am Anfang, solange du frisch bist: jede Wiederholung maximal schnell, volle Pausen.</li>
-        <li><b>Ausgleich</b> – nur bei Beschwerden oder Problemzonen (siehe unten).</li>
-        <li><b>Kraft</b> – erst die Hauptübungen (schwer, lange Pausen), dann Ergänzungs- und Isolationsübungen.</li>
-        <li><b>Ausdauer</b> – Finisher oder Intervalle am Ende, damit sie das Krafttraining nicht schwächen.</li>
-        <li><b>Cool-down &amp; Beweglichkeit</b> – Dehnen und Mobilität zum Runterkommen.</li>
-      </ul>`)}
-    ${part('timing', 'Timing: Tempo, Pausen, Dauer', `
-      <p><b>Tempo</b> – z. B. „Tempo 3 s ablassen – 1 s Pause – 1 s zurück“ unter der Übung:</p>
       <ol>
-        <li><b>Ablassen</b> – das Gewicht geht runter, der Muskel wird gedehnt (Kniebeuge abwärts, beim Rudern Arme lang).</li>
-        <li><b>Pause</b> – in der Dehnung am tiefsten Punkt halten, nicht abfedern. Steht keine Pause da: direkt umkehren.</li>
-        <li><b>Zurück</b> – hochdrücken bzw. heranziehen. <b>Explosiv</b> = so schnell wie möglich gewollt, auch wenn sich ein schweres Gewicht langsam bewegt.</li>
-      </ol>
-      <p>Kurzform in Sekunden: 3-1-1 = 3 s ablassen, 1 s Pause, 1 s zurück; X = explosiv. Das Tempo wechselt im Block:</p>
+        <li><b>Aufwärmen</b> – einfach abhaken.</li>
+        <li><b>Schnellkraft</b> – solange du frisch bist: maximal schnell, volle Pausen.</li>
+        <li><b>Ausgleich</b> – nur bei Beschwerden.</li>
+        <li><b>Kraft</b> – erst die Hauptübungen, dann Ergänzungen.</li>
+        <li><b>Ausdauer</b> – am Ende.</li>
+        <li><b>Cool-down</b> – Dehnen.</li>
+      </ol>`)}
+    ${part('timing', 'Tempo &amp; Pausen', `
+      <p><b>Tempo</b> „3&nbsp;s ablassen – 1&nbsp;s Pause – 1&nbsp;s zurück“: Gewicht 3 s runter, unten 1 s halten, 1 s hoch. <b>Explosiv</b> = so schnell wie möglich.</p>
+      <p>Woche 1–2 langsamer für die Technik, Woche 3–4 zügiger, im Deload ruhig.</p>
+      <p><b>Pausen</b> starten beim Abhaken automatisch: Hauptübungen 3 min, Schnellkraft 2 min, sonst meist 90 s.</p>
+      <p><b>Zu wenig Zeit?</b> Erst Supersätze, dann fallen Ergänzungen weg. Hauptübungen bleiben.</p>`)}
+    ${part('supersatz', 'Supersätze A1 / A2', `
+      <p><b>Gleicher Buchstabe = ein Paar.</b> Im Wechsel:</p>
+      <p class="guide-now">A1 → Pause → A2 → Pause → A1 … bis alle Sätze fertig sind. Dann B1/B2.</p>
+      <p>Ein Muskel erholt sich, während der Gegenspieler arbeitet: gleiche Wirkung, weniger Zeit. Nie bei Beinen, Sprüngen oder schweren Kraftsätzen.</p>`)}
+    ${part('ausgleich', 'Ausgleich bei Beschwerden', `
+      ${pf.length ? `<p class="guide-now">Aktuell: ${pf.map((f) => `<b>${esc(PAIN_NAME[f.region])}</b> (${f.permanent ? 'dauerhaft' : `bis ${fmtDate(f.until)}`})`).join(', ')}</p>` : ''}
+      <p>Nach gemeldeten Beschwerden 4 Wochen lang (oder bis „wieder gut“), bei Problemzonen im Profil immer: Stabilisation vor dem Krafttraining, Mobilität im Aufwärmen, Dehnen im Cool-down.</p>
+      <p><b>Schmerz-Regel:</b> Bis 3–5 von 10 ist okay, wenn es bis zum nächsten Morgen abklingt. Sonst Gewicht reduzieren oder Übung tauschen. Bei anhaltenden oder starken Schmerzen zum Arzt.</p>`)}
+    ${part('fortschritt', 'Gewicht &amp; Fortschritt', `
       <ul>
-        <li><b>Woche 1–2:</b> 3-1-1 – langsamer, für Technik und Kontrolle.</li>
-        <li><b>Woche 3–4:</b> 2-0-X – mehr Gewicht, explosiv zurück (Isolation 2-1-1).</li>
-        <li><b>Deload:</b> 2-0-1 – ruhig und locker.</li>
-        <li><b>Ausnahmen:</b> Waden immer 2-2-1 (die Pause unten nimmt den Federeffekt der Achillessehne raus), Nordic Curls so langsam wie möglich ablassen, Rumpf- und Landeübungen ohne Tempo. In der Saison keine betont langsame Abwärtsphase, damit vor Spielen kein Muskelkater entsteht.</li>
-      </ul>
-      <p><b>Pausen</b> – stehen hinter den Wiederholungen. Hakst du einen Satz ab, startet die Pausen-Uhr automatisch und piept am Ende.</p>
-      <ul>
-        <li>Hauptübungen, Kniebeuge- und Hüftübungen: <b>3 min</b></li>
-        <li>Schnellkraft: <b>2 min</b></li>
-        <li>übrige Kraftübungen: <b>90 s</b></li>
-        <li>Supersätze: <b>90 s</b>, bei Isolation <b>60 s</b> nach jedem Satz</li>
-        <li>Ausgleichsübungen: <b>45 s</b></li>
-      </ul>
-      <p><b>Dauer</b> – „ca. … min“ oben in der Einheit wird aus Sätzen und Pausen geschätzt. Passt die Einheit nicht in deine Zeit (Training → Zeit heute), kürzt die App in dieser Reihenfolge: lange Intervalle werden kurze, dann Supersätze (nicht bei Kraftaufbau), dann fallen Ergänzungsübungen und einzelne Sätze weg. Hauptübungen und Prävention bleiben.</p>`)}
-    ${part('supersatz', 'Supersätze: A1, A2, B1 …', `
-      <p>Bei knapper Zeit kombiniert die App zwei Gegenspieler zu einem Paar. <b>Gleicher Buchstabe = ein Paar</b>, die Zahl ist die Reihenfolge.</p>
-      <p>Beispiel <b>A1</b> Bankdrücken und <b>A2</b> Rudern, je 3 Sätze:</p>
-      <ol>
-        <li>1 Satz A1, abhaken → Pause</li>
-        <li>1 Satz A2, abhaken → Pause</li>
-        <li>wieder A1, dann A2 … bis alle Sätze beider Übungen fertig sind.</li>
-      </ol>
-      <p>Danach kommt B1/B2 genauso, anschließend die übrigen Übungen ganz normal.</p>
-      <ul>
-        <li><b>Paare:</b> A = waagerecht drücken + ziehen, B = über Kopf drücken + von oben ziehen, C = Bizeps + Trizeps.</li>
-        <li><b>Warum:</b> Während der Gegenspieler arbeitet, erholt sich der andere Muskel. Bis zu seinem nächsten Satz hat jeder Muskel trotzdem 3–4 min. So bleibt die Trainingswirkung gleich, die Einheit wird deutlich kürzer (Robbins 2010; Zhang 2025). Für den Kreislauf ist es etwas anstrengender.</li>
-        <li><b>Nie als Supersatz:</b> Beinübungen, Sprünge und Sprints, schwere Kraftsätze – dort sind volle Pausen besser.</li>
-        <li><b>Tauschen</b> behält das Paar. <b>Entfernst</b> du eine Übung, wird der Partner wieder ein normaler Satz mit normaler Pause.</li>
-      </ul>`)}
-    ${part('ausgleich', 'Ausgleichsübungen bei Beschwerden', `
-      ${pf.length ? `<p class="guide-now">Aktuell für ${pf.map((f) => `<b>${esc(PAIN_NAME[f.region])}</b> (${f.permanent ? 'dauerhaft' : `bis ${fmtDate(f.until)}`})`).join(', ')}.</p>` : ''}
-      <p><b>Wann:</b> Meldest du nach dem Training Beschwerden, gibt es 4 Wochen lang Ausgleichsübungen für diese Region – oder bis du unter Training „wieder gut“ tippst. Für die dauerhaften Problemzonen in deinem Profil gibt es sie in jeder Einheit.</p>
-      <p><b>Was dazukommt:</b></p>
-      <ul>
-        <li>Block „Ausgleich“ vor dem Krafttraining: Stabilisations- und Kräftigungsübungen für die Region, je 2 Sätze, 45 s Pause</li>
-        <li>eine Mobilitätsübung im Aufwärmen</li>
-        <li>1–2 Dehnungen im Cool-down</li>
-      </ul>
-      <p>Bei Lauf- und HYROX-Einheiten und der Aktivierung vor dem Spiel nur Mobilität und Dehnen.</p>
-      <p><b>Schmerz-Regel:</b> Keine Schonung – belastende Übungen bleiben im Plan. Beschwerden bis etwa 3–5 von 10 sind bei allen Übungen in Ordnung, wenn sie bis zum nächsten Morgen abklingen. Sonst Gewicht oder Umfang reduzieren oder die Übung tauschen. Dosierte Belastung wirkt in Studien genauso gut wie Pausieren (Silbernagel 2007). Bei anhaltenden oder starken Schmerzen ärztlich abklären.</p>`)}
-    ${part('fortschritt', 'Gewicht, Fortschritt und Block', `
-      <ul>
-        <li><b>„3 × 8–12 Wdh.“</b> = 3 Sätze mit je 8–12 Wiederholungen. Der <b>Richtwert</b> ist das vorgeschlagene Gewicht – bei einer neuen Übung geschätzt aus deinen bisherigen Leistungen bei anderen Übungen (ohne Verlauf aus deinem Profil).</li>
-        <li><b>Medizinball:</b> Der Richtwert ist das Ballgewicht. Lieber etwas leichter – jeder Wurf soll maximal schnell sein.</li>
-        <li><b>Reserve:</b> Beende jeden Satz mit etwa ${rir} Wiederholungen im Tank – du könntest noch ${rir} mehr.</li>
-        <li><b>Steigern:</b> Schaffst du in allen Sätzen das obere Ende, kommt beim nächsten Mal mehr Gewicht. Sonst gleiches Gewicht und mehr Wiederholungen. Zweimal unter dem unteren Ende: −5 %.</li>
-        <li><b>Block:</b> 5 Wochen = 4 Belastungswochen + 1 Deload (weniger Sätze, −10 % Gewicht). Je nach Ziel wechseln mit jedem neuen Block die Ergänzungsübungen.</li>
-        <li><b>Wie fühlst du dich heute:</b> Müde = 1 Satz weniger pro Übung, kein Finisher. Fit = 1 Satz mehr bei den Hauptübungen.</li>
+        <li><b>3 × 8–12 Wdh.</b> = 3 Sätze à 8–12 Wiederholungen. <b>Richtwert</b> = vorgeschlagenes Gewicht (Medizinball: Ballgewicht).</li>
+        <li>Jeden Satz mit ca. ${rir} Wdh. Reserve beenden.</li>
+        <li>Alle Sätze am oberen Ende → nächstes Mal mehr Gewicht.</li>
+        <li>Alle 5 Wochen Deload: weniger Sätze, −10&nbsp;% Gewicht.</li>
       </ul>`)}
     <button class="btn ghost mt" data-action="close">Schließen</button>`);
   const open = $(`#modal-body details[data-sec="${sec}"]`);
@@ -1259,7 +1220,7 @@ function renderSettings() {
   <section class="card">
     <div class="label">Anleitung</div>
     <button class="btn small" data-action="guide">Trainingseinheiten erklärt</button>
-    <p class="muted small">Aufbau, Tempo und Pausen, Supersätze (A1/A2), Ausgleichsübungen und Fortschritt.</p>
+    <p class="muted small">Aufbau, Tempo, Pausen, Supersätze, Ausgleich, Fortschritt.</p>
   </section>
   <section class="card">
     <div class="label">Farbe</div>

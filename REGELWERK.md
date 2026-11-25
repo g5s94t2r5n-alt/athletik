@@ -256,7 +256,7 @@ Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:
   und hebt den Wdh.-Bereich an (z. B. 14–20). Auch hohe Wdh. nahe am Muskelversagen bauen Muskeln
   auf (Schoenfeld 2021).
 - **Wochen-Check (Coach) ohne KI:** wertet die letzten 7–14 Tage nach festen Regeln aus:
-  - Regelmäßigkeit: Einheiten gegenüber Plan.
+  - Regelmäßigkeit: Einheiten gegenüber Plan. Nachgetragene Trainings (HIIT, Yoga, Padel, Teamtraining …) zählen als vollwertige Einheiten. Mehr Sätze pro Muskel gibt es aber nur, wenn die Kraft-Einheiten selbst regelmäßig stattfinden. Claude bekommt die Liste der nachgetragenen Trainings der letzten 14 Tage.
   - Sätze pro Muskel im Mittel von 2 Wochen: unter dem Ziel → +2 Sätze/Woche (nur bei regelmäßigem
     Training), über 20 → −2.
   - Kraftentwicklung: geschätztes 1RM steigt, stagniert oder sinkt.

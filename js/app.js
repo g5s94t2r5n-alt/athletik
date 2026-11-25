@@ -5,7 +5,7 @@ import {
   makeItem, estimateMinutes, bodyweightSeries, exerciseSeries, trackedExercises, weeklyVolume, isStagnating,
   activityAdjust, activitySummary, activityLoad, activityName, autoRunType,
   feedbackAdjust, sessionRecords, allRecords, PAIN_NAME, autoEffort,
-  tempoText, intervalPhases, bodyComp, bodyCompSeries, compAdjust, TEMPLATE_GROUPS, groupOf, nextVariant,
+  tempoText, intervalPhases, bodyCompSeries, compAdjust, TEMPLATE_GROUPS, groupOf, nextVariant,
   HR_ZONES, hrBase, hrRange, hrPlan, hrSummary, painFocus, ruleReview, defaultRest, goalRir,
   MUSCLE_NAME, strainFocus, soreActive, soreMuscles,
 } from './engine.js';
@@ -74,7 +74,7 @@ function renderToday() {
   const goal = goalOf(data);
   const dtr = daysToRace(data);
   const hasKey = data.settings.useClaude && data.settings.apiKey;
-  const reviewDue = data.sessions.length >= 2 && (!data.coach || daysBetween(data.coach.date, todayISO()) >= 7);
+  const reviewDue = data.sessions.length + (data.activities || []).length >= 2 && (!data.coach || daysBetween(data.coach.date, todayISO()) >= 7);
   const last = data.sessions[data.sessions.length - 1];
   const loc = data.location || 'gym';
   return `
@@ -130,7 +130,7 @@ function renderToday() {
     ${todayTpl === 'RUN' ? '' : `<div class="opt">
       <div class="opt-label">Ort</div>
       <div class="chips">
-        ${LOCATIONS.map((l) => `<button class="chip small ${loc === l.id ? 'on' : ''}" data-action="loc" data-id="${l.id}">${esc(l.name)}${l.id === 'home' && !data.homeGym ? ' +' : ''}</button>`).join('')}
+        ${LOCATIONS.map((l) => `<button class="chip small ${loc === l.id ? 'on' : ''}" data-action="loc" data-id="${l.id}">${esc(l.name)}</button>`).join('')}
       </div>
       ${loc === 'travel' ? `
         <p class="muted small">Was ist verfügbar? Körpergewicht-Übungen gehen immer.</p>
@@ -1064,22 +1064,16 @@ function renderProgress() {
   const tracked = trackedExercises(data);
   if (!progressEx || !tracked.some((e) => e.id === progressEx)) progressEx = tracked[0]?.id || null;
   const bw = bodyweightSeries(data);
-  const bwLast = bw[bw.length - 1];
-  const bwOld = bw.filter((p) => daysBetween(p.date, todayISO()) >= 28).pop();
   const planWeek = data.sessions.filter((s) => daysBetween(s.date, todayISO()) < 7).length;
   const actWeek = (data.activities || []).filter((a) => { const d = daysBetween(a.date, todayISO()); return d >= 0 && d < 7; }).length;
   const thisWeek = planWeek + actWeek;
   const todayBw = data.bodyweight.find((e) => e.date === todayISO());
-  const bc = bodyComp(data);
-  const sgn = (v, unit) => `${v >= 0 ? '+' : '−'}${num(Math.abs(v))} ${unit}`;
   return `
   <header class="page-head"><h1>Fortschritt</h1></header>
   <div class="tiles">
-    <div class="tile"><div class="tile-label">Einheiten · 7 Tage</div><div class="tile-val">${thisWeek}<span class="muted small"> / ${data.profile.days}</span></div>
-      <div class="tile-delta">${planWeek} Plan · ${actWeek} nachgetragen</div></div>
+    <div class="tile"><div class="tile-label">Einheiten · letzte 7 Tage</div><div class="tile-val">${thisWeek}<span class="muted small"> / ${data.profile.days}</span></div>
+      <div class="tile-delta">${planWeek} aus dem Plan · ${actWeek} nachgetragen</div></div>
 
-    <div class="tile"><div class="tile-label">Gewicht · Ø 7 Tage</div><div class="tile-val">${bwLast ? num(bwLast.avg) : '–'}<span class="muted small"> kg</span></div>
-      ${bwLast && bwOld ? `<div class="tile-delta">${bwLast.avg - bwOld.avg >= 0 ? '+' : '−'}${num(Math.abs(bwLast.avg - bwOld.avg))} kg vs. vor 4 Wochen</div>` : ''}</div>
     ${goalOf(data).weightGoal ? (() => {
       const ws = weightStatus(data, bw);
       if (ws.perWeek == null) return '<div class="tile"><div class="tile-label">Abnehm-Tempo</div><div class="tile-val">–</div><div class="tile-delta">Ab 1 Woche Messungen sichtbar</div></div>';
@@ -1087,13 +1081,6 @@ function renderProgress() {
       const verdict = pct < 0.25 ? 'langsam – Defizit prüfen' : pct <= 1 ? 'im Zielbereich 0,5–1 %' : 'schnell – Muskeln schützen';
       return `<div class="tile"><div class="tile-label">Abnehm-Tempo</div><div class="tile-val">${ws.perWeek <= 0 ? '−' : '+'}${num(Math.abs(ws.perWeek))}<span class="muted small"> kg/Woche</span></div><div class="tile-delta">${num(Math.abs(ws.pctWeek))} % · ${verdict}</div></div>`;
     })() : ''}
-    ${bc ? `<div class="tile"><div class="tile-label">Körperzusammensetzung</div><div class="tile-val">${bc.cur.fat ? num(bc.cur.fat) : '–'}<span class="muted small"> % Fett</span></div>
-      <div class="tile-delta">${bc.cur.muscle ? `${num(bc.cur.muscle)} kg Muskel` : ''}${bc.old ? `${bc.cur.muscle ? ' · ' : ''}${[bc.dFat != null ? sgn(bc.dFat, '%-P.') : '', bc.dMuscle != null ? sgn(bc.dMuscle, 'kg Muskel') : ''].filter(Boolean).join(', ')} in ${bc.weeks} Wo.` : ''}</div></div>` : ''}
-    ${(() => { const a = activitySummary(data, 7); const prev = activitySummary(data, 14).load - a.load; return `
-    <div class="tile"><div class="tile-label">Sport · 7 Tage</div><div class="tile-val">${a.minutes}<span class="muted small"> min</span></div>
-      <div class="tile-delta">${a.count} ${a.count === 1 ? 'Einheit' : 'Einheiten'}${a.km ? ` · ${num(a.km)} km gelaufen` : ''}</div></div>
-    <div class="tile"><div class="tile-label">Sport-Belastung</div><div class="tile-val">${a.load}</div>
-      <div class="tile-delta">Minuten × Anstrengung<br>Vorwoche ${prev}</div></div>`; })()}
   </div>
 
   <section class="card">

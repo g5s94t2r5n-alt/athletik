@@ -1,7 +1,7 @@
 // Claude als Coach: optionaler KI-Wochen-Check (die Planung läuft komplett ohne KI).
 // Der API-Key bleibt lokal auf dem Gerät und geht nur an api.anthropic.com.
 import { EXERCISES, MUSCLES } from './exercises.js';
-import { blockInfo, aiContext, activitySummary, PAIN_NAME } from './engine.js';
+import { blockInfo, aiContext, activitySummary, activityName, PAIN_NAME } from './engine.js';
 import { todayISO } from './store.js';
 import { goalOf, daysToRace, levelOf, levelHint } from './goals.js';
 
@@ -89,7 +89,19 @@ export async function weeklyReview(data) {
     `Athlet: ${p.sex || "Geschlecht k. A."}, ${p.age} Jahre, ${p.weight} kg, Kraftniveau: ${levelOf(p).name} (${levelHint(levelOf(p), p.sex)}).${(p.zones || []).length ? ` Dauerhafte Problemzonen: ${p.zones.map((z) => PAIN_NAME[z]).join(', ')}.` : ''}`,
     (() => { const g = goalOf(data); const dtr = daysToRace(data); return `Trainingsziel: ${g.name}. ${g.prompt}${dtr !== null ? ` Wettkampf in ${dtr} Tagen.` : ''}`; })(),
     `Trainingstage pro Woche (geplant): ${p.days}. Block-Woche ${block.week} von 5${block.deload ? ' (Deload)' : ''}.`,
-    `Einheiten in den letzten 7 Tagen: ${data.sessions.filter((s) => (new Date(todayISO()) - new Date(s.date)) / 86400000 < 7).length} Plan-Einheiten, dazu nachgetragen: ${(() => { const a = activitySummary(data, 7); return `${a.count} ${a.count === 1 ? 'Training' : 'Trainings'}, ${a.minutes} min, sRPE-Last ${a.load}`; })()}.`,
+    (() => {
+      // Nachgetragene Trainings zählen als Einheiten; Läufe aus dem Plan stecken schon in den Plan-Einheiten
+      const days = (d) => (new Date(todayISO()) - new Date(d)) / 86400000;
+      const plan = data.sessions.filter((s) => days(s.date) >= 0 && days(s.date) < 7).length;
+      const logged = (data.activities || []).filter((a) => days(a.date) >= 0 && days(a.date) < 7);
+      const a = activitySummary(data, 7);
+      return `Einheiten in den letzten 7 Tagen: ${plan + logged.length} insgesamt (${plan} Plan-Einheiten, ${logged.length} nachgetragen) bei ${p.days} geplanten Trainingstagen – nachgetragene Trainings zählen als vollwertige Einheiten. Ausdauer & Sport gesamt (inkl. Läufe aus dem Plan): ${a.minutes} min, sRPE-Last ${a.load}.`;
+    })(),
+    (() => {
+      const days = (d) => (new Date(todayISO()) - new Date(d)) / 86400000;
+      const list = (data.activities || []).filter((a) => days(a.date) >= 0 && days(a.date) < 14).map((a) => ({ datum: a.date, art: activityName(a), minuten: a.minutes, anstrengung: a.intensity, ...(a.km ? { km: a.km } : {}), ...(a.note ? { notiz: String(a.note).slice(0, 120) } : {}) }));
+      return list.length ? `Nachgetragene Trainings der letzten 14 Tage (JSON): ${JSON.stringify(list)}` : 'Keine nachgetragenen Trainings in den letzten 14 Tagen.';
+    })(),
     `Nachgetragene Trainings vorherige Woche (Tag 8–14): sRPE-Last ${activitySummary(data, 14).load - activitySummary(data, 7).load}.`,
     data.coach ? `Vorheriger Check (${data.coach.date}): ${JSON.stringify({ focus: data.coach.focus, volumeAdjust: data.coach.volumeAdjust, avoid: data.coach.avoid })}` : '',
     'Trainingsdaten (JSON):',

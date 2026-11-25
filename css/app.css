@@ -256,6 +256,7 @@ select.in { appearance: none; -webkit-appearance: none; }
 
 /* Fortschritt */
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.tiles .tile:only-child { grid-column: 1 / -1; }
 .tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
 .tile-label { font-size: 13px; color: var(--muted); }
 .tile-val { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; }

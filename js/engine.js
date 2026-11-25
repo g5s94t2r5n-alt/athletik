@@ -1639,13 +1639,17 @@ export function ruleReview(data, date = todayISO()) {
   const sess7 = data.sessions.filter((s) => age(s.date) >= 0 && age(s.date) < 7);
   const sess14 = data.sessions.filter((s) => age(s.date) >= 0 && age(s.date) < 14);
   const acts7 = (data.activities || []).filter((a) => age(a.date) >= 0 && age(a.date) < 7);
+  const acts14 = (data.activities || []).filter((a) => age(a.date) >= 0 && age(a.date) < 14);
   const { week, deload } = blockInfo(data, date);
 
-  // 1. Regelmäßigkeit
+  // 1. Regelmäßigkeit: nachgetragene Trainings (HIIT, Yoga, Padel …) zählen als Einheiten mit
   const planned = data.profile.days;
-  const regular = sess14.length >= Math.round(planned * 2 * 0.75);
-  if (sess7.length >= planned) add('good', `${sess7.length} von ${planned} geplanten Einheiten diese Woche${acts7.length ? `, dazu ${acts7.length} nachgetragen` : ''}.`);
-  else add(sess7.length >= planned - 1 ? 'info' : 'warn', `${sess7.length} von ${planned} geplanten Einheiten diese Woche${acts7.length ? `, dazu ${acts7.length} nachgetragen` : ''}.`);
+  const total7 = sess7.length + acts7.length;
+  const regular = sess14.length + acts14.length >= Math.round(planned * 2 * 0.75);
+  // Mehr Sätze pro Muskel nur, wenn die Kraft-Einheiten selbst regelmäßig stattfinden
+  const planRegular = sess14.length >= Math.round(planned * 2 * 0.75);
+  const unitsText = `${total7} von ${planned} Einheiten diese Woche${acts7.length ? ` (${sess7.length} Plan, ${acts7.length} nachgetragen)` : ''}.`;
+  add(total7 >= planned ? 'good' : total7 >= planned - 1 ? 'info' : 'warn', unitsText);
   if (!regular) tips.push(`Regelmäßigkeit vor Umfang: Versuch, die ${planned} Einheiten pro Woche einzuhalten – sonst lieber Tage reduzieren (Mehr → Profil).`);
 
   // 2. Sätze pro Muskel (Mittel der letzten 2 Wochen), nur bei Zielen mit Volumen-Fokus und regelmäßigem Training
@@ -1659,9 +1663,9 @@ export function ruleReview(data, date = todayISO()) {
       if (v < min - 1) low.push([m, v, min]);
       if (v > 20) high.push([m, v]);
     });
-    if (regular && !deload) low.slice(0, 4).forEach(([m, v, min]) => volumeAdjust.push({ muscle: m, delta: 2, reason: `Ø ${fmt1(v)} Sätze/Woche – Ziel mindestens ${min}.` }));
+    if (planRegular && !deload) low.slice(0, 4).forEach(([m, v, min]) => volumeAdjust.push({ muscle: m, delta: 2, reason: `Ø ${fmt1(v)} Sätze/Woche – Ziel mindestens ${min}.` }));
     high.forEach(([m, v]) => volumeAdjust.push({ muscle: m, delta: -2, reason: `Ø ${fmt1(v)} Sätze/Woche – über 20 bringt kaum mehr und kostet Erholung.` }));
-    if (low.length) add(regular ? 'warn' : 'info', `Unter dem Zielvolumen: ${low.map(([m, v]) => `${MUSCLES[m]} ${fmt1(v)}`).join(', ')} Sätze/Woche.`);
+    if (low.length) add(planRegular ? 'warn' : 'info', `Unter dem Zielvolumen: ${low.map(([m, v]) => `${MUSCLES[m]} ${fmt1(v)}`).join(', ')} Sätze/Woche.`);
     else add('good', `Alle großen Muskeln im Zielbereich (≥ ${lower} Sätze/Woche).`);
   }
 

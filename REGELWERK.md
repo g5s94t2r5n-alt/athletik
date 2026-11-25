@@ -119,7 +119,7 @@ Gegenspieler-Supersätze erhalten die Trainingslast bei deutlich kürzerer Dauer
 - Sprünge und Sprints,
 - schwere Kraftsätze (≤ 6 Wdh., Kraftaufbau, Sportart in Vorbereitung und Saison) – hier sind volle Pausen besser.
 
-Fällt eine Supersatz-Übung später wegen Zeitmangel weg, wird der Partner wieder ein normaler Satz mit normaler Pause.
+Fällt eine Supersatz-Übung wegen Zeitmangel weg oder wird sie entfernt, wird der Partner wieder ein normaler Satz mit normaler Pause. Den Ablauf (A1 → Pause → A2 → Pause → A1 …) erklärt Mehr → „Trainingseinheiten erklärt“.
 
 ### Pulszonen
 
@@ -284,6 +284,8 @@ Meldest du nach dem Training Beschwerden, enthält jede Einheit der nächsten 4 
 - **Lauf-, HYROX- und Aktivierungseinheiten:** nur Mobilität und Dehnung.
 
 Belastende Übungen bleiben im Plan. Es gilt das **Schmerz-Monitoring:** Beschwerden bis etwa 3–5 von 10 sind in Ordnung, wenn sie bis zum nächsten Morgen abklingen. Sonst Gewicht oder Umfang reduzieren bzw. die Übung tauschen. Fortgesetzte, dosierte Belastung war in Studien genauso wirksam wie Pausieren (Silbernagel 2007). Bei anhaltenden oder starken Schmerzen ärztlich abklären.
+
+Diese Erklärung steht nicht in jeder Einheit, sondern unter Mehr → „Trainingseinheiten erklärt“. Der Ausgleich-Block und die Karte unter Training verlinken direkt dorthin.
 
 **Datenlage:** Kräftigung und Stabilisation sind gut belegt. Krafttraining senkt Sportverletzungen auf unter ein Drittel, Propriozeption auf etwa die Hälfte. Dehnen allein zeigte dagegen keinen Schutz vor Verletzungen (Lauersen 2014). Dehnungen sind deshalb für die Beweglichkeit dabei, der Schwerpunkt liegt auf Stabilisation.
 

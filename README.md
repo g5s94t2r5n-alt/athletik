@@ -24,6 +24,7 @@ Läuft vom iPhone-Homescreen wie eine normale App, auch offline im Gym. Kein App
 - **Ausgleich bei Beschwerden**: statt Schonung Stabilisations-, Mobilitäts- und Dehnübungen für die betroffene Region
 - **Einheit aus dem Verlauf wiederholen** – gleiche Übungen, Gewichte nach aktuellem Stand
 - **Körperzusammensetzung** (optional Muskelmasse und Körperfett) – der Plan reagiert auf Trends
+- **Trainingseinheiten erklärt** (Mehr): Aufbau, Tempo und Pausen, Supersätze A1/A2, Ausgleichsübungen mit Schmerz-Regel und Fortschritt an einer Stelle – direkt verlinkt aus der Einheit
 - Pausen-Timer mit Signalton, Bildschirm bleibt während des Trainings an
 - Backup als JSON-Datei (Export/Import)
 

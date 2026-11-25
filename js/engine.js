@@ -739,7 +739,7 @@ export function tempoText(code) {
   return [`${e} s ablassen`, Number(p) ? `${p} s Pause in der Dehnung` : '', c === 'X' ? 'explosiv zurück' : `${c} s zurück`].filter(Boolean).join(' · ');
 }
 
-const defaultRest = (ex, main) => (ex.cat === 'power' ? 120 : ex.slot === 'squat' || ex.slot === 'hinge' || (main && ex.cat === 'strength') ? 180 : 90);
+export const defaultRest = (ex, main) => (ex.cat === 'power' ? 120 : ex.slot === 'squat' || ex.slot === 'hinge' || (main && ex.cat === 'strength') ? 180 : 90);
 
 // ---------- Einheit bauen ----------
 export function makeItem(data, ex, nSets, opts = {}) {
@@ -949,9 +949,7 @@ export function addRegionWork(data, session, equip, { full = true } = {}) {
     const at = session.blocks.findIndex((b) => ['strength', 'conditioning', 'cooldown'].includes(b.type));
     session.blocks.splice(at < 0 ? session.blocks.length : at, 0, { type: 'stability', title: `Ausgleich: ${names}`, items });
   }
-  if (stab.length || warm.length || cool.length) {
-    session.note = [session.note, `Ausgleich für ${names}: ${stab.length ? 'Stabilisation und ' : ''}Mobilität/Dehnung sind ergänzt. Schmerz-Regel: Beschwerden bis etwa 3–5 von 10 sind bei allen Übungen in Ordnung, wenn sie bis zum nächsten Morgen abklingen – sonst Gewicht oder Umfang reduzieren bzw. die Übung tauschen. Bei anhaltenden oder starken Schmerzen ärztlich abklären.`].filter(Boolean).join(' ');
-  }
+  // Erklärung und Schmerz-Regel stehen unter Mehr → Trainingseinheiten erklärt, nicht in jeder Einheit
   return session;
 }
 
@@ -1388,7 +1386,7 @@ function fitDuration(session, minutes, equip, keepCond = false, superset = false
     if (c) cond.items = [makeItem({ sessions: [], bodyweight: [], profile: {} }, c, 0)];
   }
   if (superset && over() && makeSupersets(session, over)) {
-    session.note = [session.note, 'Zeit knapp: Drücken und Ziehen als Supersätze (z. B. A1 → A2 im Wechsel, kurze Pause dazwischen) – spart Zeit ohne Nachteil für den Muskelaufbau.'].filter(Boolean).join(' ');
+    session.note = [session.note, 'Zeit knapp: Drücken und Ziehen als Supersätze (A1/A2) – spart Zeit ohne Nachteil für den Muskelaufbau.'].filter(Boolean).join(' ');
   }
   let guard = 60;
   while (over() && guard-- > 0) {

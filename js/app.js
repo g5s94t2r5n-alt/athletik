@@ -6,7 +6,7 @@ import {
   activityAdjust, activitySummary, activityLoad, activityName, autoRunType,
   feedbackAdjust, sessionRecords, allRecords, PAIN_NAME, autoEffort,
   tempoText, intervalPhases, bodyComp, bodyCompSeries, compAdjust, TEMPLATE_GROUPS, groupOf, nextVariant,
-  HR_ZONES, hrBase, hrRange, hrPlan, hrSummary, painFocus, ruleReview,
+  HR_ZONES, hrBase, hrRange, hrPlan, hrSummary, painFocus, ruleReview, defaultRest, goalRir,
 } from './engine.js';
 import { weeklyReview, CoachError, MODEL } from './coach.js';
 import { GOALS, GOAL, goalOf, rotationFor, daysToRace, weightStatus, SPORTS, SPORT, SEASONS, SEASON, WEEKDAYS, matchInfo, LEVELS, levelOf, levelHint } from './goals.js';
@@ -148,7 +148,7 @@ function renderToday() {
   </section>
 
   ${(() => { const pf = painFocus(data); return pf.length ? `<div class="card soft"><div class="label">Ausgleich bei Beschwerden</div>
-    <p>Jede Einheit enthält zusätzlich Stabilisations-, Mobilitäts- und Dehnübungen für ${pf.map((f) => `<b>${esc(PAIN_NAME[f.region])}</b> (${f.permanent ? 'dauerhaft, Profil' : `bis ${fmtDate(f.until)}`})`).join(', ')}. Schmerz bis ca. 3–5 von 10 ist in Ordnung, wenn er bis zum nächsten Morgen abklingt.</p>
+    <p>Jede Einheit enthält zusätzlich Stabilisations-, Mobilitäts- und Dehnübungen für ${pf.map((f) => `<b>${esc(PAIN_NAME[f.region])}</b> (${f.permanent ? 'dauerhaft, Profil' : `bis ${fmtDate(f.until)}`})`).join(', ')}. <button class="link" data-action="guide" data-sec="ausgleich">Erklärung &amp; Schmerz-Regel</button></p>
     ${pf.some((f) => !f.permanent) ? `<div class="chips">${pf.filter((f) => !f.permanent).map((f) => `<button class="chip small" data-action="pain-clear" data-region="${f.region}">${esc(PAIN_NAME[f.region])} wieder gut ✓</button>`).join('')}</div>` : ''}</div>` : ''; })()}
   ${(() => { const n = [...(todayTpl === 'REG' ? [] : activityAdjust(data, TEMPLATES[todayTpl].focus).notes), ...(todayTpl === 'RUN' ? [] : feedbackAdjust(data, todayTpl).notes), ...(TEMPLATES[todayTpl].slots.length ? compAdjust(data).notes : [])]; return n.length ? `<div class="card soft"><div class="label">Berücksichtigt</div><p>${n.map(esc).join('<br>')}</p></div>` : ''; })()}
 
@@ -240,7 +240,7 @@ function renderSession() {
   <div class="progress-line"><div style="width:${allSets ? (doneSets / allSets) * 100 : 0}%"></div></div>
   ${s.blocks.map((b, bi) => `
     <section class="block">
-      <h2 class="block-title"><span class="tag t-${b.type}">${BLOCK_ICON[b.type] || ''}</span> ${esc(b.title)}</h2>
+      <h2 class="block-title"><span class="tag t-${b.type}">${BLOCK_ICON[b.type] || ''}</span> ${esc(b.title)}${b.type === 'stability' ? ' <button class="link small" data-action="guide" data-sec="ausgleich">Erklärung</button>' : ''}</h2>
       ${b.items.map((it, ii) => renderItem(it, bi, ii, b.type)).join('')}
     </section>`).join('')}
   <div class="actions">
@@ -267,7 +267,7 @@ function renderItem(it, bi, ii, type) {
       <button class="icon-btn" data-action="video" data-ex="${ex.id}" aria-label="Video">${ICON_PLAY}</button>
     </div>
     ${it.tempo ? `<p class="tempo"><b>Tempo ${esc(it.tempo)}</b> · ${esc(tempoText(it.tempo))}</p>` : ''}
-    ${partner ? `<p class="ex-note ss-note">Im Wechsel mit <b>${esc(EX[partner.exId]?.name || '')}</b> (${esc(partner.ss)}): je 1 Satz, dann ${it.rest} s Pause.</p>` : ''}
+    ${partner ? `<p class="ex-note ss-note">Im Wechsel mit <b>${esc(EX[partner.exId]?.name || '')}</b> (${esc(partner.ss)}): je 1 Satz, dann ${it.rest} s Pause. <button class="link" data-action="guide" data-sec="supersatz">Ablauf</button></p>` : ''}
     ${it.note ? `<p class="ex-note">${esc(it.note)}</p>` : ''}
     ${hrPlan(ex.id) ? `<p class="hr-line"><b>Zielpuls</b> ${esc(hrSummary(data.profile, ex.id))}</p>` : ''}
     ${ex.iv ? `<button class="btn small iv-btn" data-action="iv-open" data-b="${bi}" data-i="${ii}">${ICON_CLOCK} Intervall-Uhr</button>` : ''}
@@ -644,6 +644,85 @@ function videoModal(exId) {
       <button class="btn small" data-action="save-video" data-ex="${exId}">Speichern</button>
     </div>
     <button class="btn ghost mt" data-action="close">Schließen</button>`);
+}
+
+// Erklärung der Trainingseinheiten (Mehr → Trainingseinheiten erklärt); sec öffnet einen Abschnitt direkt
+function guideModal(sec = 'aufbau') {
+  const pf = painFocus(data);
+  const rir = goalRir(data);
+  const part = (id, title, body) => `<details class="guide" data-sec="${id}" ${id === sec ? 'open' : ''}><summary>${title}</summary><div class="guide-body">${body}</div></details>`;
+  openModal(`
+    <h2>Trainingseinheiten erklärt</h2>
+    ${part('aufbau', 'Aufbau einer Einheit', `
+      <p>Die Blöcke kommen immer in dieser Reihenfolge:</p>
+      <ul>
+        <li><b>Aufwärmen &amp; Mobilität</b> – Puls hoch, Gelenke beweglich. Einfach abhaken.</li>
+        <li><b>Schnellkraft</b> – Sprünge, Würfe, Sprints. Ganz am Anfang, solange du frisch bist: jede Wiederholung maximal schnell, volle Pausen.</li>
+        <li><b>Ausgleich</b> – nur bei Beschwerden oder Problemzonen (siehe unten).</li>
+        <li><b>Kraft</b> – erst die Hauptübungen (schwer, lange Pausen), dann Ergänzungs- und Isolationsübungen.</li>
+        <li><b>Ausdauer</b> – Finisher oder Intervalle am Ende, damit sie das Krafttraining nicht schwächen.</li>
+        <li><b>Cool-down &amp; Beweglichkeit</b> – Dehnen und Mobilität zum Runterkommen.</li>
+      </ul>`)}
+    ${part('timing', 'Timing: Tempo, Pausen, Dauer', `
+      <p><b>Tempo</b> – z. B. „Tempo 3-1-1“ unter der Übung. Die drei Zahlen sind Sekunden:</p>
+      <ol>
+        <li><b>Ablassen</b> – das Gewicht geht runter, der Muskel wird gedehnt (Kniebeuge abwärts, beim Rudern Arme lang).</li>
+        <li><b>Pause in der Dehnung</b> – am tiefsten Punkt halten, nicht abfedern. 0 = direkt umkehren.</li>
+        <li><b>Zurück</b> – hochdrücken bzw. heranziehen. <b>X</b> = explosiv: so schnell wie möglich gewollt, auch wenn sich ein schweres Gewicht langsam bewegt.</li>
+      </ol>
+      <p>Beispiel 3-1-1: 3 s runter, 1 s halten, 1 s hoch. Das Tempo wechselt im Block:</p>
+      <ul>
+        <li><b>Woche 1–2:</b> 3-1-1 – langsamer, für Technik und Kontrolle.</li>
+        <li><b>Woche 3–4:</b> 2-0-X – mehr Gewicht, explosiv zurück (Isolation 2-1-1).</li>
+        <li><b>Deload:</b> 2-0-1 – ruhig und locker.</li>
+        <li><b>Ausnahmen:</b> Waden immer 2-2-1 (die Pause unten nimmt den Federeffekt der Achillessehne raus), Nordic Curls so langsam wie möglich ablassen, Rumpf- und Landeübungen ohne Tempo. In der Saison keine betont langsame Abwärtsphase, damit vor Spielen kein Muskelkater entsteht.</li>
+      </ul>
+      <p><b>Pausen</b> – stehen hinter den Wiederholungen. Hakst du einen Satz ab, startet die Pausen-Uhr automatisch und piept am Ende.</p>
+      <ul>
+        <li>Hauptübungen, Kniebeuge- und Hüftübungen: <b>3 min</b></li>
+        <li>Schnellkraft: <b>2 min</b></li>
+        <li>übrige Kraftübungen: <b>90 s</b></li>
+        <li>Supersätze: <b>90 s</b>, bei Isolation <b>60 s</b> nach jedem Satz</li>
+        <li>Ausgleichsübungen: <b>45 s</b></li>
+      </ul>
+      <p><b>Dauer</b> – „ca. … min“ oben in der Einheit wird aus Sätzen und Pausen geschätzt. Passt die Einheit nicht in deine Zeit (Training → Zeit heute), kürzt die App in dieser Reihenfolge: lange Intervalle werden kurze, dann Supersätze (nicht bei Kraftaufbau), dann fallen Ergänzungsübungen und einzelne Sätze weg. Hauptübungen und Prävention bleiben.</p>`)}
+    ${part('supersatz', 'Supersätze: A1, A2, B1 …', `
+      <p>Bei knapper Zeit kombiniert die App zwei Gegenspieler zu einem Paar. <b>Gleicher Buchstabe = ein Paar</b>, die Zahl ist die Reihenfolge.</p>
+      <p>Beispiel <b>A1</b> Bankdrücken und <b>A2</b> Rudern, je 3 Sätze:</p>
+      <ol>
+        <li>1 Satz A1, abhaken → Pause</li>
+        <li>1 Satz A2, abhaken → Pause</li>
+        <li>wieder A1, dann A2 … bis alle Sätze beider Übungen fertig sind.</li>
+      </ol>
+      <p>Danach kommt B1/B2 genauso, anschließend die übrigen Übungen ganz normal.</p>
+      <ul>
+        <li><b>Paare:</b> A = waagerecht drücken + ziehen, B = über Kopf drücken + von oben ziehen, C = Bizeps + Trizeps.</li>
+        <li><b>Warum:</b> Während der Gegenspieler arbeitet, erholt sich der andere Muskel. Bis zu seinem nächsten Satz hat jeder Muskel trotzdem 3–4 min. So bleibt die Trainingswirkung gleich, die Einheit wird deutlich kürzer (Robbins 2010; Zhang 2025). Für den Kreislauf ist es etwas anstrengender.</li>
+        <li><b>Nie als Supersatz:</b> Beinübungen, Sprünge und Sprints, schwere Kraftsätze – dort sind volle Pausen besser.</li>
+        <li><b>Tauschen</b> behält das Paar. <b>Entfernst</b> du eine Übung, wird der Partner wieder ein normaler Satz mit normaler Pause.</li>
+      </ul>`)}
+    ${part('ausgleich', 'Ausgleichsübungen bei Beschwerden', `
+      ${pf.length ? `<p class="guide-now">Aktuell für ${pf.map((f) => `<b>${esc(PAIN_NAME[f.region])}</b> (${f.permanent ? 'dauerhaft' : `bis ${fmtDate(f.until)}`})`).join(', ')}.</p>` : ''}
+      <p><b>Wann:</b> Meldest du nach dem Training Beschwerden, gibt es 4 Wochen lang Ausgleichsübungen für diese Region – oder bis du unter Training „wieder gut“ tippst. Für die dauerhaften Problemzonen in deinem Profil gibt es sie in jeder Einheit.</p>
+      <p><b>Was dazukommt:</b></p>
+      <ul>
+        <li>Block „Ausgleich“ vor dem Krafttraining: Stabilisations- und Kräftigungsübungen für die Region, je 2 Sätze, 45 s Pause</li>
+        <li>eine Mobilitätsübung im Aufwärmen</li>
+        <li>1–2 Dehnungen im Cool-down</li>
+      </ul>
+      <p>Bei Lauf- und HYROX-Einheiten und der Aktivierung vor dem Spiel nur Mobilität und Dehnen.</p>
+      <p><b>Schmerz-Regel:</b> Keine Schonung – belastende Übungen bleiben im Plan. Beschwerden bis etwa 3–5 von 10 sind bei allen Übungen in Ordnung, wenn sie bis zum nächsten Morgen abklingen. Sonst Gewicht oder Umfang reduzieren oder die Übung tauschen. Dosierte Belastung wirkt in Studien genauso gut wie Pausieren (Silbernagel 2007). Bei anhaltenden oder starken Schmerzen ärztlich abklären.</p>`)}
+    ${part('fortschritt', 'Gewicht, Fortschritt und Block', `
+      <ul>
+        <li><b>„3 × 8–12 Wdh.“</b> = 3 Sätze mit je 8–12 Wiederholungen. Der <b>Richtwert</b> ist das vorgeschlagene Gewicht.</li>
+        <li><b>Reserve:</b> Beende jeden Satz mit etwa ${rir} Wiederholungen im Tank – du könntest noch ${rir} mehr.</li>
+        <li><b>Steigern:</b> Schaffst du in allen Sätzen das obere Ende, kommt beim nächsten Mal mehr Gewicht. Sonst gleiches Gewicht und mehr Wiederholungen. Zweimal unter dem unteren Ende: −5 %.</li>
+        <li><b>Block:</b> 5 Wochen = 4 Belastungswochen + 1 Deload (weniger Sätze, −10 % Gewicht). Je nach Ziel wechseln mit jedem neuen Block die Ergänzungsübungen.</li>
+        <li><b>Wie fühlst du dich heute:</b> Müde = 1 Satz weniger pro Übung, kein Finisher. Fit = 1 Satz mehr bei den Hauptübungen.</li>
+      </ul>`)}
+    <button class="btn ghost mt" data-action="close">Schließen</button>`);
+  const open = $(`#modal-body details[data-sec="${sec}"]`);
+  if (open && sec !== 'aufbau') setTimeout(() => open.scrollIntoView({ block: 'start' }), 0);
 }
 
 function swapModal(bi, ii) {
@@ -1177,6 +1256,11 @@ function renderSettings() {
   return `
   <header class="page-head"><h1>Einstellungen</h1></header>
   <section class="card">
+    <div class="label">Anleitung</div>
+    <button class="btn small" data-action="guide">Trainingseinheiten erklärt</button>
+    <p class="muted small">Aufbau, Tempo und Pausen, Supersätze (A1/A2), Ausgleichsübungen und Fortschritt.</p>
+  </section>
+  <section class="card">
     <div class="label">Farbe</div>
     <div class="swatches">${ACCENTS.map((c) => `<div class="swatch-wrap"><button class="swatch ${(data.settings.accent || 'lavender') === c.id ? 'on' : ''}" style="background:linear-gradient(135deg, ${c.a}, ${c.b})" data-action="accent" data-v="${c.id}" aria-label="${c.name}"></button><span class="swatch-label">${c.name}</span></div>`).join('')}</div>
   </section>
@@ -1268,6 +1352,7 @@ document.addEventListener('click', async (e) => {
     }
     case 'setup': openSetup(); break;
     case 'intro': showIntro(null); break;
+    case 'guide': guideModal(t.dataset.sec); break;
     case 'force-update': forceUpdate(); break;
     case 'fb': fbDraft[t.dataset.k] = fbDraft[t.dataset.k] === t.dataset.v ? '' : t.dataset.v; feedbackModal(); break;
     case 'fb-pain': { const id = t.dataset.id; fbDraft.pain = id === 'none' ? [] : fbDraft.pain.includes(id) ? fbDraft.pain.filter((x) => x !== id) : [...fbDraft.pain, id]; feedbackModal(); break; }
@@ -1315,7 +1400,15 @@ document.addEventListener('click', async (e) => {
     }
     case 'item-done': { const it = itemAt(t); it.done = !it.done; persist(); render(); break; }
     case 'add-set': { const it = itemAt(t); const lastS = it.sets[it.sets.length - 1]; it.sets.push({ tw: lastS?.w ?? '', w: lastS?.w ?? '', r: '', done: false }); persist(); render(); break; }
-    case 'remove': { if (!confirm('Übung aus der heutigen Einheit entfernen?')) return; data.active.blocks[+t.dataset.b].items.splice(+t.dataset.i, 1); persist(); render(); break; }
+    case 'remove': {
+      if (!confirm('Übung aus der heutigen Einheit entfernen?')) return;
+      const items = data.active.blocks[+t.dataset.b].items;
+      const [gone] = items.splice(+t.dataset.i, 1);
+      // Supersatz-Partner wird wieder ein normaler Satz mit normaler Pause
+      const p = gone && gone.ss && items.find((x) => x.ss && x.ss[0] === gone.ss[0]);
+      if (p) { delete p.ss; p.rest = defaultRest(EX[p.exId], p.main); }
+      persist(); render(); break;
+    }
     case 'cues': { const u = $(`#cues-${t.dataset.uid}`); if (u) u.hidden = !u.hidden; break; }
     case 'video': videoModal(t.dataset.ex); break;
     case 'save-video': {

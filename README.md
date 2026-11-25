@@ -27,6 +27,7 @@ Läuft vom iPhone-Homescreen wie eine normale App, auch offline im Gym. Kein App
 - **Körperzusammensetzung** (optional Muskelmasse und Körperfett) – der Plan reagiert auf Trends
 - **Trainingseinheiten erklärt** (Mehr): Aufbau, Tempo und Pausen, Supersätze A1/A2, Ausgleichsübungen mit Schmerz-Regel und Fortschritt an einer Stelle – direkt verlinkt aus der Einheit
 - Pausen-Timer mit Signalton, Bildschirm bleibt während des Trainings an
+- **Intro-Trailer** (`trailer.html`, ca. 75 s, mit Soundtrack und Effekten): Vorteile, automatische Anpassungen, Wochen-Check und optionale Claude-KI – in der App per Tipp mit Ton
 - Backup als JSON-Datei (Export/Import)
 
 Die wissenschaftliche Grundlage steht in [REGELWERK.md](REGELWERK.md).

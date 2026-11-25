@@ -107,15 +107,15 @@ export const EXERCISES = [
   E('bounding', 'Sprunglauf (Bounding)', 'bounding plyometric drill', 'power_lower', ['space'], [], ['gesaess', 'waden'],
     ['Weite, kraftvolle Laufsprünge über 20–30 m', 'Knie vorn hoch, Fuß aktiv unter dem Körper aufsetzen', 'Wdh. = Strecken, zurückgehen als Pause – verbessert Laufökonomie und Antritt'], { ...P, load: 'bw', reps: [3, 4] }),
   E('mb_scoop_toss', 'Medizinball-Schaufelwurf', 'medicine ball scoop toss', 'power_lower', ['medball'], [], ['gesaess', 'bauch'],
-    ['Seitlich zur Wand, Ball tief neben dem hinteren Knie', 'Hüfte explosiv strecken und drehen, Ball gegen die Wand schleudern', 'Kraft aus Beinen und Hüfte – beide Seiten'], { ...P, load: 'none', reps: [4, 6] }),
+    ['Seitlich zur Wand, Ball tief neben dem hinteren Knie', 'Hüfte explosiv strecken und drehen, Ball gegen die Wand schleudern', 'Kraft aus Beinen und Hüfte – beide Seiten'], { ...P, inc: 1, reps: [4, 6] }),
 
   // ---------- Schnellkraft Oberkörper ----------
   E('mb_chest_pass', 'Medizinball-Brustpass gegen die Wand', 'medicine ball chest pass', 'power_upper', ['medball'], [], ['brust', 'trizeps'],
-    ['Ball vor der Brust, explosiv nach vorn stoßen', 'Ganzkörper: Beine und Rumpf mitnutzen', 'Maximale Geschwindigkeit pro Wurf'], { ...P, load: 'none', reps: [5, 6] }),
+    ['Ball vor der Brust, explosiv nach vorn stoßen', 'Ganzkörper: Beine und Rumpf mitnutzen', 'Maximale Geschwindigkeit pro Wurf'], { ...P, inc: 1, reps: [5, 6] }),
   E('mb_slam', 'Medizinball-Slam', 'medicine ball slam', 'power_upper', ['medball'], [], ['bauch', 'ruecken'],
-    ['Ball über Kopf strecken, auf die Zehen', 'Mit voller Kraft auf den Boden schmettern', 'Rumpf aktiv einrollen'], { ...P, load: 'none', reps: [5, 6] }),
+    ['Ball über Kopf strecken, auf die Zehen', 'Mit voller Kraft auf den Boden schmettern', 'Rumpf aktiv einrollen'], { ...P, inc: 1, reps: [5, 6] }),
   E('mb_rot_throw', 'Medizinball-Rotationswurf', 'medicine ball rotational throw', 'power_upper', ['medball'], [], ['bauch'],
-    ['Seitlich zur Wand stehen', 'Rotation aus Hüfte und hinterem Bein starten', 'Ball explosiv gegen die Wand werfen, beide Seiten'], { ...P, load: 'none', reps: [4, 5] }),
+    ['Seitlich zur Wand stehen', 'Rotation aus Hüfte und hinterem Bein starten', 'Ball explosiv gegen die Wand werfen, beide Seiten'], { ...P, inc: 1, reps: [4, 5] }),
   E('plyo_pushup', 'Plyometrische Liegestütze', 'plyometric push up', 'power_upper', [], [], ['brust', 'trizeps'],
     ['Kontrolliert ab, explosiv hoch, sodass die Hände abheben', 'Körperspannung wie beim Brett', 'Weich landen'], { ...P, load: 'bw', reps: [4, 6] }),
   E('db_push_press', 'Kurzhantel Push Press', 'dumbbell push press', 'power_upper', ['dumbbell'], [], ['schultern', 'trizeps'],
@@ -556,7 +556,7 @@ export const EXERCISES = [
   E('ankle_hops', 'Fußgelenksprünge (Pogo Jumps)', 'pogo jumps ankle hops', 'power_lower', [], [], ['waden'],
     ['Knie fast gestreckt, Sprung kommt aus den Fußgelenken', 'Kurzer, federnder Bodenkontakt auf dem Vorfuß', 'Wdh. = Bodenkontakte'], { ...P, load: 'bw', reps: [10, 15] }),
   E('mb_overhead_throw', 'Medizinball-Überkopfwurf', 'medicine ball overhead throw', 'power_upper', ['medball'], [], ['ruecken', 'schultern'],
-    ['Schrittstellung, Ball hinter den Kopf', 'Bogenspannung, dann explosiv aus Rumpf und Armen werfen', 'Gegen die Wand oder zum Partner'], { ...P, load: 'none', reps: [5, 8] }),
+    ['Schrittstellung, Ball hinter den Kopf', 'Bogenspannung, dann explosiv aus Rumpf und Armen werfen', 'Gegen die Wand oder zum Partner'], { ...P, inc: 1, reps: [5, 8] }),
 
   // ---------- Verletzungsprävention ----------
   E('sl_landing', 'Einbeinige Landung (Drop & Stick)', 'single leg landing drill', 'prev_lower', [], [], ['quadrizeps', 'gesaess'],

@@ -266,7 +266,7 @@ function renderItem(it, bi, ii, type) {
       </div>
       <button class="icon-btn" data-action="video" data-ex="${ex.id}" aria-label="Video">${ICON_PLAY}</button>
     </div>
-    ${it.tempo ? `<p class="tempo"><b>Tempo ${esc(it.tempo)}</b> · ${esc(tempoText(it.tempo))}</p>` : ''}
+    ${it.tempo ? `<p class="tempo" title="Tempo ${esc(it.tempo)}"><b>Tempo</b> ${esc(tempoText(it.tempo))}</p>` : ''}
     ${partner ? `<p class="ex-note ss-note">Im Wechsel mit <b>${esc(EX[partner.exId]?.name || '')}</b> (${esc(partner.ss)}): je 1 Satz, dann ${it.rest} s Pause. <button class="link" data-action="guide" data-sec="supersatz">Ablauf</button></p>` : ''}
     ${it.note ? `<p class="ex-note">${esc(it.note)}</p>` : ''}
     ${hrPlan(ex.id) ? `<p class="hr-line"><b>Zielpuls</b> ${esc(hrSummary(data.profile, ex.id))}</p>` : ''}
@@ -664,13 +664,13 @@ function guideModal(sec = 'aufbau') {
         <li><b>Cool-down &amp; Beweglichkeit</b> – Dehnen und Mobilität zum Runterkommen.</li>
       </ul>`)}
     ${part('timing', 'Timing: Tempo, Pausen, Dauer', `
-      <p><b>Tempo</b> – z. B. „Tempo 3-1-1“ unter der Übung. Die drei Zahlen sind Sekunden:</p>
+      <p><b>Tempo</b> – z. B. „Tempo 3 s ablassen – 1 s Pause – 1 s zurück“ unter der Übung:</p>
       <ol>
         <li><b>Ablassen</b> – das Gewicht geht runter, der Muskel wird gedehnt (Kniebeuge abwärts, beim Rudern Arme lang).</li>
-        <li><b>Pause in der Dehnung</b> – am tiefsten Punkt halten, nicht abfedern. 0 = direkt umkehren.</li>
-        <li><b>Zurück</b> – hochdrücken bzw. heranziehen. <b>X</b> = explosiv: so schnell wie möglich gewollt, auch wenn sich ein schweres Gewicht langsam bewegt.</li>
+        <li><b>Pause</b> – in der Dehnung am tiefsten Punkt halten, nicht abfedern. Steht keine Pause da: direkt umkehren.</li>
+        <li><b>Zurück</b> – hochdrücken bzw. heranziehen. <b>Explosiv</b> = so schnell wie möglich gewollt, auch wenn sich ein schweres Gewicht langsam bewegt.</li>
       </ol>
-      <p>Beispiel 3-1-1: 3 s runter, 1 s halten, 1 s hoch. Das Tempo wechselt im Block:</p>
+      <p>Kurzform in Sekunden: 3-1-1 = 3 s ablassen, 1 s Pause, 1 s zurück; X = explosiv. Das Tempo wechselt im Block:</p>
       <ul>
         <li><b>Woche 1–2:</b> 3-1-1 – langsamer, für Technik und Kontrolle.</li>
         <li><b>Woche 3–4:</b> 2-0-X – mehr Gewicht, explosiv zurück (Isolation 2-1-1).</li>
@@ -714,7 +714,8 @@ function guideModal(sec = 'aufbau') {
       <p><b>Schmerz-Regel:</b> Keine Schonung – belastende Übungen bleiben im Plan. Beschwerden bis etwa 3–5 von 10 sind bei allen Übungen in Ordnung, wenn sie bis zum nächsten Morgen abklingen. Sonst Gewicht oder Umfang reduzieren oder die Übung tauschen. Dosierte Belastung wirkt in Studien genauso gut wie Pausieren (Silbernagel 2007). Bei anhaltenden oder starken Schmerzen ärztlich abklären.</p>`)}
     ${part('fortschritt', 'Gewicht, Fortschritt und Block', `
       <ul>
-        <li><b>„3 × 8–12 Wdh.“</b> = 3 Sätze mit je 8–12 Wiederholungen. Der <b>Richtwert</b> ist das vorgeschlagene Gewicht.</li>
+        <li><b>„3 × 8–12 Wdh.“</b> = 3 Sätze mit je 8–12 Wiederholungen. Der <b>Richtwert</b> ist das vorgeschlagene Gewicht – bei einer neuen Übung geschätzt aus deinen bisherigen Leistungen bei anderen Übungen (ohne Verlauf aus deinem Profil).</li>
+        <li><b>Medizinball:</b> Der Richtwert ist das Ballgewicht. Lieber etwas leichter – jeder Wurf soll maximal schnell sein.</li>
         <li><b>Reserve:</b> Beende jeden Satz mit etwa ${rir} Wiederholungen im Tank – du könntest noch ${rir} mehr.</li>
         <li><b>Steigern:</b> Schaffst du in allen Sätzen das obere Ende, kommt beim nächsten Mal mehr Gewicht. Sonst gleiches Gewicht und mehr Wiederholungen. Zweimal unter dem unteren Ende: −5 %.</li>
         <li><b>Block:</b> 5 Wochen = 4 Belastungswochen + 1 Deload (weniger Sätze, −10 % Gewicht). Je nach Ziel wechseln mit jedem neuen Block die Ergänzungsübungen.</li>

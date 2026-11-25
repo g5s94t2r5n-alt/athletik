@@ -81,7 +81,7 @@ Varianten derselben Übung (z. B. Copenhagen lang/kurz, Bulgarische Kniebeuge/Sp
 
 ### Bewegungstempo
 
-Jede Kraftübung hat ein Tempo „ablassen – Pause in der Dehnung – zurück“ in Sekunden (X = explosiv, also mit maximal schnell gewollter Bewegung). Wiederholungsdauern von etwa 0,5–8 s bauen ähnlich Muskeln auf (Schoenfeld 2015). Eine maximal schnell gewollte konzentrische Phase bringt mehr Kraft (Pareja-Blanco 2014). Das Tempo wechselt im Block:
+Jede Kraftübung hat ein Tempo „ablassen – Pause in der Dehnung – zurück“ in Sekunden (X = explosiv, also mit maximal schnell gewollter Bewegung). In der App steht es ausgeschrieben in einer Zeile, z. B. „Tempo 3 s ablassen – 1 s Pause – 1 s zurück“. Wiederholungsdauern von etwa 0,5–8 s bauen ähnlich Muskeln auf (Schoenfeld 2015). Eine maximal schnell gewollte konzentrische Phase bringt mehr Kraft (Pareja-Blanco 2014). Das Tempo wechselt im Block:
 
 | Phase | Grundübungen | Isolation | Schwere Sätze (≤ 6 Wdh.) |
 |---|---|---|---|
@@ -242,6 +242,8 @@ Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:
   2. Neue Übung → Hochrechnung aus deinen bisherigen Leistungen: persönlicher Kraftfaktor (Median der letzten 1RM-Schätzungen im Verhältnis zu Referenzwerten, bevorzugt gleiche Körperregion) × Referenzwert der neuen Übung.
   3. Noch keine Daten → Referenzwert × Körpergewicht × Kraftniveau (Einsteiger 0,6 / Grundlagen 0,8 / Fortgeschritten 1,0 / Stark 1,13 / Sehr stark 1,27 / Elite 1,4 – entspricht einer Kniebeuge von ca. 0,9 / 1,2 / 1,5 / 1,7 / 1,9 / 2,1 × Körpergewicht bei Männern, Frauen ca. 30 % weniger) × Geschlecht. Ist das Körperfett bekannt, zählt statt des Körpergewichts die fettfreie Masse (Referenz ≈ 15 % Körperfett, Faktor 0,8–1,1).
   Aus dem geschätzten 1RM wird das Arbeitsgewicht für die Mitte des Wdh.-Bereichs plus Wdh. in Reserve berechnet (Epley): Muskel-/Kraft-/Fitness-Ziele 2, Ausdauer-/Marathon-/HYROX-Ziele 3 Wdh. Reserve. Kraftaufbau nutzt 3–6 Wdh. → höhere Gewichte. Deload −10 %.
+  In der Einheit steht dazu nur kurz „Richtwert aus deinen bisherigen Leistungen“ (bzw. „aus deinem Profil“) und „erste Sätze mit 2 Wdh. Reserve testen und anpassen“, das Gewicht selbst steht oben bei der Übung.
+  4. Medizinball-Würfe → Ballgewicht ≈ 4–6 % des Körpergewichts (Slam 10 %) × Kraftfaktor, 2–12 kg. Der Ball soll so leicht sein, dass jeder Wurf maximal schnell bleibt. Ein schwererer Ball zählt nicht als Rekord.
 - **Eintragen:** Ein Satz zählt, sobald Wdh. (und bei Hantelübungen das Gewicht) eingetragen sind – Abhaken ist optional.
 - **Stagnation:** Bleibt das geschätzte 1RM über 3 Einheiten derselben Übung
   gleich oder sinkt, schlägt die App eine Variante vor.

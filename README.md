@@ -17,7 +17,7 @@ Läuft vom iPhone-Homescreen wie eine normale App, auch offline im Gym. Kein App
 - **Diagramme**: Körpergewicht (mit 7-Tage-Mittel und optionalem Zielgewicht), Kraftentwicklung je Übung (geschätztes 1RM), Wochenvolumen pro Muskel, Monatsübersicht im Verlauf (wie oft welche Einheit)
 - **Trainingsziele**: Muskelaufbau & Athletik, Kraftaufbau, Ausdauer, Marathon, HYROX, Sportartspezifisch (Fußball, Handball, Basketball, Volleyball, Tennis/Padel – mit Saisonphase und Spieltag), Allgemeine Fitness, Abnehmen
 - **Videos & Technik**: Technikhinweise zu jeder Übung, YouTube-Suche mit einem Tipp, eigene Videos speichern und direkt in der App abspielen
-- **Tempo pro Übung** (z. B. 3 s ablassen · 1 s Pause · explosiv zurück), wechselt im Trainingsblock
+- **Tempo pro Übung** (z. B. 3 s ablassen – 1 s Pause – explosiv zurück), wechselt im Trainingsblock
 - **Supersätze bei wenig Zeit**: Drücken + Ziehen im Wechsel statt Übungen zu streichen
 - **Intervall-Uhr** für 4×4, 30/30, 15/15, Sprints, EMOM … mit Belastungs-/Pausenanzeige, Zielpuls und Signaltönen
 - **Pulszonen** aus Max- und Ruhepuls (Herzfrequenzreserve), ohne Eingabe aus dem Alter geschätzt

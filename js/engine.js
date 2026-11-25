@@ -410,7 +410,12 @@ const STD = {
   close_grip_bench: 1.05, kb_oh_ext: 0.3, db_kickback: 0.1, cable_woodchop: 0.2, full_can: 0.07, pause_bench: 1.1,
 };
 // Arbeitsgewicht direkt als Vielfaches des Körpergewichts (Schnellkraft & Tragen)
-const WORK = { kb_swing: 0.27, hang_power_clean: 0.5, db_jump_squat: 0.12, db_push_press: 0.22, farmer_walk: 0.4, kb_push_press: 0.2, suitcase_carry: 0.3 };
+const WORK = {
+  kb_swing: 0.27, hang_power_clean: 0.5, db_jump_squat: 0.12, db_push_press: 0.22, farmer_walk: 0.4, kb_push_press: 0.2, suitcase_carry: 0.3,
+  // Medizinball: leicht genug, dass jeder Wurf maximal schnell bleibt (80 kg → Brustpass ca. 4 kg, Slam ca. 8 kg)
+  mb_chest_pass: 0.05, mb_rot_throw: 0.05, mb_overhead_throw: 0.04, mb_scoop_toss: 0.06, mb_slam: 0.1,
+};
+const isMedball = (ex) => ex.equip.includes('medball');
 const LOWER_M = ['quadrizeps', 'beinbeuger', 'gesaess', 'waden'];
 const regionOfEx = (ex) => (ex.prim.some((m) => LOWER_M.includes(m)) ? 'lower' : 'upper');
 const kg = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
@@ -466,7 +471,7 @@ export function estimateWeight(data, ex, lo, hi) {
   const region = regionOfEx(ex);
   const hf = historyFactor(data, region, bw);
   const factor = hf ? hf.f : profileFactor(data, region);
-  const basis = hf ? `aus deinen bisherigen Leistungen (z. B. ${hf.ref})` : `für dein Profil (${kg(bw)} kg)`;
+  const basis = hf ? 'aus deinen bisherigen Leistungen' : 'aus deinem Profil';
   if (WORK[ex.id]) return { w: WORK[ex.id] * bw * factor, basis };
   if (!STD[ex.id]) return null;
   const reps = Math.round((lo + hi) / 2);
@@ -478,23 +483,27 @@ export function estimateWeight(data, ex, lo, hi) {
 // Doppelte Progression -> Zielgewicht + Hinweis
 export function target(data, ex, lo, hi, deload) {
   if (ex.load === 'none' || (['rehab', 'prev_lower'].includes(ex.slot) && ex.load === 'bw')) return { w: null, note: '' };
-  const hist = performances(data, ex.id);
+  // Medizinball-Würfe hatten früher kein Gewicht → Einträge ohne kg zählen dort nicht als Verlauf
+  const hist = performances(data, ex.id).filter((h) => !(ex.cat === 'power' && ex.load === 'kg') || h.sets.some((s) => s.w > 0));
   const step = ex.inc || 0;
   if (!hist.length) {
     // Noch nie gemacht → Richtwert aus anderen Übungen bzw. Profil, passend zu Wdh.-Ziel und Trainingsziel
     const est = estimateWeight(data, ex, lo, hi);
     const dl = deload ? 0.9 : 1;
     if (ex.cat === 'power') {
-      if (est && ex.load === 'kg') { const w = roundTo(est.w * dl, step || 1); return { w, note: `Richtwert ${est.basis}: ${kg(w)} kg – explosiv, jede Wdh. maximal schnell.` }; }
+      if (est && ex.load === 'kg') {
+        const w = isMedball(ex) ? Math.min(12, Math.max(2, roundTo(est.w * dl, step || 1))) : roundTo(est.w * dl, step || 1);
+        return { w, note: `Richtwert ${est.basis} – ${isMedball(ex) ? 'Ball so wählen, dass jeder Wurf maximal schnell bleibt.' : 'explosiv, jede Wdh. maximal schnell.'}` };
+      }
       return { w: ex.load === 'bw' ? 0 : null, note: 'Explosiv, jede Wdh. maximal schnell.' };
     }
     if (!est) return { w: ex.load === 'bw' ? 0 : null, note: ex.load === 'bw' ? 'Ohne Zusatzgewicht starten.' : `Startgewicht wählen: Satzende mit ${goalRir(data)} Wdh. in Reserve.` };
     if (ex.load === 'bw') {
       const add = roundTo(Math.max(0, est.w * dl), step || 2.5);
-      return { w: add, note: add > 0 ? `Richtwert ${est.basis}: +${kg(add)} kg Zusatzgewicht für ${lo}–${hi} Wdh.` : `Richtwert ${est.basis}: ohne Zusatzgewicht${est.w < -10 ? ', bei Bedarf mit Band-Unterstützung' : ''}.` };
+      return { w: add, note: add > 0 ? `Richtwert ${est.basis} – erste Sätze mit ${goalRir(data)} Wdh. Reserve testen und anpassen.` : `Ohne Zusatzgewicht${est.w < -10 ? ', bei Bedarf mit Band-Unterstützung' : ''} – erste Sätze mit ${goalRir(data)} Wdh. Reserve testen und anpassen.` };
     }
     const w = Math.max(step || 1, roundTo(est.w * dl, step || 1));
-    return { w, note: `Richtwert ${est.basis}: ${kg(w)} kg für ${lo}–${hi} Wdh. – erste Sätze mit ${goalRir(data)} Wdh. Reserve testen und anpassen.` };
+    return { w, note: `Richtwert ${est.basis} – erste Sätze mit ${goalRir(data)} Wdh. Reserve testen und anpassen.` };
   }
   const last = hist[0];
   const topW = Math.max(...last.sets.map((s) => s.w));
@@ -734,9 +743,9 @@ export function intervalPhases(iv, rounds = iv.rounds, sets = iv.sets || 1) {
 
 export function tempoText(code) {
   if (!code) return '';
-  if (code === '4-0-X') return 'so langsam wie möglich ablassen (3–5 s), mit den Händen abfangen, zügig zurück';
+  if (code === '4-0-X') return 'max. langsam ablassen – zügig zurück';
   const [e, p, c] = code.split('-');
-  return [`${e} s ablassen`, Number(p) ? `${p} s Pause in der Dehnung` : '', c === 'X' ? 'explosiv zurück' : `${c} s zurück`].filter(Boolean).join(' · ');
+  return [`${e} s ablassen`, Number(p) ? `${p} s Pause` : '', c === 'X' ? 'explosiv zurück' : `${c} s zurück`].filter(Boolean).join(' – ');
 }
 
 export const defaultRest = (ex, main) => (ex.cat === 'power' ? 120 : ex.slot === 'squat' || ex.slot === 'hinge' || (main && ex.cat === 'strength') ? 180 : 90);
@@ -1005,7 +1014,7 @@ export function sessionRecords(data, session) {
     const ex = EX[it.exId];
     if (!ex || ex.slot === 'rehab') continue;
     const sets = (it.sets || []).filter((st) => st.done && Number(st.r) > 0);
-    if (sets.length && ex.load !== 'none') {
+    if (sets.length && ex.load !== 'none' && !isMedball(ex)) {
       const prev = best(ex.id);
       if (prev) {
         const top = sets.reduce((a, st) => { const e = e1rm(loadOf(data, ex, st.w, session.date), Number(st.r)); return e > a.e ? { e, w: Number(st.w) || 0, r: Number(st.r) } : a; }, { e: 0, w: 0, r: 0 });

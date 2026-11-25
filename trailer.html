@@ -387,44 +387,64 @@
   const end = () => { cancelAnimationFrame(raf); bar.style.width = '100%'; playing = false; stopMusic(2.5); if (EMBED) setTimeout(finish, 2500); };
 
   // ---------- Soundtrack (synthetisch, 120 BPM, Zeitpunkte aus den Szenen) ----------
-  // Intro mit Treffern auf die Wörter · Impact zum Logo · Groove ab „Warum Athletik?“ · Melodie während
-  // „passt sich an“ und Wochen-Check · Riser + Impact zum Outro · Schlussakkord. Dazu Effekte: Wisch bei
-  // jedem Szenenwechsel, Klick beim Finger-Tipp, Glocke bei „+2,5 kg“, aufsteigende Töne bei den Zeilen.
+  // Aufbau wie ein Dance-Track: Intro-Treffer → Logo-Impact → kurzer Build → Drop 1 ab „Warum Athletik?“
+  // (Four-on-the-floor, rollender Bass, 16tel-Hats, Arpeggio) → Build mit Snare-Roll und Filter-Sweep →
+  // Drop 2 ab „passt sich an“ (Supersaw-Hook, Akkord-Stabs, Crash) → Groove → Build → Outro mit großen
+  // Akkorden. Dazu Effekte: Wisch bei jedem Szenenwechsel, Klick beim Finger-Tipp, Glocke bei „+2,5 kg“,
+  // aufsteigende Töne bei den Zeilen.
   const startOf = (n) => scenes.slice(0, n).reduce((a, sc) => a + Number(sc.dataset.dur), 0);
   const sceneIdx = (act) => scenes.findIndex((sc) => sc.dataset.act === act);
-  const T = {
-    logo: startOf(1), groove: startOf(2),
-    leadFrom: startOf(sceneIdx('adapt')), leadTo: startOf(sceneIdx('coach') + 1),
-    outro: startOf(scenes.length - 1), end: total,
-  };
+  const T = { logo: startOf(1), drop1: startOf(2), drop2: startOf(sceneIdx('adapt')), leadTo: startOf(sceneIdx('coach') + 1), outro: startOf(scenes.length - 1), end: total };
+  // Abschnitte; Akkordfolge und Takte zählen ab Abschnittsbeginn, damit jeder Drop auf „1“ startet
+  const SECTIONS = [
+    { from: 0, kind: 'intro' }, { from: T.logo, kind: 'pre' }, { from: T.drop1 - 2, kind: 'build' },
+    { from: T.drop1, kind: 'groove' }, { from: T.drop2 - 4, kind: 'build' }, { from: T.drop2, kind: 'drop' },
+    { from: T.leadTo, kind: 'groove' }, { from: T.outro - 4, kind: 'build' }, { from: T.outro, kind: 'outro' },
+  ];
+  const DROPS = [T.drop1, T.drop2, T.outro];
+  const sectionAt = (sec) => SECTIONS.filter((x) => x.from <= sec + 1e-6).pop();
+  const inGap = (sec) => DROPS.some((d) => sec >= d - 0.25 - 1e-6 && sec < d - 1e-6); // kurze Stille vor dem Drop
+
   let ctx = null; let musicTimer = 0; let musicOn = false;
-  let master = null; let bus = null; let rev = null; let songStart = 0; let step = 0; let shots = [];
+  let meter = null; let peakMax = 0;
+  let master = null; let bus = null; let duck = null; let hp = null; let rev = null; let songStart = 0; let step = 0; let shots = [];
   const SIXT = 0.125; // 16tel bei 120 BPM
-  const N = { A2: 110, F2: 87.31, C3: 130.81, G2: 98, A3: 220, C4: 261.63, E4: 329.63, F3: 174.61, G3: 196, B3: 246.94, D4: 293.66, G4: 392, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880, C6: 1046.5 };
+  const N = {
+    F2: 87.31, G2: 98, A2: 110, C3: 130.81, F3: 174.61, G3: 196, A3: 220, B3: 246.94, C4: 261.63, D4: 293.66, E4: 329.63, G4: 392,
+    E5: 659.25, F5: 698.46, G5: 783.99, A5: 880, B5: 987.77, C6: 1046.5, D6: 1174.66, E6: 1318.51,
+  };
   const PROG = [
     { bass: N.A2, pad: [N.A3, N.C4, N.E4] },
     { bass: N.F2, pad: [N.F3, N.A3, N.C4] },
     { bass: N.C3, pad: [N.C4, N.E4, N.G4] },
     { bass: N.G2, pad: [N.G3, N.B3, N.D4] },
   ];
-  const LEAD = [
-    [N.A5, 0, N.G5, N.E5, 0, 0, N.G5, N.A5],
-    [N.C6, 0, N.A5, 0, N.G5, 0, N.E5, 0],
-    [N.G5, 0, N.E5, N.G5, N.A5, 0, N.G5, 0],
-    [N.D5, 0, N.E5, 0, N.G5, 0, 0, 0],
+  // Hook für Drop 2: [16tel-Position, Ton, Länge in 16teln] je Akkord
+  const HOOK = [
+    [[0, N.A5, 2], [3, N.A5, 1], [6, N.C6, 2], [8, N.E6, 3], [12, N.D6, 2], [14, N.C6, 2]],
+    [[0, N.C6, 2], [3, N.C6, 1], [6, N.A5, 2], [8, N.C6, 3], [12, N.A5, 2], [14, N.F5, 2]],
+    [[0, N.E6, 2], [3, N.E6, 1], [6, N.D6, 2], [8, N.C6, 3], [12, N.G5, 2], [14, N.C6, 2]],
+    [[0, N.D6, 2], [3, N.D6, 1], [6, N.B5, 2], [8, N.G5, 3], [12, N.B5, 2], [14, N.D6, 2]],
   ];
   const noiseBuf = () => { const len = ctx.sampleRate; const b = ctx.createBuffer(1, len, ctx.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1; return b; };
   let NOISE = null;
   const env = (g, t, a, peak, rel) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + rel); };
   const chain = () => {
-    master = ctx.createGain(); master.gain.value = 0.85;
-    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
-    master.connect(comp).connect(ctx.destination);
-    bus = ctx.createGain(); bus.connect(master); // Musik-Bus (wird von der Kick „gepumpt“)
+    // Master: leichte Sättigung (tanh) + Kompressor → laut und druckvoll, ohne zu clippen
+    master = ctx.createGain(); master.gain.value = 0.9;
+    const shaper = ctx.createWaveShaper(); const curve = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) { const x = (i / 1023) * 2 - 1; curve[i] = Math.tanh(1.6 * x) / Math.tanh(1.6); }
+    shaper.curve = curve;
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -10; comp.knee.value = 6; comp.ratio.value = 5; comp.attack.value = 0.004; comp.release.value = 0.12;
+    meter = ctx.createAnalyser(); meter.fftSize = 2048;
+    master.connect(shaper).connect(comp).connect(meter).connect(ctx.destination);
+    // Musik-Bus: Pumpen (Sidechain von der Kick) → Stille vor dem Drop → Hochpass-Sweep im Build
+    bus = ctx.createGain(); duck = ctx.createGain(); hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 20;
+    bus.connect(duck).connect(hp).connect(master);
     rev = ctx.createConvolver();
     const len = ctx.sampleRate * 2.2; const ir = ctx.createBuffer(2, len, ctx.sampleRate);
     for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
-    rev.buffer = ir; const rg = ctx.createGain(); rg.gain.value = 0.28; rev.connect(rg).connect(master);
+    rev.buffer = ir; const rg = ctx.createGain(); rg.gain.value = 0.25; rev.connect(rg).connect(master);
   };
   const osc = (type, f, t, dur, peak, dest, a = 0.005, cutoff) => {
     const o = ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t);
@@ -437,38 +457,65 @@
     const s = ctx.createBufferSource(); s.buffer = NOISE; const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
     const g = ctx.createGain(); env(g, t, 0.003, peak, dur); s.connect(f).connect(g).connect(dest); s.start(t); s.stop(t + dur + 0.05);
   };
-  const kick = (t) => {
+  // Drums
+  const kick = (t, v = 1) => {
     const o = ctx.createOscillator(); const g = ctx.createGain();
-    o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.16);
-    g.gain.setValueAtTime(0.95, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
-    o.connect(g).connect(master); o.start(t); o.stop(t + 0.42);
-    bus.gain.setValueAtTime(0.4, t); bus.gain.linearRampToValueAtTime(1, t + 0.24); // Sidechain-Pumpen
+    o.frequency.setValueAtTime(190, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.09); o.frequency.exponentialRampToValueAtTime(40, t + 0.3);
+    g.gain.setValueAtTime(1.05 * v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
+    o.connect(g).connect(master); o.start(t); o.stop(t + 0.45);
+    noise(t, 0.012, 0.35 * v, 'highpass', 3000, master); // Klick-Transient
+    bus.gain.setValueAtTime(0.3, t); bus.gain.linearRampToValueAtTime(1, t + 0.22); // Sidechain-Pumpen
   };
-  const clap = (t) => { [0, 0.012, 0.024].forEach((d) => noise(t + d, 0.12, 0.35, 'bandpass', 1600, master, 0.8)); noise(t, 0.25, 0.12, 'bandpass', 1600, rev, 0.8); };
-  const hat = (t, v) => noise(t, 0.045, v, 'highpass', 8000, master);
-  const bass = (t, f) => { osc('sawtooth', f, t, 0.2, 0.28, bus, 0.005, 420); osc('sine', f / 2, t, 0.22, 0.22, bus); };
-  const pad = (t, notes, dur, peak = 0.05, cutoff = 1400) => notes.forEach((f) => [-6, 6].forEach((det) => {
-    const g = osc('sawtooth', f * Math.pow(2, det / 1200), t, dur, peak, bus, 0.35, cutoff); g.connect(rev);
+  const clap = (t, v = 1) => {
+    [0, 0.011, 0.022].forEach((d) => noise(t + d, 0.11, 0.38 * v, 'bandpass', 1500, master, 0.9));
+    osc('triangle', 190, t, 0.07, 0.22 * v, master, 0.001); // Snare-Körper
+    noise(t, 0.28, 0.14 * v, 'bandpass', 1600, rev, 0.8);
+  };
+  const snare = (t, v) => { noise(t, 0.09, v, 'bandpass', 1800, master, 0.7); osc('triangle', 200, t, 0.05, v * 0.6, master, 0.001); };
+  const hat = (t, v) => noise(t, 0.04, v, 'highpass', 8500, master);
+  const openHat = (t, v = 0.12) => noise(t, 0.2, v, 'highpass', 7000, master);
+  const crash = (t) => { noise(t, 1.8, 0.2, 'highpass', 5000, master); noise(t, 2.4, 0.14, 'highpass', 3500, rev); };
+  // Synths
+  const bass = (t, f, v = 1) => { osc('sawtooth', f, t, 0.1, 0.22 * v, bus, 0.004, 900); osc('sawtooth', f * 1.006, t, 0.1, 0.16 * v, bus, 0.004, 700); osc('sine', f / 2, t, 0.12, 0.26 * v, bus, 0.004); };
+  const supersaw = (t, f, dur, peak, cutoff = 4200, voices = [-14, 0, 14]) => voices.forEach((det) => {
+    const g = osc('sawtooth', f * Math.pow(2, det / 1200), t, dur, peak, bus, 0.006, cutoff); g.connect(rev);
+  });
+  const pad = (t, notes, dur, peak = 0.05, cutoff = 1400) => notes.forEach((f) => [-7, 7].forEach((det) => {
+    const g = osc('sawtooth', f * Math.pow(2, det / 1200), t, dur, peak, bus, 0.3, cutoff); g.connect(rev);
   }));
-  const pluck = (t, f, peak = 0.07) => { const g = osc('triangle', f, t, 0.22, peak, bus); g.connect(rev); };
-  const lead = (t, f) => { const g = osc('square', f, t, 0.22, 0.045, bus, 0.01, 2600); g.connect(rev); };
-  const hit = (t) => { osc('sine', 120, t, 0.5, 0.6, master); noise(t, 0.35, 0.25, 'lowpass', 2200, master); noise(t, 0.6, 0.12, 'highpass', 3000, rev); };
+  const arp = (t, f, v = 0.05) => { const g = osc('square', f, t, 0.09, v, bus, 0.002, 3200); g.connect(rev); };
+  const hit = (t) => { osc('sine', 120, t, 0.5, 0.7, master); noise(t, 0.35, 0.28, 'lowpass', 2200, master); noise(t, 0.6, 0.14, 'highpass', 3000, rev); };
   const impact = (t) => {
-    const o = ctx.createOscillator(); const g = ctx.createGain(); o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(28, t + 1.2);
-    g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6); o.connect(g).connect(master); o.start(t); o.stop(t + 1.7);
-    noise(t, 1.8, 0.22, 'highpass', 2500, master); noise(t, 2.2, 0.18, 'highpass', 1800, rev);
+    const o = ctx.createOscillator(); const g = ctx.createGain(); o.frequency.setValueAtTime(75, t); o.frequency.exponentialRampToValueAtTime(28, t + 1.2);
+    g.gain.setValueAtTime(1, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6); o.connect(g).connect(master); o.start(t); o.stop(t + 1.7);
+    noise(t, 1.8, 0.24, 'highpass', 2500, master); noise(t, 2.2, 0.2, 'highpass', 1800, rev);
   };
   const riser = (t, dur) => {
     const s = ctx.createBufferSource(); s.buffer = NOISE; s.loop = true;
-    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 2; f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(7000, t + dur);
-    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.28, t + dur); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.05);
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 2; f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(8000, t + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3, t + dur); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.05);
     s.connect(f).connect(g).connect(master); s.start(t); s.stop(t + dur + 0.1);
   };
+  // Build: Snare-Roll (8tel → 16tel → 32tel, lauter werdend), Riser, Hochpass öffnet sich, kurze Stille, dann Drop
+  const build = (t, dur) => {
+    let x = 0;
+    while (x < dur - 0.25 - 1e-6) {
+      const p = x / dur; const stepLen = p < 0.5 ? 0.25 : p < 0.75 ? 0.125 : 0.0625;
+      snare(t + x, 0.06 + 0.3 * p); x += stepLen;
+    }
+    riser(t, dur);
+    hp.frequency.setValueAtTime(20, t); hp.frequency.exponentialRampToValueAtTime(1400, t + dur - 0.25);
+    duck.gain.setValueAtTime(1, t + dur - 0.25); duck.gain.linearRampToValueAtTime(0.0001, t + dur - 0.22);
+    hp.frequency.setValueAtTime(20, t + dur); duck.gain.setValueAtTime(1, t + dur);
+  };
+  const drop = (t) => { crash(t); osc('sine', 55, t, 0.9, 0.5, master, 0.005); };
   const ONE_SHOTS = [
     { at: 0.1, fn: hit }, { at: 0.9, fn: hit }, { at: 1.7, fn: hit },
     { at: T.logo - 2, fn: (t) => riser(t, 2) }, { at: T.logo, fn: impact },
-    { at: T.outro - 2, fn: (t) => riser(t, 2) }, { at: T.outro, fn: impact },
-    { at: T.end - 1.5, fn: (t) => { pad(t, [N.A3, N.C4, N.E4, N.A5 / 2], 2.6, 0.06, 2200); osc('sine', N.A2 / 2, t, 2.4, 0.3, master, 0.01); } },
+    { at: T.drop1 - 2, fn: (t) => build(t, 2) }, { at: T.drop1, fn: drop },
+    { at: T.drop2 - 4, fn: (t) => build(t, 4) }, { at: T.drop2, fn: drop },
+    { at: T.outro - 4, fn: (t) => build(t, 4) }, { at: T.outro, fn: (t) => { impact(t); crash(t); } },
+    { at: T.end - 1.5, fn: (t) => { pad(t, [N.A3, N.C4, N.E4, N.A5 / 2], 2.6, 0.07, 2600); supersaw(t, N.A5 / 2, 2.2, 0.03, 3000); osc('sine', N.A2 / 2, t, 2.4, 0.35, master, 0.01); crash(t); } },
   ];
 
   // Effekte (nur wenn der Ton an ist)
@@ -482,28 +529,54 @@
       s.connect(f).connect(g).connect(master); s.start(t); s.stop(t + 0.5);
     }
     if (kind === 'tap') { osc('sine', 1400, t, 0.05, 0.12, master, 0.002); noise(t, 0.02, 0.06, 'highpass', 5000, master); }
-    if (kind === 'ding') { [N.E5 * 2, N.A5 * 2].forEach((f, j) => { const g = osc('sine', f, t + j * 0.09, 0.9, 0.09, master, 0.004); g.connect(rev); }); }
-    if (kind === 'blip') { const f = [N.A5, N.C6, N.E5 * 2, N.G5 * 2, N.A5 * 2, N.C6 * 2][k % 6]; const g = osc('triangle', f, t, 0.18, 0.08, master, 0.003); g.connect(rev); }
+    if (kind === 'ding') { [N.E5 * 2, N.A5 * 2].forEach((f, j) => { const g = osc('sine', f, t + j * 0.09, 0.9, 0.1, master, 0.004); g.connect(rev); }); }
+    if (kind === 'blip') { const f = [N.A5, N.C6, N.E6, N.G5 * 2, N.A5 * 2, N.C6 * 2][k % 6]; const g = osc('triangle', f, t, 0.18, 0.09, master, 0.003); g.connect(rev); }
   };
 
   const scheduleStep = (s, t) => {
-    const sec = s * SIXT; const bar = Math.floor(s / 16); const b16 = s % 16; const ch = PROG[bar % 4];
-    if (sec < T.logo) { if (s === 0) pad(t, PROG[0].pad, T.logo, 0.035, 700); return; }
-    const groove = sec >= T.groove && sec < T.outro - 2;
-    if (b16 === 0 && sec < T.end - 1.5) pad(t, ch.pad, 2, groove ? 0.035 : 0.05, groove ? 1600 : 1100);
-    if (groove) {
-      if (b16 % 4 === 0) kick(t);
-      if (b16 === 4 || b16 === 12) clap(t);
-      hat(t, b16 % 4 === 2 ? 0.09 : 0.035);
-      if ([0, 3, 6, 8, 11, 14].includes(b16)) bass(t, b16 === 6 || b16 === 14 ? ch.bass * 2 : ch.bass);
-      const tones = [...ch.pad.map((f) => f * 2), ch.pad[0] * 4];
-      pluck(t, tones[[0, 1, 2, 3, 2, 1, 0, 1][b16 % 8]], 0.045);
-      if (sec >= T.leadFrom && sec < T.leadTo && b16 % 2 === 0) { const f = LEAD[bar % 4][b16 / 2]; if (f) lead(t, f); }
-    } else if (sec >= T.logo && sec < T.groove) {
-      if (b16 % 2 === 0) pluck(t, [...ch.pad.map((f) => f * 2)][(b16 / 2) % 3], 0.035);
-      if (sec >= T.logo + 2 && b16 % 2 === 1) hat(t, 0.025);
-    } else if (sec >= T.outro && sec < T.end - 1.5 && b16 % 4 === 0) {
-      pluck(t, ch.pad[(b16 / 4) % 3] * 2, 0.05);
+    const sec = s * SIXT;
+    if (inGap(sec)) return;
+    const sect = sectionAt(sec);
+    const local = Math.round((sec - sect.from) / SIXT); // 16tel seit Abschnittsbeginn
+    const bar = Math.floor(local / 16); const b16 = local % 16; const ch = PROG[bar % 4];
+    const tones = [ch.pad[0] * 2, ch.pad[1] * 2, ch.pad[2] * 2, ch.pad[0] * 4];
+    const k = sect.kind;
+    if (k === 'intro') { if (s === 0) pad(t, PROG[0].pad, T.logo, 0.035, 700); return; }
+    if (k === 'pre') {
+      if (b16 === 0) pad(t, ch.pad, 2, 0.045, 900);
+      if (b16 % 4 === 0) kick(t, 0.55);
+      if (b16 % 2 === 0) arp(t, tones[(b16 / 2) % 4], 0.03);
+      if (b16 % 4 === 2) hat(t, 0.05);
+      return;
+    }
+    if (k === 'build') {
+      if (b16 === 0) pad(t, ch.pad, 2, 0.04, 2200);
+      if (b16 % 4 === 0) kick(t, 0.8);
+      hat(t, 0.03 + 0.04 * (local / 32));
+      arp(t, tones[b16 % 4] * (b16 >= 8 ? 2 : 1), 0.035);
+      return;
+    }
+    if (k === 'outro') {
+      if (b16 === 0 && sec < T.end - 1.5) { pad(t, ch.pad, 2, 0.06, 2600); supersaw(t, ch.pad[0] * 2, 1.6, 0.018, 2600); }
+      if (b16 === 0 && bar < 2) kick(t, 0.9);
+      if (b16 % 2 === 0 && sec < T.end - 1.5) arp(t, tones[(b16 / 2) % 4] * 2, 0.03);
+      return;
+    }
+    // groove + drop: Four-on-the-floor, Clap auf 2 und 4, 16tel-Hats, offene Hats auf dem Offbeat, rollender Bass
+    const big = k === 'drop';
+    if (b16 === 0) pad(t, ch.pad, 2, big ? 0.03 : 0.035, big ? 2200 : 1700);
+    if (b16 % 4 === 0) kick(t);
+    if (b16 === 4 || b16 === 12) clap(t, big ? 1.1 : 1);
+    hat(t, b16 % 2 === 0 ? 0.07 : 0.035);
+    if (b16 % 4 === 2) openHat(t, big ? 0.14 : 0.1);
+    if (b16 % 4 !== 0) bass(t, b16 % 4 === 3 ? ch.bass * 2 : ch.bass, b16 % 4 === 2 ? 1.15 : 0.85);
+    arp(t, tones[[0, 1, 2, 3, 2, 1, 3, 1][b16 % 8]] * (big ? 2 : 1), big ? 0.03 : 0.04);
+    // Fill am Ende jedes 4. Takts
+    if (bar % 4 === 3 && b16 >= 12) snare(t, 0.1 + 0.04 * (b16 - 12));
+    if (big) {
+      const note = HOOK[bar % 4].find((h) => h[0] === b16);
+      if (note) supersaw(t, note[1], note[2] * SIXT * 0.9, 0.032, 4800, [-16, -5, 5, 16]);
+      if (b16 % 4 === 2) ch.pad.forEach((f) => supersaw(t, f * 2, 0.1, 0.012, 3000, [-10, 10])); // Akkord-Stabs
     }
   };
   const schedule = () => {
@@ -511,7 +584,9 @@
     while (songStart + step * SIXT < ahead && step * SIXT < T.end) { const t = songStart + step * SIXT; if (t >= ctx.currentTime - 0.02) scheduleStep(step, t); step++; }
     shots = shots.filter((o) => { const t = songStart + o.at; if (t < ahead) { if (t >= ctx.currentTime - 0.05) o.fn(t); return false; } return true; });
   };
-  window.trailerMusic = () => ({ state: ctx && ctx.state, musicOn, step, songPos: ctx ? Math.round((ctx.currentTime - songStart) * 10) / 10 : null, shotsLeft: shots.length });
+  // Zum Prüfen: Zustand und Spitzenpegel (sollte unter 1 bleiben)
+  const peakNow = () => { if (!meter) return 0; const a = new Float32Array(meter.fftSize); meter.getFloatTimeDomainData(a); let m = 0; for (const v of a) m = Math.max(m, Math.abs(v)); peakMax = Math.max(peakMax, m); return m; };
+  window.trailerMusic = () => ({ state: ctx && ctx.state, musicOn, step, songPos: ctx ? Math.round((ctx.currentTime - songStart) * 10) / 10 : null, shotsLeft: shots.length, peak: Math.round(peakNow() * 100) / 100, peakMax: Math.round(peakMax * 100) / 100 });
   const label = (on) => { const t = on ? '🔇 Ton aus' : '🔈 Ton an'; document.getElementById('sound').textContent = t; document.getElementById('snd').textContent = t; };
   // offset = Position im Trailer (s) – so passt die Musik auch, wenn der Ton später eingeschaltet wird
   const startMusic = (offset = 0) => {

@@ -92,14 +92,19 @@ export async function weeklyReview(data) {
     (() => {
       // Nachgetragene Trainings zählen als Einheiten; Läufe aus dem Plan stecken schon in den Plan-Einheiten
       const days = (d) => (new Date(todayISO()) - new Date(d)) / 86400000;
-      const plan = data.sessions.filter((s) => days(s.date) >= 0 && days(s.date) < 7).length;
-      const logged = (data.activities || []).filter((a) => days(a.date) >= 0 && days(a.date) < 7);
+      const week = data.sessions.filter((s) => days(s.date) >= 0 && days(s.date) < 7);
+      const plan = week.filter((s) => !s.logged).length;
+      const logged = [...(data.activities || []).filter((a) => days(a.date) >= 0 && days(a.date) < 7), ...week.filter((s) => s.logged)];
       const a = activitySummary(data, 7);
       return `Einheiten in den letzten 7 Tagen: ${plan + logged.length} insgesamt (${plan} Plan-Einheiten, ${logged.length} nachgetragen) bei ${p.days} geplanten Trainingstagen – nachgetragene Trainings zählen als vollwertige Einheiten. Ausdauer & Sport gesamt (inkl. Läufe aus dem Plan): ${a.minutes} min, sRPE-Last ${a.load}.`;
     })(),
     (() => {
       const days = (d) => (new Date(todayISO()) - new Date(d)) / 86400000;
-      const list = (data.activities || []).filter((a) => days(a.date) >= 0 && days(a.date) < 14).map((a) => ({ datum: a.date, art: activityName(a), minuten: a.minutes, anstrengung: a.intensity, ...(a.km ? { km: a.km } : {}), ...(a.note ? { notiz: String(a.note).slice(0, 120) } : {}) }));
+      const list = [
+        ...(data.activities || []).filter((a) => days(a.date) >= 0 && days(a.date) < 14).map((a) => ({ datum: a.date, art: activityName(a), minuten: a.minutes, anstrengung: a.intensity, ...(a.km ? { km: a.km } : {}), ...(a.note ? { notiz: String(a.note).slice(0, 120) } : {}) })),
+        // Nachgetragenes Krafttraining: Sätze stehen in den Trainingsdaten unter letzte_einheiten
+        ...data.sessions.filter((s) => s.logged && days(s.date) >= 0 && days(s.date) < 14).map((s) => ({ datum: s.date, art: s.title, minuten: s.minutes, anstrengung: s.intensity, saetze: s.blocks.reduce((n, b) => n + b.items.reduce((m, it) => m + (it.sets || []).length, 0), 0), ...(s.note ? { notiz: String(s.note).slice(0, 120) } : {}) })),
+      ].sort((x, y) => x.datum.localeCompare(y.datum));
       return list.length ? `Nachgetragene Trainings der letzten 14 Tage (JSON): ${JSON.stringify(list)}` : 'Keine nachgetragenen Trainings in den letzten 14 Tagen.';
     })(),
     `Nachgetragene Trainings vorherige Woche (Tag 8–14): sRPE-Last ${activitySummary(data, 14).load - activitySummary(data, 7).load}.`,

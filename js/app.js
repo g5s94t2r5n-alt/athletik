@@ -7,7 +7,7 @@ import {
   feedbackAdjust, sessionRecords, allRecords, PAIN_NAME, autoEffort,
   tempoText, intervalPhases, bodyCompSeries, compAdjust, TEMPLATE_GROUPS, groupOf, nextVariant,
   HR_ZONES, hrBase, hrRange, hrPlan, hrSummary, painFocus, ruleReview, defaultRest, goalRir,
-  MUSCLE_NAME, strainFocus, soreActive, soreMuscles,
+  MUSCLE_NAME, strainFocus, soreActive, soreMuscles, performances, clearCaches, loggedTemplate,
 } from './engine.js';
 import { weeklyReview, CoachError, MODEL } from './coach.js';
 import { GOALS, GOAL, goalOf, rotationFor, daysToRace, weightStatus, SPORTS, SPORT, SEASONS, SEASON, WEEKDAYS, matchInfo, LEVELS, levelOf, levelHint } from './goals.js';
@@ -168,7 +168,7 @@ function renderToday() {
   <div class="cta-bar"><button class="btn primary" data-action="plan-rule" ${busy ? 'disabled' : ''}>Training erstellen<small>${todayTpl === 'RUN' ? esc(EX[runType === 'auto' ? autoRunType(data).id : runType]?.name || 'Laufeinheit') : `${esc(shortTpl(todayTpl))} · ${data.profile.duration} min`}</small></button></div>
   <div class="actions">
     <button class="btn" data-action="act-new">+ Anderes Training nachtragen</button>
-    <p class="muted small center">z. B. HIIT, Joggen, Yoga, CrossFit, Padel – fließt in die Planung ein.</p>
+    <p class="muted small center">z. B. Krafttraining, HIIT, Joggen, Yoga, Padel – fließt in die Planung ein.</p>
   </div>
 
   ${(() => {
@@ -178,7 +178,7 @@ function renderToday() {
       <p><strong>${esc(activityName(lastAct))}</strong><br><span class="muted">${fmtDate(lastAct.date)} · ${lastAct.minutes} min · ${esc(lastAct.intensity)}${lastAct.km ? ` · ${num(lastAct.km)} km` : ''}</span></p></section>`;
     }
     return last ? `<section class="card soft"><div class="label">Letzte Einheit</div>
-    <p><strong>${esc(last.title)}</strong><br><span class="muted">${fmtDate(last.date)} · ${sessionSummary(last)}${last.template === 'RUN' ? '' : ' bewegt'}</span></p></section>` : '';
+    <p><strong>${esc(last.title)}</strong><br><span class="muted">${fmtDate(last.date)} · ${last.logged ? loggedSummary(last) : `${sessionSummary(last)}${last.template === 'RUN' ? '' : ' bewegt'}`}</span></p></section>` : '';
   })()}
   `;
 }
@@ -267,7 +267,7 @@ function renderItem(it, bi, ii, type) {
   if (!ex) return '';
   const tracked = it.sets.length > 0;
   // Zusatzgewicht nur bei Körpergewicht-Übungen ohne Band (beim Band zählt der Widerstand, nicht kg)
-  const showW = ex.load === 'kg' || (ex.load === 'bw' && ex.cat === 'strength' && !['rehab', 'prev_lower'].includes(ex.slot) && !ex.equip.includes('band'));
+  const showW = hasWeightField(ex);
   const allDone = tracked ? it.sets.every((x) => x.done) : it.done;
   const partner = it.ss ? data.active.blocks[bi].items.find((x) => x !== it && x.ss && x.ss[0] === it.ss[0]) : null;
   return `
@@ -318,6 +318,8 @@ const ICON_TRASH = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden=
 const ICON_PLAY = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 8.2v7.6l6-3.8z" fill="currentColor"/></svg>';
 
 let lastAuto = { key: '', at: 0 };
+// Gewichtsspalte: kg-Übungen und Körpergewichtsübungen mit Zusatzgewicht (nicht Reha, nicht mit Band)
+const hasWeightField = (ex) => ex.load === 'kg' || (ex.load === 'bw' && ex.cat === 'strength' && !['rehab', 'prev_lower'].includes(ex.slot) && !ex.equip.includes('band'));
 const setFilled = (it, st) => st.r !== '' && Number(st.r) > 0 && (EX[it.exId]?.load !== 'kg' || (st.w !== '' && st.w != null));
 
 // Gewicht in Folgesätze übernehmen, wenn dort noch nichts geändert wurde
@@ -930,19 +932,65 @@ const INT_HELP = {
   hart: 'Sehr anstrengend – kaum Reden möglich (RPE 7–10)',
 };
 
+// Krafttraining: Anstrengung über Wdh. in Reserve statt Sprechtest
+const INT_HELP_STRENGTH = {
+  leicht: 'Locker – noch viele Wdh. in Reserve (RPE 2–4)',
+  mittel: 'Fordernd – ca. 3–4 Wdh. in Reserve (RPE 5–6)',
+  hart: 'Sehr anstrengend – bis kurz vor Schluss (RPE 7–10)',
+};
+const LOG_REGIONS = [['lower', 'Unterkörper'], ['upper', 'Oberkörper'], ['full', 'Ganzkörper']];
+const LOG_REGION_NAME = Object.fromEntries(LOG_REGIONS);
+const LOWER_MS = ['quadrizeps', 'beinbeuger', 'gesaess', 'waden'];
+// Körperbereich einer Übung (Sprünge ohne Hauptmuskel: nach den beteiligten Muskeln; reine Rumpfübungen passen überall)
+const exRegion = (ex) => { const ms = ex.prim.length ? ex.prim : ex.sec; return ms.some((m) => LOWER_MS.includes(m)) ? 'lower' : ms.length && ms.every((m) => m === 'bauch') ? 'core' : 'upper'; };
+const loggable = (ex) => ex.cat === 'strength' || ex.cat === 'power';
+const sessionFocus = (s) => (s.logged ? s.region : TEMPLATES[s.template]?.focus);
+const hasSets = (s) => s.blocks.some((b) => b.items.some((it) => (it.sets || []).some((x) => x.done)));
+const pNum = (v) => parseFloat(String(v ?? '').replace(',', '.'));
+const loggedSummary = (s) => `${s.minutes} min · ${s.intensity}${hasSets(s) ? ` · ${plural(countSets(s), 'Satz', 'Sätze')}` : ''} · nachgetragen`;
+
 function newActivity() {
-  actDraft = { type: 'jogging', date: todayISO(), minutes: 45, intensity: 'mittel', km: '', note: '' };
+  actDraft = { type: 'jogging', date: todayISO(), minutes: 45, intensity: 'mittel', km: '', note: '', region: '', exs: [] };
   activityModal();
+}
+
+// Letzte Leistung einer Übung vor dem Datum des Eintrags (ohne die gerade bearbeitete Einheit)
+const prevPerf = (exId) => performances(data, exId).find((x) => x.sid !== actDraft.id && x.date <= actDraft.date) || null;
+
+// Letzte Kraft-Einheit desselben Körperbereichs (Plan oder nachgetragen) als Vorlage
+function lastStrengthOf(region, exceptId) {
+  return [...data.sessions].reverse().find((s) => s.id !== exceptId && sessionFocus(s) === region && !['RUN', 'HYX', 'REG', 'PRIME'].includes(s.template) && hasSets(s)) || null;
+}
+
+function newLogEx(exId) {
+  const ex = EX[exId];
+  const p = prevPerf(exId);
+  const n = p ? Math.min(5, Math.max(2, p.sets.length)) : 3;
+  const w = p && hasWeightField(ex) ? Math.max(...p.sets.map((x) => x.w)) : 0;
+  return { exId, sets: Array.from({ length: n }, () => ({ w: w > 0 ? fmtW(w) : '', r: '' })) };
+}
+
+function logDraftOf(s) {
+  return {
+    id: s.id, type: 'strength', date: s.date, minutes: s.minutes, intensity: s.intensity, km: '', note: s.note || '', region: s.region,
+    exs: s.blocks.flatMap((b) => b.items).map((it) => ({ exId: it.exId, sets: it.sets.map((st) => ({ w: st.w === '' || st.w == null || !Number(st.w) ? '' : fmtW(st.w), r: String(st.r) })) })),
+  };
 }
 
 function activityModal() {
   const a = actDraft;
+  if (a.pick) { pickModal(); return; }
   const def = ACT[a.type];
-  const editing = (data.activities || []).some((x) => x.id === a.id);
+  const strength = a.type === 'strength';
+  const editing = (data.activities || []).some((x) => x.id === a.id) || data.sessions.some((x) => x.logged && x.id === a.id);
+  const tpl = strength && a.region && !a.exs.length ? lastStrengthOf(a.region, a.id) : null;
+  const sc = $('#modal-body').scrollTop;
   openModal(`
     <h2>${editing ? 'Training bearbeiten' : 'Training nachtragen'}</h2>
     <div class="label">Art</div>
     <div class="chips">${ACTIVITIES.map((x) => `<button class="chip ${x.id === a.type ? 'on' : ''}" data-action="act-type" data-id="${x.id}">${esc(x.name)}</button>`).join('')}</div>
+    ${strength ? `<div class="label mt">Was hast du trainiert?</div>
+    <div class="seg">${LOG_REGIONS.map(([k, l]) => `<button class="${a.region === k ? 'on' : ''}" data-action="act-region" data-k="${k}">${l}</button>`).join('')}</div>` : ''}
     <div class="grid2">
       <label class="field"><span>Datum</span><input type="date" class="in" id="act-date" max="${todayISO()}" value="${esc(a.date)}"></label>
       <label class="field"><span>Dauer (min)</span><input class="in" id="act-min" inputmode="numeric" value="${esc(a.minutes)}"></label>
@@ -950,12 +998,89 @@ function activityModal() {
     <div class="chips">${[20, 30, 45, 60, 90].map((m) => `<button class="chip small ${+a.minutes === m ? 'on' : ''}" data-action="act-min" data-min="${m}">${m} min</button>`).join('')}</div>
     <div class="label mt">Anstrengung</div>
     <div class="chips">${Object.keys(INTENSITY).map((k) => `<button class="chip ${a.intensity === k ? 'on' : ''}" data-action="act-int" data-k="${k}">${k[0].toUpperCase() + k.slice(1)}</button>`).join('')}</div>
-    <p class="muted small">${INT_HELP[a.intensity]}</p>
+    <p class="muted small">${(strength ? INT_HELP_STRENGTH : INT_HELP)[a.intensity]}</p>
     ${def.dist ? `<label class="field"><span>Strecke in km (optional)</span><input class="in" id="act-km" inputmode="decimal" value="${esc(a.km || '')}"></label>` : ''}
-    <label class="field"><span>${a.type === 'course' ? 'Welcher Kurs?' : 'Notiz (optional)'}</span><textarea class="in wide" id="act-note" rows="2" placeholder="${a.type === 'course' ? 'z. B. Spinning, Bodypump, Pilates, Zumba' : 'z. B. 6 × 400 m Intervalle, Knie ok'}">${esc(a.note || '')}</textarea></label>
+    ${strength ? `
+    <div class="label mt">Übungen <span class="muted small">(optional)</span></div>
+    ${!a.exs.length ? '<p class="muted small">Mit Sätzen fließen deine Gewichte in Richtwerte, Rekorde und das Wochenvolumen ein. Ohne Übungen zählt es als Einheit und für die Erholung des Körperbereichs.</p>' : ''}
+    ${a.exs.map((e, ei) => logExHtml(e, ei)).join('')}
+    <div class="log-add">
+      <button class="btn small" data-action="act-pick">+ Übung hinzufügen</button>
+      ${tpl ? `<button class="btn small" data-action="act-copy" data-id="${tpl.id}">Wie letzte Einheit (${fmtDate(tpl.date)})</button>` : ''}
+    </div>` : ''}
+    <label class="field"><span>${a.type === 'course' ? 'Welcher Kurs?' : 'Notiz (optional)'}</span><textarea class="in wide" id="act-note" rows="2" placeholder="${a.type === 'course' ? 'z. B. Spinning, Bodypump, Pilates, Zumba' : strength ? 'z. B. im Hotel-Gym, Schulter ok' : 'z. B. 6 × 400 m Intervalle, Knie ok'}">${esc(a.note || '')}</textarea></label>
     <button class="btn primary" data-action="act-save">Speichern</button>
     <button class="btn ghost" data-action="close">Abbrechen</button>
     ${editing ? `<button class="btn ghost danger" data-action="act-del" data-id="${a.id}">Training löschen</button>` : ''}`);
+  $('#modal-body').scrollTop = sc;
+}
+
+function logExHtml(e, ei) {
+  const ex = EX[e.exId];
+  const w = hasWeightField(ex);
+  const p = prevPerf(e.exId);
+  const ph = (si) => (p ? String((p.sets[si] || p.sets[p.sets.length - 1]).r) : `${ex.reps[0]}–${ex.reps[1]}`);
+  return `
+    <div class="log-ex">
+      <div class="log-ex-head"><strong>${esc(ex.name)}</strong><button class="tool icon" data-action="act-ex-del" data-ei="${ei}" aria-label="Übung entfernen" title="Übung entfernen">${ICON_TRASH}</button></div>
+      ${p ? `<div class="muted small">Zuletzt ${fmtDate(p.date)}: ${p.sets.map((x) => `${w && x.w ? `${num(x.w)}×` : ''}${x.r}`).join(' · ')}</div>` : ''}
+      <div class="set-row head"><span>Satz</span><span>${w ? (ex.load === 'bw' ? 'Zusatz-kg' : 'kg') : ''}</span><span>${ex.unit === 's' ? 'Sek.' : 'Wdh.'}</span><span></span></div>
+      ${e.sets.map((st, si) => `
+      <div class="set-row">
+        <span class="set-n">${si + 1}</span>
+        ${w ? `<input class="in" inputmode="decimal" data-lf="w" data-ei="${ei}" data-si="${si}" value="${esc(st.w)}" placeholder="${ex.load === 'bw' ? '0' : 'kg'}">` : '<span></span>'}
+        <input class="in" inputmode="numeric" data-lf="r" data-ei="${ei}" data-si="${si}" value="${esc(st.r)}" placeholder="${esc(ph(si))}">
+        ${e.sets.length > 1 ? `<button class="set-x" data-action="act-set-del" data-ei="${ei}" data-si="${si}" aria-label="Satz ${si + 1} entfernen">×</button>` : '<span></span>'}
+      </div>`).join('')}
+      <div class="ex-tools"><button class="tool" data-action="act-set-add" data-ei="${ei}">+ Satz</button></div>
+    </div>`;
+}
+
+// Übungsauswahl: passend zum Körperbereich zuerst, bereits gemachte Übungen oben, Suche filtert ohne Neuaufbau
+function pickModal() {
+  const a = actDraft;
+  const inDraft = new Set(a.exs.map((e) => e.exId));
+  const count = {};
+  data.sessions.forEach((s) => s.blocks.forEach((b) => b.items.forEach((it) => { if ((it.sets || []).some((x) => x.done)) count[it.exId] = (count[it.exId] || 0) + 1; })));
+  const list = Object.values(EX).filter((ex) => loggable(ex) && !inDraft.has(ex.id))
+    .sort((x, y) => (count[y.id] || 0) - (count[x.id] || 0) || x.name.localeCompare(y.name, 'de'));
+  const fits = (ex) => !a.region || a.region === 'full' || [a.region, 'core'].includes(exRegion(ex));
+  const item = (ex) => `<button class="list-item" data-action="act-add-ex" data-ex="${ex.id}" data-q="${esc(`${ex.name} ${ex.en}`.toLowerCase())}"><strong>${esc(ex.name)}</strong><span class="muted small">${count[ex.id] ? `${count[ex.id]}× gemacht · ` : ''}${esc((ex.prim.length ? ex.prim : ex.sec).map((m) => MUSCLES[m]).join(', '))}</span></button>`;
+  const main = list.filter(fits); const rest = list.filter((ex) => !fits(ex));
+  openModal(`
+    <div class="pick-top">
+      <h2>Übung hinzufügen</h2>
+      <input class="in wide" id="act-q" type="search" placeholder="Suchen, z. B. Kniebeuge" autocomplete="off" enterkeyhint="search">
+    </div>
+    ${rest.length ? `<div class="label" data-grp-label>Passend zu ${esc(LOG_REGION_NAME[a.region])}</div>` : ''}
+    <div class="list pick-list">${main.map(item).join('')}</div>
+    ${rest.length ? `<div class="label mt" data-grp-label>Weitere Übungen</div><div class="list pick-list">${rest.map(item).join('')}</div>` : ''}
+    <p class="muted center" id="act-q-none" hidden>Keine Übung gefunden.</p>
+    <button class="btn ghost" data-action="act-pick-close">Zurück</button>`);
+  $('#modal-body').scrollTop = 0;
+}
+
+function copyLogFrom(id) {
+  const s = data.sessions.find((x) => x.id === id);
+  if (!s) return;
+  const seen = new Set();
+  actDraft.exs = s.blocks.flatMap((b) => b.items)
+    .filter((it) => EX[it.exId] && loggable(EX[it.exId]) && (it.sets || []).some((x) => x.done) && !seen.has(it.exId) && seen.add(it.exId))
+    .map((it) => ({ exId: it.exId, sets: it.sets.filter((x) => x.done).map((x) => ({ w: hasWeightField(EX[it.exId]) && Number(x.w) ? fmtW(x.w) : '', r: String(x.r) })) }));
+  activityModal();
+}
+
+// Gewicht bzw. Wdh. in die folgenden leeren Sätze übernehmen
+function carryLog(t) {
+  const e = actDraft && actDraft.exs[+t.dataset.ei];
+  if (!e || t.value.trim() === '') return;
+  const si = +t.dataset.si; const f = t.dataset.lf;
+  e.sets.slice(si + 1).forEach((st, k) => {
+    if (st[f] !== '') return;
+    st[f] = t.value.trim();
+    const inp = document.querySelector(`#modal-body input[data-lf="${f}"][data-ei="${t.dataset.ei}"][data-si="${si + 1 + k}"]`);
+    if (inp) inp.value = st[f];
+  });
 }
 
 function saveActivity() {
@@ -963,16 +1088,58 @@ function saveActivity() {
   const minutes = Math.round(parseFloat(String(a.minutes).replace(',', '.')));
   if (!(minutes > 0 && minutes <= 600)) { toast('Bitte eine Dauer zwischen 1 und 600 min eingeben.'); return; }
   if (!a.date || a.date > todayISO()) { toast('Bitte ein Datum bis heute wählen.'); return; }
+  if (a.type === 'strength') { saveStrengthLog(minutes); return; }
   const km = parseFloat(String(a.km || '').replace(',', '.'));
   const entry = { id: a.id || uid(), type: a.type, date: a.date, minutes, intensity: a.intensity, note: (a.note || '').trim() };
   if (ACT[a.type].dist && km > 0) entry.km = Math.round(km * 100) / 100;
   data.activities = (data.activities || []).filter((x) => x.id !== entry.id);
   data.activities.push(entry);
   data.activities.sort((x, y) => x.date.localeCompare(y.date));
+  // Art von Krafttraining auf etwas anderes geändert → nachgetragene Einheit entfernen
+  if (data.sessions.some((x) => x.logged && x.id === entry.id)) { data.sessions = data.sessions.filter((x) => !(x.logged && x.id === entry.id)); clearCaches(); }
+  if (!data.active) todayTpl = null; // Empfehlung für heute neu berechnen
   persist();
   closeModal();
   actDraft = null;
   toast(`${ACT[entry.type].name} gespeichert.`);
+  render();
+}
+
+// Nachgetragenes Krafttraining wird als Einheit gespeichert (logged: true): Sätze zählen für Richtwerte,
+// Rekorde und Wochenvolumen; die Vorlage des Körperbereichs steuert Erholung und Wochenziel
+function saveStrengthLog(minutes) {
+  const a = actDraft;
+  if (!a.region) { toast('Bitte wählen, was du trainiert hast: Unter-, Ober- oder Ganzkörper.'); return; }
+  const items = [];
+  for (const e of a.exs) {
+    const ex = EX[e.exId];
+    if (!ex) continue;
+    const w = hasWeightField(ex);
+    const sets = e.sets.filter((st) => pNum(st.r) > 0).map((st) => ({ w: w && pNum(st.w) > 0 ? Math.round(pNum(st.w) * 100) / 100 : '', r: Math.round(pNum(st.r)), done: true }));
+    if (!sets.length) { toast(`Bei „${ex.name}“ fehlen die ${ex.unit === 's' ? 'Sekunden' : 'Wdh.'} – eintragen oder Übung entfernen.`); return; }
+    if (ex.load === 'kg' && sets.some((st) => st.w === '')) { toast(`Bei „${ex.name}“ fehlt bei einem Satz das Gewicht.`); return; }
+    items.push({ uid: uid(), exId: ex.id, lo: ex.reps[0], hi: ex.reps[1], rest: defaultRest(ex, false), main: false, note: '', presc: '', done: true, planned: sets.length, sets });
+  }
+  const old = data.sessions.find((x) => x.logged && x.id === a.id);
+  const template = old && old.region === a.region ? old.template : loggedTemplate(data, a.region);
+  const { week, deload } = blockInfo(data, a.date);
+  const s = {
+    id: a.id || uid(), date: a.date, template, title: `Krafttraining · ${LOG_REGION_NAME[a.region]}`,
+    logged: true, region: a.region, minutes, intensity: a.intensity, note: (a.note || '').trim(),
+    week, deload, source: 'logged', equipment: [], status: 'done', finishedAt: old ? old.finishedAt : Date.now(),
+    blocks: items.length ? [{ type: 'strength', title: 'Übungen', items }] : [],
+  };
+  data.activities = (data.activities || []).filter((x) => x.id !== s.id);
+  data.sessions = data.sessions.filter((x) => x.id !== s.id);
+  data.sessions.push(s);
+  data.sessions.sort((x, y) => x.date.localeCompare(y.date)); // chronologisch: „letzte Leistung“ zählt richtig
+  clearCaches();
+  s.records = items.length ? sessionRecords(data, s) : [];
+  if (!data.active) todayTpl = null;
+  persist();
+  closeModal();
+  actDraft = null;
+  toast(s.records.length ? `Krafttraining gespeichert – ${s.records.length === 1 ? 'neuer Rekord' : `${s.records.length} neue Rekorde`}! 🏆` : 'Krafttraining gespeichert.');
   render();
 }
 
@@ -994,7 +1161,7 @@ function renderActivityCard(a) {
 // ---------- Monatsübersicht ----------
 let histMonth = todayISO().slice(0, 7);
 const monthName = (ym) => new Date(`${ym}-01T12:00:00`).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
-const unitLabel = (s) => (s.template === 'RUN' ? 'Laufen' : s.template === 'HYX' ? 'HYROX' : (TEMPLATES[s.template]?.name || s.title).split(' – ')[0]);
+const unitLabel = (s) => (s.logged ? 'Krafttraining' : s.template === 'RUN' ? 'Laufen' : s.template === 'HYX' ? 'HYROX' : (TEMPLATES[s.template]?.name || s.title).split(' – ')[0]);
 const actLabel = (a) => (a.type === 'jogging' ? 'Laufen' : a.type === 'course' && a.note ? `Kurs: ${a.note.split(/[,\n]/)[0].trim()}` : ACT[a.type]?.name || a.type);
 
 function monthCounts(ym) {
@@ -1009,8 +1176,8 @@ function drawMonth() {
   const box = $('#chart-month');
   if (!box) return;
   const items = monthCounts(histMonth);
-  const plan = data.sessions.filter((s) => s.date.startsWith(histMonth)).length;
-  const act = (data.activities || []).filter((a) => a.date.startsWith(histMonth)).length;
+  const plan = data.sessions.filter((s) => s.date.startsWith(histMonth) && !s.logged).length;
+  const act = (data.activities || []).filter((a) => a.date.startsWith(histMonth)).length + data.sessions.filter((s) => s.date.startsWith(histMonth) && s.logged).length;
   if (!items.length) { box.innerHTML = '<div class="chart-card"><p class="muted center">Keine Einheiten in diesem Monat.</p></div>'; return; }
   barChart(box, {
     title: `Einheiten im ${monthName(histMonth).split(' ')[0]}`,
@@ -1037,7 +1204,39 @@ function renderHistory() {
   ${entries.map((e) => e.html()).join('')}`;
 }
 
+const histExercises = (s) => s.blocks.flatMap((b) => b.items).filter((it) => it.sets.some((x) => x.done) || it.done).map((it) => `
+          <div class="hist-ex"><span>${esc(EX[it.exId]?.name || it.exId)}</span>
+          <span class="muted">${it.sets.length ? it.sets.filter((x) => x.done).map((x) => `${x.w !== '' && x.w != null && EX[it.exId]?.load !== 'none' ? `${num(Number(x.w))}×` : ''}${x.r}`).join(' · ') : '✓'}</span></div>`).join('');
+const recordsBox = (s) => ((s.records || []).length ? `<div class="pr-box small">${s.records.map((r) => { const t = recordText(r); return `<div class="pr-row"><b>${esc(t.name)}</b><span>${esc(t.text)}</span></div>`; }).join('')}</div>` : '');
+
+// Nachgetragenes Krafttraining: ohne Sätze öffnet ein Tipp direkt das Bearbeiten
+function renderLoggedCard(s) {
+  const dot = { lower: 'k-lower', upper: 'k-upper', full: 'k-full' }[s.region] || 'k-full';
+  const head = `<div><strong><i class="kdot ${dot}"></i>${esc(s.title)}</strong>${(s.records || []).length ? ' <span class="tag t-pr">Rekord</span>' : ''}
+          <div class="muted small">${fmtDate(s.date)} · ${loggedSummary(s)}</div>
+          ${s.note ? `<div class="small mt-s">${esc(s.note)}</div>` : ''}
+        </div>
+        <span class="chev">›</span>`;
+  if (!hasSets(s)) return `
+    <article class="card hist"><button class="hist-head" data-action="act-edit" data-id="${s.id}">${head}</button></article>`;
+  const open = openHistory === s.id;
+  return `
+    <article class="card hist ${open ? 'open' : ''}">
+      <button class="hist-head" data-action="hist" data-id="${s.id}">${head}</button>
+      ${open ? `<div class="hist-body">
+        ${histExercises(s)}
+        ${recordsBox(s)}
+        <div class="hist-actions">
+          <button class="btn small" data-action="act-edit" data-id="${s.id}">Bearbeiten</button>
+          <button class="btn small" data-action="repeat" data-id="${s.id}">Nochmal machen</button>
+          <button class="link danger" data-action="del-session" data-id="${s.id}">Löschen</button>
+        </div>
+      </div>` : ''}
+    </article>`;
+}
+
 function renderSessionCard(s) {
+  if (s.logged) return renderLoggedCard(s);
   return `
     <article class="card hist ${openHistory === s.id ? 'open' : ''}">
       <button class="hist-head" data-action="hist" data-id="${s.id}">
@@ -1045,10 +1244,8 @@ function renderSessionCard(s) {
         <span class="chev">›</span>
       </button>
       ${openHistory === s.id ? `<div class="hist-body">
-        ${s.blocks.flatMap((b) => b.items).filter((it) => it.sets.some((x) => x.done) || it.done).map((it) => `
-          <div class="hist-ex"><span>${esc(EX[it.exId]?.name || it.exId)}</span>
-          <span class="muted">${it.sets.length ? it.sets.filter((x) => x.done).map((x) => `${x.w !== '' && x.w != null && EX[it.exId]?.load !== 'none' ? `${num(Number(x.w))}×` : ''}${x.r}`).join(' · ') : '✓'}</span></div>`).join('')}
-        ${(s.records || []).length ? `<div class="pr-box small">${s.records.map((r) => { const t = recordText(r); return `<div class="pr-row"><b>${esc(t.name)}</b><span>${esc(t.text)}</span></div>`; }).join('')}</div>` : ''}
+        ${histExercises(s)}
+        ${recordsBox(s)}
         ${s.autoEffort ? `<p class="muted small mt-s">Belastung laut Wdh.: ${({ easy: 'eher zu leicht', right: 'passend', too_hard: 'eher zu schwer' })[s.autoEffort]}</p>` : ''}
         ${s.feedback ? `<p class="muted small mt-s">Rückmeldung: ${esc([s.feedback.liked ? ({ yes: 'gefallen', meh: 'geht so', no: 'nicht gefallen' })[s.feedback.liked] : '', ...(s.feedback.pain || []).map((p) => PAIN_NAME[p]), ...(s.feedback.strain || []).map((m) => `Zerrung ${MUSCLE_NAME[m]}`)].filter(Boolean).join(' · ') || '–')}${s.feedback.note ? ` – „${esc(s.feedback.note)}“` : ''}</p>` : `<button class="link mt" data-action="fb-later" data-id="${s.id}">Rückmeldung geben</button>`}
         <div class="hist-actions">
@@ -1069,8 +1266,8 @@ function renderProgress() {
   const monday = todayISO(new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7)));
   const sunday = todayISO(new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7) + 6));
   const inWeek = (d) => d >= monday && d <= sunday;
-  const planWeek = data.sessions.filter((s) => inWeek(s.date)).length;
-  const actWeek = (data.activities || []).filter((a) => inWeek(a.date)).length;
+  const planWeek = data.sessions.filter((s) => inWeek(s.date) && !s.logged).length;
+  const actWeek = (data.activities || []).filter((a) => inWeek(a.date)).length + data.sessions.filter((s) => inWeek(s.date) && s.logged).length;
   const thisWeek = planWeek + actWeek;
   const todayBw = data.bodyweight.find((e) => e.date === todayISO());
   return `
@@ -1427,11 +1624,29 @@ document.addEventListener('click', async (e) => {
     case 'close': closeModal(); actDraft = null; setupDraft = null; fbDraft = null; break;
     case 'act-new': newActivity(); break;
     case 'act-type': actDraft.type = t.dataset.id; activityModal(); break;
+    case 'act-region': actDraft.region = t.dataset.k; activityModal(); break;
+    case 'act-pick': actDraft.sc = $('#modal-body').scrollTop; actDraft.pick = true; activityModal(); break;
+    case 'act-pick-close': actDraft.pick = false; activityModal(); $('#modal-body').scrollTop = actDraft.sc || 0; break;
+    case 'act-add-ex': {
+      actDraft.exs.push(newLogEx(t.dataset.ex)); actDraft.pick = false; activityModal();
+      const card = [...document.querySelectorAll('#modal-body .log-ex')].pop();
+      if (card) card.scrollIntoView({ block: 'center' });
+      break;
+    }
+    case 'act-ex-del': actDraft.exs.splice(+t.dataset.ei, 1); activityModal(); break;
+    case 'act-set-add': { const e = actDraft.exs[+t.dataset.ei]; const l = e.sets[e.sets.length - 1]; e.sets.push({ w: l ? l.w : '', r: '' }); activityModal(); break; }
+    case 'act-set-del': actDraft.exs[+t.dataset.ei].sets.splice(+t.dataset.si, 1); activityModal(); break;
+    case 'act-copy': copyLogFrom(t.dataset.id); break;
     case 'act-min': actDraft.minutes = +t.dataset.min; activityModal(); break;
     case 'act-int': actDraft.intensity = t.dataset.k; activityModal(); break;
     case 'act-save': saveActivity(); break;
-    case 'act-edit': { const a = data.activities.find((x) => x.id === t.dataset.id); if (a) { actDraft = { ...a }; activityModal(); } break; }
-    case 'act-del': if (confirm('Dieses Training löschen?')) { data.activities = data.activities.filter((x) => x.id !== t.dataset.id); persist(); closeModal(); actDraft = null; render(); } break;
+    case 'act-edit': {
+      const a = (data.activities || []).find((x) => x.id === t.dataset.id);
+      const ls = !a && data.sessions.find((x) => x.logged && x.id === t.dataset.id);
+      if (a) { actDraft = { region: '', exs: [], ...a }; activityModal(); } else if (ls) { actDraft = logDraftOf(ls); activityModal(); }
+      break;
+    }
+    case 'act-del': if (confirm('Dieses Training löschen?')) { data.activities = (data.activities || []).filter((x) => x.id !== t.dataset.id); data.sessions = data.sessions.filter((x) => !(x.logged && x.id === t.dataset.id)); clearCaches(); persist(); closeModal(); actDraft = null; render(); } break;
     case 'finish': finishSession(); break;
     case 'discard': if (confirm('Einheit verwerfen? Eingetragene Sätze gehen verloren.')) { data.active = null; stopTimer(); keepAwake(false); persist(); render(); } break;
     case 'timer-minus': if (timer) { timer.end -= 15000; tick(); } break;
@@ -1460,7 +1675,7 @@ document.addEventListener('click', async (e) => {
     case 'iv-stop': if (ivc && confirm('Intervall-Uhr beenden?')) ivClose(); break;
     case 'iv-close': ivClose(); break;
     case 'hist': openHistory = openHistory === t.dataset.id ? null : t.dataset.id; render(); break;
-    case 'del-session': if (confirm('Diese Einheit endgültig löschen?')) { data.sessions = data.sessions.filter((s) => s.id !== t.dataset.id); persist(); render(); } break;
+    case 'del-session': if (confirm('Diese Einheit endgültig löschen?')) { data.sessions = data.sessions.filter((s) => s.id !== t.dataset.id); clearCaches(); persist(); render(); } break;
     case 'save-bw': {
       const val = (id) => { const v = ($(id)?.value || '').trim(); return v === '' ? null : parseFloat(v.replace(',', '.')); };
       const kg = val('#bw-in'); const muscle = val('#bw-muscle'); const fat = val('#bw-fat');
@@ -1501,11 +1716,20 @@ document.addEventListener('input', (e) => {
     const map = { 'act-date': 'date', 'act-min': 'minutes', 'act-km': 'km', 'act-note': 'note' };
     if (map[t.id]) actDraft[map[t.id]] = t.value;
   }
+  if (actDraft && t.dataset.lf) { const st = actDraft.exs[+t.dataset.ei]?.sets[+t.dataset.si]; if (st) st[t.dataset.lf] = t.value; }
+  if (t.id === 'act-q') {
+    const words = t.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    let any = false;
+    document.querySelectorAll('#modal-body [data-q]').forEach((b) => { const hit = words.every((w) => b.dataset.q.includes(w)); b.hidden = !hit; any = any || hit; });
+    document.querySelectorAll('#modal-body [data-grp-label]').forEach((l) => { l.hidden = words.length > 0; });
+    const none = $('#act-q-none'); if (none) none.hidden = any;
+  }
 });
 
 document.addEventListener('change', async (e) => {
   const t = e.target;
   if (t.dataset.field && data.active) autoComplete(t);
+  if (t.dataset.lf && actDraft) carryLog(t);
   if (setupDraft && t.dataset.su) setupDraft[t.dataset.su] = t.value; // Auswahlfelder (Spieltag) zuverlässig übernehmen
   if (t.id === 'api-key') { data.settings.apiKey = t.value.trim(); persist(); toast(t.value.trim() ? 'API-Key gespeichert.' : 'API-Key entfernt.'); render(); }
   if (t.id === 'use-claude') { data.settings.useClaude = t.checked; persist(); render(); }

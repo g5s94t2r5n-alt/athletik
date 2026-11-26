@@ -34,6 +34,8 @@ export const LOCATIONS = [
 // Nachgetragene Trainings außerhalb des Plans.
 // cardio = zählt als Ausdauerreiz, legs = belastet die Beine stark (Sprünge/Sprints), dist = Strecke sinnvoll.
 export const ACTIVITIES = [
+  // Krafttraining wird als Einheit gespeichert (logged: true), damit Sätze in Richtwerte, Rekorde und Volumen einfließen
+  { id: 'strength', name: 'Krafttraining' },
   { id: 'hiit', name: 'HIIT', cardio: true, legs: true },
   { id: 'jogging', name: 'Joggen', cardio: true, legs: true, dist: true },
   { id: 'crossfit', name: 'CrossFit', cardio: true, legs: true },

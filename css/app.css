@@ -400,3 +400,19 @@ select.in { appearance: none; -webkit-appearance: none; }
 .foot { margin-top: 4px; }
 .card > p.muted + .btn, .card > p.muted + .row { margin-top: 10px; }
 .foot .link { font-size: 13px; color: var(--accent); padding: 0; }
+
+/* Krafttraining nachtragen */
+.log-ex { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; display: grid; gap: 6px; }
+.log-ex-head { display: flex; align-items: center; gap: 8px; }
+.log-ex-head strong { font-size: 15px; }
+.log-ex .ex-tools { margin-top: 2px; }
+.log-add { display: flex; gap: 8px; flex-wrap: wrap; }
+.set-x { width: 32px; height: 32px; justify-self: center; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 20px; line-height: 1; }
+.sheet .seg { margin-top: -2px; }
+.pick-top { position: sticky; top: -20px; z-index: 2; margin: -20px -16px 0; padding: 20px 16px 8px; background: var(--surface); display: grid; gap: 10px; }
+.pick-list { gap: 6px; }
+.pick-list .list-item { padding: 9px 12px; }
+.pick-list .list-item strong { font-size: 15px; }
+.sheet:has(.pick-top) { height: 88vh; align-content: start; } /* springt beim Suchen nicht */
+.log-ex .set-row { gap: 6px; }
+.log-ex .set-row .in { padding: 8px 6px; }

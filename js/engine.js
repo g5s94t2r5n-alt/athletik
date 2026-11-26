@@ -169,6 +169,13 @@ export function nextVariant(data, ids) {
   const last = (id) => data.sessions.filter((s) => s.template === id).map((s) => s.date).sort().pop() || '';
   return [...ids].sort((a, b) => last(a).localeCompare(last(b)))[0];
 }
+// Nachgetragenes Krafttraining zählt als die fällige Variante seines Körperbereichs (bevorzugt aus der eigenen
+// Rotation) – so stimmen Erholung, Wochenziel und A/B-Wechsel, ohne Sonderfälle in der Empfehlung
+export function loggedTemplate(data, region) {
+  const skip = ['ATH', 'REG', 'PRIME', 'RUN', 'HYX', 'SP_C'];
+  const own = [...new Set(rotationFor(data))].filter((id) => TEMPLATES[id] && TEMPLATES[id].focus === region && !skip.includes(id));
+  return nextVariant(data, own.length ? own : TEMPLATE_GROUPS[{ lower: 'UK', upper: 'OK', full: 'FB' }[region]]);
+}
 
 export const ROTATIONS = {
   2: ['FB_A', 'FB_B'],
@@ -370,7 +377,7 @@ export function performances(data, exId) {
       for (const it of b.items) {
         if (it.exId !== exId) continue;
         const sets = (it.sets || []).filter((x) => x.done && Number(x.r) > 0).map((x) => ({ w: Number(x.w) || 0, r: Number(x.r) }));
-        if (sets.length) out.push({ date: s.date, lo: it.lo, hi: it.hi, deload: !!s.deload || !!it.reduced, sets });
+        if (sets.length) out.push({ sid: s.id, date: s.date, lo: it.lo, hi: it.hi, deload: !!s.deload || !!it.reduced, sets });
       }
     }
   }
@@ -459,6 +466,7 @@ function bestE1rms(data) {
   bestCache = { key, map };
   return map;
 }
+export function clearCaches() { bestCache = { key: '', map: {} }; }
 
 function profileFactor(data, region) {
   const level = levelOf(data.profile).factor;
@@ -1647,8 +1655,11 @@ export function ruleReview(data, date = todayISO()) {
   const total7 = sess7.length + acts7.length;
   const regular = sess14.length + acts14.length >= Math.round(planned * 2 * 0.75);
   // Mehr Sätze pro Muskel nur, wenn die Kraft-Einheiten selbst regelmäßig stattfinden
+  // (nachgetragenes Krafttraining zählt mit, auch ohne eingetragene Sätze)
   const planRegular = sess14.length >= Math.round(planned * 2 * 0.75);
-  const unitsText = `${total7} von ${planned} Einheiten diese Woche${acts7.length ? ` (${sess7.length} Plan, ${acts7.length} nachgetragen)` : ''}.`;
+  const plan7 = sess7.filter((s) => !s.logged).length;
+  const logged7 = total7 - plan7;
+  const unitsText = `${total7} von ${planned} Einheiten diese Woche${logged7 ? ` (${plan7} Plan, ${logged7} nachgetragen)` : ''}.`;
   add(total7 >= planned ? 'good' : total7 >= planned - 1 ? 'info' : 'warn', unitsText);
   if (!regular) tips.push(`Regelmäßigkeit vor Umfang: Versuch, die ${planned} Einheiten pro Woche einzuhalten – sonst lieber Tage reduzieren (Mehr → Profil).`);
 
@@ -1761,10 +1772,11 @@ export function aiContext(data) {
   const recent = data.sessions.filter((s) => daysBetween(s.date, todayISO()) <= 21).slice(-12).map((s) => ({
     datum: s.date,
     titel: s.title,
+    ...(s.logged ? { nachgetragen: true, minuten: s.minutes, anstrengung: s.intensity, ...(s.note ? { notiz: String(s.note).slice(0, 120) } : {}) } : {}),
     uebungen: s.blocks.flatMap((b) => b.items).filter((it) => (it.sets || []).some((x) => x.done)).map((it) => ({
       id: it.exId,
       saetze: it.sets.filter((x) => x.done).map((x) => `${x.w || 0}kg×${x.r}`).join(', '),
-      ziel: `${it.lo}-${it.hi}`,
+      ...(s.logged ? {} : { ziel: `${it.lo}-${it.hi}` }),
     })),
   }));
   const trends = trackedExercises(data).slice(0, 12).map((ex) => {

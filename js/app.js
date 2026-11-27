@@ -7,7 +7,7 @@ import {
   feedbackAdjust, sessionRecords, allRecords, PAIN_NAME, autoEffort,
   tempoText, intervalPhases, bodyCompSeries, compAdjust, TEMPLATE_GROUPS, groupOf, nextVariant,
   HR_ZONES, hrBase, hrRange, hrPlan, hrSummary, painFocus, ruleReview, defaultRest, goalRir,
-  MUSCLE_NAME, strainFocus, soreActive, soreMuscles, performances, clearCaches, loggedTemplate,
+  MUSCLE_NAME, strainFocus, soreActive, soreMuscles, performances, clearCaches, loggedTemplate, recordEligible,
 } from './engine.js';
 import { weeklyReview, CoachError, MODEL } from './coach.js';
 import { GOALS, GOAL, goalOf, rotationFor, daysToRace, weightStatus, SPORTS, SPORT, SEASONS, SEASON, WEEKDAYS, matchInfo, LEVELS, levelOf, levelHint } from './goals.js';
@@ -420,8 +420,11 @@ const kgTxt = (v) => num(Math.round(v * 10) / 10);
 const paceTxt = (p) => `${Math.floor(p)}:${String(Math.round((p % 1) * 60)).padStart(2, '0')} min/km`;
 function recordText(r) {
   const name = r.exId ? EX[r.exId]?.name || r.exId : '';
-  if (r.kind === '1rm') return { name, text: `1RM ca. ${kgTxt(r.value)} kg (+${kgTxt(r.value - r.prev)} kg) · ${r.bw ? '+' : ''}${kgTxt(r.w)} kg × ${r.r}` };
-  if (r.kind === 'weight') return { name, text: `schwerster Satz ${r.bw ? '+' : ''}${kgTxt(r.value)} kg (vorher ${kgTxt(r.prev)} kg)` };
+  const repTxt = (n, w) => `${n} ${EX[r.exId]?.unit === 's' ? 's' : 'Wdh.'}${w > 0 ? ` mit +${kgTxt(w)} kg` : ''}`;
+  if (r.kind === 'reps') return { name, text: `${repTxt(r.r, r.w)} (vorher ${repTxt(r.prevR, r.prevW)})` };
+  if (r.kind === '1rm' && r.bw) return { name, text: `${repTxt(r.r, r.w)} – neue Bestleistung` }; // ältere Einträge
+  if (r.kind === '1rm') return { name, text: `1RM ca. ${kgTxt(r.value)} kg (+${kgTxt(r.value - r.prev)} kg) · ${kgTxt(r.w)} kg × ${r.r}` };
+  if (r.kind === 'weight') return { name, text: `schwerster Satz ${r.bw ? '+' : ''}${kgTxt(r.value)} kg (vorher ${r.bw && !r.prev ? 'ohne Zusatzgewicht' : `${r.bw ? '+' : ''}${kgTxt(r.prev)} kg`})` };
   if (r.kind === 'distance') return { name: 'Längster Lauf', text: `${kgTxt(r.value)} km (vorher ${kgTxt(r.prev)} km)` };
   return { name: 'Schnellste Pace', text: `${paceTxt(r.value)} (vorher ${paceTxt(r.prev)})` };
 }
@@ -436,7 +439,7 @@ function feedbackModal() {
   const s = data.sessions.find((x) => x.id === fbDraft.sid);
   if (!s) return;
   const f = fbDraft;
-  const recs = s.records || [];
+  const recs = shownRecords(s);
   const chips = (key, opts) => `<div class="chips">${opts.map(([v, l]) => `<button class="chip ${f[key] === v ? 'on' : ''}" data-action="fb" data-k="${key}" data-v="${v}">${l}</button>`).join('')}</div>`;
   const exs = [...new Set(s.blocks.filter((b) => b.type === 'strength' || b.type === 'power').flatMap((b) => b.items.map((i) => i.exId)))];
   openModal(`
@@ -1139,7 +1142,8 @@ function saveStrengthLog(minutes) {
   persist();
   closeModal();
   actDraft = null;
-  toast(s.records.length ? `Krafttraining gespeichert – ${s.records.length === 1 ? 'neuer Rekord' : `${s.records.length} neue Rekorde`}! 🏆` : 'Krafttraining gespeichert.');
+  const nRec = shownRecords(s).length;
+  toast(nRec ? `Krafttraining gespeichert – ${nRec === 1 ? 'neuer Rekord' : `${nRec} neue Rekorde`}! 🏆` : 'Krafttraining gespeichert.');
   render();
 }
 
@@ -1207,12 +1211,14 @@ function renderHistory() {
 const histExercises = (s) => s.blocks.flatMap((b) => b.items).filter((it) => it.sets.some((x) => x.done) || it.done).map((it) => `
           <div class="hist-ex"><span>${esc(EX[it.exId]?.name || it.exId)}</span>
           <span class="muted">${it.sets.length ? it.sets.filter((x) => x.done).map((x) => `${x.w !== '' && x.w != null && EX[it.exId]?.load !== 'none' ? `${num(Number(x.w))}×` : ''}${x.r}`).join(' · ') : '✓'}</span></div>`).join('');
-const recordsBox = (s) => ((s.records || []).length ? `<div class="pr-box small">${s.records.map((r) => { const t = recordText(r); return `<div class="pr-row"><b>${esc(t.name)}</b><span>${esc(t.text)}</span></div>`; }).join('')}</div>` : '');
+// Gespeicherte Rekorde nur für Kraftübungen anzeigen (ältere Einheiten enthalten noch Ausgleichsübungen)
+const shownRecords = (s) => (s.records || []).filter((r) => !r.exId || (recordEligible(EX[r.exId]) && s.blocks.some((b) => b.type !== 'stability' && b.items.some((it) => it.exId === r.exId))));
+const recordsBox = (s) => (shownRecords(s).length ? `<div class="pr-box small">${shownRecords(s).map((r) => { const t = recordText(r); return `<div class="pr-row"><b>${esc(t.name)}</b><span>${esc(t.text)}</span></div>`; }).join('')}</div>` : '');
 
 // Nachgetragenes Krafttraining: ohne Sätze öffnet ein Tipp direkt das Bearbeiten
 function renderLoggedCard(s) {
   const dot = { lower: 'k-lower', upper: 'k-upper', full: 'k-full' }[s.region] || 'k-full';
-  const head = `<div><strong><i class="kdot ${dot}"></i>${esc(s.title)}</strong>${(s.records || []).length ? ' <span class="tag t-pr">Rekord</span>' : ''}
+  const head = `<div><strong><i class="kdot ${dot}"></i>${esc(s.title)}</strong>${shownRecords(s).length ? ' <span class="tag t-pr">Rekord</span>' : ''}
           <div class="muted small">${fmtDate(s.date)} · ${loggedSummary(s)}</div>
           ${s.note ? `<div class="small mt-s">${esc(s.note)}</div>` : ''}
         </div>
@@ -1240,7 +1246,7 @@ function renderSessionCard(s) {
   return `
     <article class="card hist ${openHistory === s.id ? 'open' : ''}">
       <button class="hist-head" data-action="hist" data-id="${s.id}">
-        <div><strong><i class="kdot ${s.template === 'RUN' || s.template === 'HYX' ? 'k-run' : TEMPLATES[s.template]?.focus === 'lower' ? 'k-lower' : TEMPLATES[s.template]?.focus === 'upper' ? 'k-upper' : 'k-full'}"></i>${esc(s.title)}</strong>${(s.records || []).length ? ' <span class="tag t-pr">Rekord</span>' : ''}<div class="muted small">${fmtDate(s.date)} · ${sessionSummary(s)}${s.source === 'claude' ? ' · Claude' : ''}</div></div>
+        <div><strong><i class="kdot ${s.template === 'RUN' || s.template === 'HYX' ? 'k-run' : TEMPLATES[s.template]?.focus === 'lower' ? 'k-lower' : TEMPLATES[s.template]?.focus === 'upper' ? 'k-upper' : 'k-full'}"></i>${esc(s.title)}</strong>${shownRecords(s).length ? ' <span class="tag t-pr">Rekord</span>' : ''}<div class="muted small">${fmtDate(s.date)} · ${sessionSummary(s)}${s.source === 'claude' ? ' · Claude' : ''}</div></div>
         <span class="chev">›</span>
       </button>
       ${openHistory === s.id ? `<div class="hist-body">
@@ -1295,9 +1301,11 @@ function renderProgress() {
     const rec = allRecords(data);
     if (!rec.lifts.length && !rec.longest) return '';
     const row = (name, sub, val, unit) => `<div class="rec-item"><div class="rec-name"><b>${esc(name)}</b><span>${sub}</span></div><div class="rec-val">${val}<small>${unit}</small></div></div>`;
-    return `<section class="card"><div class="label">Deine Rekorde</div><p class="muted small rec-hint">Geschätztes 1RM aus deinem besten Satz</p>
+    return `<section class="card"><div class="label">Deine Rekorde</div><p class="muted small rec-hint">Kraftübungen: geschätztes 1RM aus deinem besten Satz. Körpergewichtsübungen: meiste Wdh. in einem Satz.</p>
       <div class="rec-list">
-      ${rec.lifts.slice(0, 8).map((r) => row(r.name, `${r.bw ? '+' : ''}${kgTxt(r.w)} kg × ${r.r} · ${fmtDate(r.date)}`, Math.round(r.e1rm), ' kg')).join('')}
+      ${rec.lifts.slice(0, 8).map((r) => (r.bw
+    ? row(r.name, `${r.w > 0 ? `mit +${kgTxt(r.w)} kg · ` : ''}${fmtDate(r.date)}`, r.r, r.unit === 's' ? ' s' : ' Wdh.')
+    : row(r.name, `${kgTxt(r.w)} kg × ${r.r} · ${fmtDate(r.date)}`, Math.round(r.e1rm), ' kg'))).join('')}
       ${rec.longest ? row('Längster Lauf', fmtDate(rec.longest.date), kgTxt(rec.longest.km), ' km') : ''}
       ${rec.fastest ? row('Schnellste Pace', `ab 3 km · ${fmtDate(rec.fastest.date)}`, paceTxt(rec.fastest.min / rec.fastest.km).replace(' min/km', ''), ' /km') : ''}
       </div>

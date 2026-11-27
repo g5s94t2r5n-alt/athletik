@@ -1140,23 +1140,47 @@ function runEntries(data, exclude) {
 }
 const paceOf = (r) => (r.km >= 3 && r.min > 0 ? r.min / r.km : null);
 
+// Rekorde nur für Kraftübungen: keine Ausgleichs-, Rumpf-, Präventions- und Reha-Übungen, keine Schnellkraft,
+// keine Bänder und nichts aus dem Ausgleich-Block. Körpergewichtsübungen zählen Wdh. statt geschätztem 1RM.
+const RECORD_SLOTS = ['squat', 'hinge', 'lunge', 'hpush', 'hpull', 'vpush', 'vpull', 'knee_flexion', 'quad_iso', 'calf', 'chest_iso', 'side_delt', 'biceps', 'triceps'];
+const NO_RECORD = ['ytw_bw'];
+export const recordEligible = (ex) => !!ex && ex.cat === 'strength' && ex.load !== 'none' && RECORD_SLOTS.includes(ex.slot) && !ex.equip.includes('band') && !NO_RECORD.includes(ex.id);
+// Bester Satz: Körpergewicht = meiste Wdh. (bei Gleichstand mehr Zusatzgewicht), sonst höchstes geschätztes 1RM
+const betterSet = (a, b) => (a.bw ? a.r > b.r || (a.r === b.r && a.w > b.w) : a.e1rm > b.e1rm);
+
 // Rekorde einer abgeschlossenen Einheit im Vergleich zu allen früheren Einheiten
 export function sessionRecords(data, session) {
   const prior = data.sessions.filter((x) => x.id !== session.id);
   const best = (exId) => {
-    const ex = EX[exId]; let e1 = 0; let w = 0; let any = false;
-    for (const p of prior) for (const b of p.blocks) for (const it of b.items) {
-      if (it.exId !== exId) continue;
-      for (const st of it.sets || []) { if (!st.done || !(Number(st.r) > 0)) continue; any = true; e1 = Math.max(e1, e1rm(loadOf(data, ex, st.w, p.date), Number(st.r))); w = Math.max(w, Number(st.w) || 0); }
+    const ex = EX[exId]; let e1 = 0; let w = 0; let top = null;
+    for (const p of prior) for (const b of p.blocks) {
+      if (b.type === 'stability') continue;
+      for (const it of b.items) {
+        if (it.exId !== exId) continue;
+        for (const st of it.sets || []) {
+          if (!st.done || !(Number(st.r) > 0)) continue;
+          const c = { bw: ex.load === 'bw', r: Number(st.r), w: Number(st.w) || 0, e1rm: e1rm(loadOf(data, ex, st.w, p.date), Number(st.r)) };
+          if (!top || betterSet(c, top)) top = c;
+          e1 = Math.max(e1, c.e1rm); w = Math.max(w, c.w);
+        }
+      }
     }
-    return any ? { e1, w } : null;
+    return top ? { e1, w, r: top.r, rw: top.w } : null;
   };
   const recs = [];
   for (const b of session.blocks) for (const it of b.items) {
     const ex = EX[it.exId];
-    if (!ex || ex.slot === 'rehab') continue;
+    if (!ex) continue;
     const sets = (it.sets || []).filter((st) => st.done && Number(st.r) > 0);
-    if (sets.length && ex.load !== 'none' && !isMedball(ex)) {
+    if (sets.length && b.type !== 'stability' && recordEligible(ex) && ex.load === 'bw') {
+      const prev = best(ex.id);
+      if (prev) {
+        const top = sets.reduce((a, st) => { const c = { bw: true, r: Number(st.r), w: Number(st.w) || 0 }; return betterSet(c, a) ? c : a; }, { bw: true, r: 0, w: 0 });
+        const maxW = Math.max(...sets.map((st) => Number(st.w) || 0));
+        if (betterSet(top, { bw: true, r: prev.r, w: prev.rw })) recs.push({ exId: ex.id, kind: 'reps', r: top.r, w: top.w, prevR: prev.r, prevW: prev.rw, bw: true });
+        else if (maxW > prev.w && maxW > 0) recs.push({ exId: ex.id, kind: 'weight', value: maxW, prev: prev.w, bw: true });
+      }
+    } else if (sets.length && b.type !== 'stability' && recordEligible(ex)) {
       const prev = best(ex.id);
       if (prev) {
         const top = sets.reduce((a, st) => { const e = e1rm(loadOf(data, ex, st.w, session.date), Number(st.r)); return e > a.e ? { e, w: Number(st.w) || 0, r: Number(st.r) } : a; }, { e: 0, w: 0, r: 0 });
@@ -1182,11 +1206,25 @@ export function sessionRecords(data, session) {
 
 // Bestwerte für die Rekordliste im Fortschritt
 export function allRecords(data) {
-  const lifts = trackedExercises(data).map((ex) => {
-    const ser = exerciseSeries(data, ex.id);
-    const top = ser.reduce((a, x) => (x.e1rm > a.e1rm ? x : a), ser[0]);
-    return { exId: ex.id, name: ex.name, e1rm: top.e1rm, w: top.w, r: top.r, date: top.date, bw: top.bw };
-  });
+  const best = new Map(); const cnt = {};
+  for (const s of data.sessions) for (const b of s.blocks) {
+    if (b.type === 'stability') continue;
+    for (const it of b.items) {
+      const ex = EX[it.exId];
+      if (!recordEligible(ex)) continue;
+      const sets = (it.sets || []).filter((st) => st.done && Number(st.r) > 0);
+      if (sets.length) cnt[ex.id] = (cnt[ex.id] || 0) + 1;
+      for (const st of sets) {
+        const w = Number(st.w) || 0; const r = Number(st.r);
+        const c = { exId: ex.id, name: ex.name, w, r, date: s.date, bw: ex.load === 'bw', unit: ex.unit, e1rm: Math.round(e1rm(loadOf(data, ex, w, s.date), r) * 10) / 10 };
+        const cur = best.get(ex.id);
+        if (!cur || betterSet(c, cur)) best.set(ex.id, c);
+      }
+    }
+  }
+  const MAIN = ['squat', 'hinge', 'hpush', 'vpull', 'vpush', 'hpull', 'lunge'];
+  const rank = (id) => { const i = MAIN.indexOf(EX[id].slot); return i < 0 ? 99 : i; };
+  const lifts = [...best.values()].sort((a, b) => rank(a.exId) - rank(b.exId) || cnt[b.exId] - cnt[a.exId]);
   const runs = runEntries(data, null);
   const longest = runs.reduce((a, r) => (!a || r.km > a.km ? r : a), null);
   const fastest = runs.filter(paceOf).reduce((a, r) => (!a || paceOf(r) < paceOf(a) ? r : a), null);

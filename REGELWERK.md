@@ -274,7 +274,7 @@ Du trägst nur **Gewicht und Wiederholungen** ein. Daraus leitet die App ab:
 
 ## 5. Rekorde & Rückmeldung nach dem Training
 
-- **Rekorde:** Beim Abschließen vergleicht die App jede Übung mit allen früheren Einheiten – höheres geschätztes 1RM (Epley) oder schwerster Satz, beim Laufen längste Strecke und schnellste Pace (ab 3 km). Rekorde werden gefeiert, im Verlauf markiert und im Fortschritt gelistet.
+- **Rekorde:** Beim Abschließen vergleicht die App jede Kraftübung mit allen früheren Einheiten – höheres geschätztes 1RM (Epley) oder schwerster Satz, bei Körpergewichtsübungen (Klimmzüge, Dips, Liegestütze …) die meisten Wdh. in einem Satz (bei Gleichstand mehr Zusatzgewicht), beim Laufen längste Strecke und schnellste Pace (ab 3 km). Rekorde gibt es nur für Kraftübungen: nicht für Ausgleich (Ausgleich-Block, Rumpf, Schulter- und Knie-Prävention, Reha, hintere Schulter, Abduktoren), Schnellkraft und Übungen mit Band. Rekorde werden gefeiert, im Verlauf markiert und im Fortschritt gelistet.
 - **Belastung automatisch:** Aus den eingetragenen Wdh. – ≥ 50 % der Kraftsätze unter dem Wdh.-Ziel = zu schwer → nächste Einheit 1 Satz weniger pro Übung, kein Finisher, nächster Lauf locker; zweimal innerhalb kurzer Zeit → Deload-Charakter (−10 % Gewicht). ≥ 80 % am oberen Ende = zu leicht → Hauptübungen +1 Satz.
 - **Beschwerden:** erst „Gelenk“ oder „Muskel“ wählen.
   - **Gelenk** (Knie, Schulter, Rücken, Ellbogen, Hüfte, Sprunggelenk): keine Schonung, sondern 4 Wochen lang Ausgleichsübungen für die Region (s. Abschnitt 6), bis du sie als „wieder gut“ markierst. Dauerhafte Problemzonen lassen sich im Profil auswählen; für sie gibt es den Ausgleich in jeder Einheit.
